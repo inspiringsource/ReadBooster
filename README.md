@@ -10,6 +10,7 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 
 - Detect configured AI conversation sites.
 - Inject one idempotent **Optimize Reading** control.
+- Serialize optimization requests so rapid repeated activation cannot create duplicate readers.
 - Extract the latest ChatGPT assistant response.
 - Remove host controls and sanitize the cloned HTML with a conservative allowlist.
 - Open a Shadow DOM-isolated full-screen reader overlay.
@@ -41,6 +42,8 @@ No background service worker is present because the popup can communicate direct
 | Gemini (`gemini.google.com`) | Configured  | Scaffold; safely returns `null` / `[]`                | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
 
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
+
+Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
 
 ## Install dependencies
 
@@ -95,7 +98,7 @@ Automated tests deliberately use compact fixtures rather than reproducing a brit
 13. Trigger a new or streaming response; after completion, confirm optimizing selects the newest assistant response.
 14. Open the popup on ChatGPT and confirm it reports support and opens the same reader flow.
 15. Open the popup on an unrelated website and confirm it reports that the page is unsupported.
-16. Visit Claude and Gemini and confirm their adapters fail safely without claiming extraction works.
+16. Visit Claude and Gemini and confirm no page optimization button is injected and the popup reports that support is not yet implemented.
 
 ## Security and content handling
 
@@ -121,6 +124,7 @@ src/
 │   ├── index.ts
 │   ├── injectButton.ts
 │   ├── messages.ts
+│   ├── optimization.ts
 │   └── sanitize.ts
 ├── manifest/
 │   └── manifest.ts
@@ -140,7 +144,7 @@ src/
 tests/
 ```
 
-Website extraction, injected controls, reader rendering, preferences, messaging, popup UI, and build configuration remain separate. The popup never duplicates extraction logic; both entry points send work through the content script's `optimizeLatest` function.
+Website extraction, injected controls, reader rendering, preferences, messaging, popup UI, and build configuration remain separate. The popup never duplicates extraction logic; both entry points use the content script's serialized optimization service.
 
 ## Known limitations
 

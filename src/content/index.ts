@@ -1,7 +1,8 @@
-import { mountReader } from "../reader/mountReader";
+import type { ExtractedResponse } from "../shared/types";
 import { getActiveAdapter } from "./adapters/getActiveAdapter";
 import { CONTROL_HOST_ID, injectOptimizeButton } from "./injectButton";
-import { type ContentRequest, type ContentResponse, isContentRequest } from "./messages";
+import { createContentMessageListener } from "./messages";
+import { createOptimizationService } from "./optimization";
 
 declare global {
   interface Window {
@@ -13,66 +14,57 @@ window.__readBoosterCleanup?.();
 
 const adapter = getActiveAdapter();
 let buttonCleanup: (() => void) | null = null;
+let disposed = false;
+let readerModulePromise: Promise<typeof import("../reader/mountReader")> | null = null;
 
-async function optimizeLatest(): Promise<ContentResponse> {
-  if (!adapter?.isSupportedPage()) {
-    return { ok: false, supported: false, reason: "unsupported-page" };
-  }
-
-  const response = adapter.getLatestAssistantResponse();
-  if (!response) {
-    return { ok: false, supported: true, reason: "no-response" };
-  }
-
-  try {
-    await mountReader(response);
-    return { ok: true, supported: true, source: response.source };
-  } catch {
-    return { ok: false, supported: true, reason: "reader-error" };
-  }
+function loadReaderModule(): Promise<typeof import("../reader/mountReader")> {
+  readerModulePromise ??= import("../reader/mountReader");
+  return readerModulePromise;
 }
+
+async function mountExtractedResponse(response: ExtractedResponse): Promise<void> {
+  const readerModule = await loadReaderModule();
+  if (disposed) {
+    readerModule.unmountReader();
+    throw new Error("ReadBooster content script was disposed");
+  }
+  await readerModule.mountReader(response);
+}
+
+const optimizationService = createOptimizationService(adapter, mountExtractedResponse);
 
 function ensureButton(): void {
-  if (!adapter?.isSupportedPage() || document.getElementById(CONTROL_HOST_ID)) {
+  if (
+    disposed ||
+    !adapter?.isSupportedPage() ||
+    !adapter.capabilities.canExtractResponses ||
+    document.getElementById(CONTROL_HOST_ID)
+  ) {
     return;
   }
-  buttonCleanup = injectOptimizeButton(document, () => {
-    void optimizeLatest();
-  });
+  buttonCleanup = injectOptimizeButton(document, optimizationService.optimizeLatest);
 }
 
-async function handleMessage(message: ContentRequest): Promise<ContentResponse> {
-  if (message.type === "READBOOSTER_GET_STATUS") {
-    const supported = Boolean(adapter?.isSupportedPage());
-    return {
-      ok: true,
-      supported,
-      source: adapter?.source ?? null,
-      extractionAvailable: Boolean(adapter?.getLatestAssistantResponse()),
-    };
-  }
-  return optimizeLatest();
-}
-
-const messageListener = (
-  message: unknown,
-  _sender: chrome.runtime.MessageSender,
-  sendResponse: (response: ContentResponse) => void,
-): boolean => {
-  if (!isContentRequest(message)) {
-    return false;
-  }
-  void handleMessage(message).then(sendResponse);
-  return true;
-};
+const messageListener = createContentMessageListener(optimizationService.handleMessage, () =>
+  Boolean(adapter?.isSupportedPage()),
+);
 
 chrome.runtime.onMessage.addListener(messageListener);
 ensureButton();
-const stopObserving = adapter?.observePageChanges(ensureButton) ?? (() => undefined);
+const stopObserving = adapter?.capabilities.canExtractResponses
+  ? adapter.observePageChanges(ensureButton)
+  : () => undefined;
 
 window.__readBoosterCleanup = () => {
+  disposed = true;
   stopObserving();
   buttonCleanup?.();
+  buttonCleanup = null;
   chrome.runtime.onMessage.removeListener(messageListener);
+  if (readerModulePromise) {
+    void readerModulePromise
+      .then((readerModule) => readerModule.unmountReader())
+      .catch(() => undefined);
+  }
   delete window.__readBoosterCleanup;
 };

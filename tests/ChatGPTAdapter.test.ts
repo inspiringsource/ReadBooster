@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ChatGPTAdapter } from "../src/content/adapters/ChatGPTAdapter";
 
@@ -51,5 +51,43 @@ describe("ChatGPTAdapter", () => {
     document.body.innerHTML = '<div data-message-author-role="assistant"><p>Answer</p></div>';
     const adapter = new ChatGPTAdapter(document, "example.com");
     expect(adapter.getLatestAssistantResponse()).toBeNull();
+  });
+
+  it("combines mixed selector families and chooses the newest turn in document order", () => {
+    document.body.innerHTML = `
+      <article data-message-author-role="assistant" data-message-id="old-shape">
+        <div class="markdown"><p>Old selector family</p></div>
+      </article>
+      <article data-turn="assistant" data-testid="conversation-turn-new-shape">
+        <div data-message-content><p>Newest response</p></div>
+      </article>
+    `;
+
+    const adapter = new ChatGPTAdapter(document, "chatgpt.com");
+    const getAllSpy = vi.spyOn(adapter, "getAllAssistantResponses").mockImplementation(() => {
+      throw new Error("latest extraction must not call getAllAssistantResponses");
+    });
+
+    const latest = adapter.getLatestAssistantResponse();
+    expect(latest?.id).toBe("conversation-turn-new-shape");
+    expect(latest?.text).toBe("Newest response");
+    expect(getAllSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses only plausible turn-author positions for the fallback selector", () => {
+    document.body.innerHTML = `
+      <article data-testid="conversation-turn-control-only">
+        <button aria-label="Assistant">Menu</button>
+        <p>Not an identified assistant response</p>
+      </article>
+      <article data-testid="conversation-turn-labeled">
+        <header><h6>ChatGPT said:</h6></header>
+        <div class="markdown"><p>Fallback response</p></div>
+      </article>
+    `;
+
+    const responses = new ChatGPTAdapter(document, "chatgpt.com").getAllAssistantResponses();
+    expect(responses).toHaveLength(1);
+    expect(responses[0].id).toBe("conversation-turn-labeled");
   });
 });

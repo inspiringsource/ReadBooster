@@ -3,6 +3,12 @@ import type { ConversationAdapter } from "./ConversationAdapter";
 
 export class GeminiAdapter implements ConversationAdapter {
   readonly source = "gemini" as const;
+  readonly capabilities = {
+    configured: true,
+    implemented: false,
+    manuallyVerified: false,
+    canExtractResponses: false,
+  } as const;
 
   constructor(private readonly hostname: string = window.location.hostname) {}
 
@@ -11,6 +17,10 @@ export class GeminiAdapter implements ConversationAdapter {
   }
 
   // Scaffold only: no extraction is claimed until live DOM behavior is manually verified.
+  hasLatestAssistantResponse(): boolean {
+    return false;
+  }
+
   getLatestAssistantResponse(): ExtractedResponse | null {
     return null;
   }

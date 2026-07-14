@@ -15,10 +15,19 @@ const CONTROL_STYLES = `
     white-space: nowrap;
   }
   button:hover { background: #1948bd; }
+  button:disabled { cursor: wait; opacity: 0.78; }
   button:focus-visible { outline: 3px solid #f7b955; outline-offset: 3px; }
 `;
 
-export function injectOptimizeButton(doc: Document, onOptimize: () => void): () => void {
+interface OptimizeResult {
+  ok: boolean;
+  reason?: "unsupported-page" | "no-response" | "reader-error";
+}
+
+export function injectOptimizeButton(
+  doc: Document,
+  onOptimize: () => Promise<OptimizeResult>,
+): () => void {
   if (doc.getElementById(CONTROL_HOST_ID)) {
     return () => undefined;
   }
@@ -37,12 +46,53 @@ export function injectOptimizeButton(doc: Document, onOptimize: () => void): () 
   button.type = "button";
   button.textContent = "Optimize Reading";
   button.setAttribute("aria-label", "Optimize the latest assistant response for reading");
-  button.addEventListener("click", onOptimize);
-  shadow.append(style, button);
+  const status = doc.createElement("span");
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  status.style.cssText =
+    "display:block;margin-top:6px;padding:4px 7px;border-radius:5px;background:rgba(20,24,32,.94);color:#fff;font:12px/1.3 system-ui;max-width:180px;text-align:center;";
+
+  let busy = false;
+  let disposed = false;
+  const handleClick = async (): Promise<void> => {
+    if (busy || disposed) {
+      return;
+    }
+    busy = true;
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.textContent = "Opening…";
+    status.textContent = "";
+
+    try {
+      const result = await onOptimize();
+      if (!result.ok && !disposed) {
+        status.textContent =
+          result.reason === "no-response"
+            ? "No assistant response found."
+            : "Could not open the reader.";
+      }
+    } catch {
+      if (!disposed) {
+        status.textContent = "Could not open the reader.";
+      }
+    } finally {
+      busy = false;
+      if (!disposed) {
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+        button.textContent = "Optimize Reading";
+      }
+    }
+  };
+
+  button.addEventListener("click", handleClick);
+  shadow.append(style, button, status);
   doc.body.append(host);
 
   return () => {
-    button.removeEventListener("click", onOptimize);
+    disposed = true;
+    button.removeEventListener("click", handleClick);
     host.remove();
   };
 }

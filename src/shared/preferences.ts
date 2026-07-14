@@ -28,19 +28,26 @@ export function normalizeReaderPreferences(value: unknown): ReaderPreferences {
   }
 
   const candidate = value as Record<string, unknown>;
+  const appearance = isAllowed(candidate.appearance, APPEARANCE_MODES)
+    ? candidate.appearance
+    : DEFAULT_READER_PREFERENCES.appearance;
+  const preset = isAllowed(candidate.preset, READER_PRESETS)
+    ? candidate.preset
+    : DEFAULT_READER_PREFERENCES.preset;
+
+  if (preset !== "custom") {
+    return preferencesForPreset(preset, appearance);
+  }
+
   return {
-    appearance: isAllowed(candidate.appearance, APPEARANCE_MODES)
-      ? candidate.appearance
-      : DEFAULT_READER_PREFERENCES.appearance,
+    appearance,
     textSize: isAllowed(candidate.textSize, TEXT_SIZES)
       ? candidate.textSize
       : DEFAULT_READER_PREFERENCES.textSize,
     spacing: isAllowed(candidate.spacing, SPACING_LEVELS)
       ? candidate.spacing
       : DEFAULT_READER_PREFERENCES.spacing,
-    preset: isAllowed(candidate.preset, READER_PRESETS)
-      ? candidate.preset
-      : DEFAULT_READER_PREFERENCES.preset,
+    preset,
   };
 }
 

@@ -22,7 +22,7 @@ describe("reader preferences", () => {
     ).toEqual({
       appearance: "system",
       textSize: "large",
-      spacing: "comfortable",
+      spacing: "roomy",
       preset: "dyslexia-friendly",
     });
   });
@@ -33,6 +33,22 @@ describe("reader preferences", () => {
       textSize: "large",
       spacing: "roomy",
       preset: "dyslexia-friendly",
+    });
+  });
+
+  it("keeps the comfortable preset internally consistent", () => {
+    expect(
+      normalizeReaderPreferences({
+        appearance: "light",
+        textSize: "x-large",
+        spacing: "roomy",
+        preset: "comfortable",
+      }),
+    ).toEqual({
+      appearance: "light",
+      textSize: "medium",
+      spacing: "comfortable",
+      preset: "comfortable",
     });
   });
 });

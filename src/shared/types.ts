@@ -8,6 +8,13 @@ export interface ExtractedResponse {
   extractedAt: string;
 }
 
+export interface AdapterCapabilities {
+  configured: boolean;
+  implemented: boolean;
+  manuallyVerified: boolean;
+  canExtractResponses: boolean;
+}
+
 export type AppearanceMode = "system" | "light" | "dark";
 export type TextSize = "small" | "medium" | "large" | "x-large";
 export type SpacingLevel = "compact" | "comfortable" | "roomy";

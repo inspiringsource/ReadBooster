@@ -50,7 +50,7 @@ export function Popup() {
   useEffect(() => {
     void (async () => {
       const tab = await getActiveTab();
-      if (!tab?.id || !isConfiguredUrl(tab.url)) {
+      if (tab?.id == null || !isConfiguredUrl(tab.url)) {
         setState("unsupported");
         setMessage("This page is not supported.");
         return;
@@ -59,13 +59,24 @@ export function Popup() {
       setTabId(tab.id);
       try {
         const response = await sendToTab(tab.id, { type: "READBOOSTER_GET_STATUS" });
-        if (response.ok && "extractionAvailable" in response && response.supported) {
-          setState("supported");
-          setMessage(
-            response.extractionAvailable
-              ? "A response is ready to optimize."
-              : "Supported page. No assistant response found yet.",
-          );
+        if (response.ok && "canExtractResponses" in response && response.supported) {
+          if (!response.canExtractResponses) {
+            const platform =
+              response.source === "claude"
+                ? "Claude"
+                : response.source === "gemini"
+                  ? "Gemini"
+                  : "This platform";
+            setState("unavailable");
+            setMessage(`${platform} support is not yet implemented.`);
+          } else {
+            setState("supported");
+            setMessage(
+              response.responseAvailable
+                ? "A response is ready to optimize."
+                : "Supported page. No assistant response found yet.",
+            );
+          }
         } else {
           setState("unsupported");
           setMessage("This page is not supported.");
