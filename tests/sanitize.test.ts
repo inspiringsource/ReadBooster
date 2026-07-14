@@ -66,7 +66,7 @@ describe("response sanitization", () => {
     const { html, text } = sanitizeResponseHtml(
       fixture(`
         <ol start="3"><li value="5">Five<li>Six</ol>
-        <table><tr><th id="name" scope="col">Name</th></tr><tr><td headers="name">A</td></tr></table>
+        <table><tr><th id="name" scope="col" colspan="2">Name</th></tr><tr><td headers="name" rowspan="2">A</td><td>B</td></tr></table>
         <p><strong>Unclosed
       `),
     );
@@ -74,6 +74,8 @@ describe("response sanitization", () => {
     expect(html).toContain('start="3"');
     expect(html).toContain('value="5"');
     expect(html).toContain('scope="col"');
+    expect(html).toContain('colspan="2"');
+    expect(html).toContain('rowspan="2"');
     const sanitized = fixture(html);
     const headerId = sanitized.querySelector("th")?.id;
     expect(headerId).toMatch(/^rb-content-/);

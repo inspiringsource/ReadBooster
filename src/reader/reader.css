@@ -1,12 +1,27 @@
 :host {
   all: initial;
   color-scheme: light dark;
+  display: block;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  width: 100%;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+.rb-reader-mount {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .rb-reader {
@@ -17,6 +32,8 @@
   --rb-border: #d9d3c7;
   --rb-accent: #2357d9;
   --rb-code: #ece8df;
+  --rb-table-stripe: #f5f1e8;
+  --rb-table-scroll-shadow: rgba(32, 36, 43, 0.28);
   background: var(--rb-background);
   color: var(--rb-text);
   display: grid;
@@ -27,9 +44,13 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-  width: 100vw;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .rb-reader[data-appearance="dark"] {
@@ -40,6 +61,8 @@
   --rb-border: #3b414c;
   --rb-accent: #8aafff;
   --rb-code: #292e37;
+  --rb-table-stripe: #242a33;
+  --rb-table-scroll-shadow: rgba(0, 0, 0, 0.72);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,6 +74,8 @@
     --rb-border: #3b414c;
     --rb-accent: #8aafff;
     --rb-code: #292e37;
+    --rb-table-stripe: #242a33;
+    --rb-table-scroll-shadow: rgba(0, 0, 0, 0.72);
   }
 }
 
@@ -61,6 +86,8 @@
   display: flex;
   gap: 24px;
   justify-content: space-between;
+  max-width: 100%;
+  min-width: 0;
   padding: 12px clamp(16px, 3vw, 40px);
 }
 
@@ -84,6 +111,20 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.rb-response-navigation {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.rb-response-position {
+  color: var(--rb-muted);
+  font-size: 12px;
+  font-weight: 650;
+  min-width: 96px;
+  text-align: center;
 }
 
 .rb-controls label {
@@ -119,8 +160,15 @@
   border-color: var(--rb-accent);
 }
 
+.rb-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .rb-controls :focus-visible,
-.rb-content a:focus-visible {
+.rb-content a:focus-visible,
+.rb-block-toolbar button:focus-visible,
+.rb-table-scroll:focus-visible {
   outline: 3px solid var(--rb-accent);
   outline-offset: 2px;
 }
@@ -136,9 +184,25 @@
 }
 
 .rb-scroll-area {
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
-  overflow: auto;
-  padding: clamp(30px, 6vw, 72px) 20px 96px;
+  min-width: 0;
+  overscroll-behavior: contain;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(30px, 6vw, 72px) 16px 96px;
+  scrollbar-gutter: stable;
+}
+
+.rb-visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .rb-content {
@@ -151,6 +215,7 @@
   line-height: var(--rb-line-height);
   margin: 0 auto;
   max-width: 72ch;
+  min-width: 0;
   padding: clamp(28px, 6vw, 64px);
   overflow-wrap: anywhere;
 }
@@ -251,25 +316,222 @@
   padding: 0;
 }
 
-.rb-content table {
-  border-collapse: collapse;
-  display: block;
+.rb-table-block {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: var(--rb-table-font-size, 0.82em);
+  line-height: var(--rb-table-line-height, 1.42);
+  margin-block: 1.4em;
   max-width: 100%;
-  overflow-x: auto;
-  width: max-content;
+  min-width: 0;
+  position: relative;
 }
 
-.rb-content th,
-.rb-content td {
+.rb-table-block[data-mode="fit"] {
+  width: 100%;
+}
+
+.rb-table-block[data-mode="wide"] {
+  left: 50%;
+  max-width: var(--rb-table-panel-width, calc(100vw - var(--rb-table-panel-inline-gutter, 32px)));
+  transform: translateX(-50%);
+  width: var(--rb-table-panel-width, calc(100vw - var(--rb-table-panel-inline-gutter, 32px)));
+}
+
+.rb-block-toolbar {
+  align-items: center;
+  background: var(--rb-code);
   border: 1px solid var(--rb-border);
-  padding: 0.55em 0.75em;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 7px;
+}
+
+.rb-block-toolbar-title {
+  color: var(--rb-muted);
+  font-size: 12px;
+  font-weight: 750;
+  margin-right: 4px;
+}
+
+.rb-block-toolbar button {
+  appearance: none;
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 5px;
+  color: var(--rb-text);
+  cursor: pointer;
+  font:
+    650 12px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  min-height: 30px;
+  padding: 5px 8px;
+}
+
+.rb-block-toolbar button:hover {
+  border-color: var(--rb-accent);
+}
+
+.rb-block-toolbar button[aria-pressed="true"] {
+  background: var(--rb-accent);
+  border-color: var(--rb-accent);
+  color: #fff;
+}
+
+.rb-table-fullscreen-close {
+  margin-left: auto;
+}
+
+.rb-table-viewport {
+  max-width: 100%;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.rb-table-viewport::before,
+.rb-table-viewport::after {
+  bottom: 1px;
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 1px;
+  transition: none;
+  width: 18px;
+  z-index: 2;
+}
+
+.rb-table-viewport::before {
+  background: linear-gradient(90deg, var(--rb-table-scroll-shadow), transparent);
+  left: 1px;
+}
+
+.rb-table-viewport::after {
+  background: linear-gradient(270deg, var(--rb-table-scroll-shadow), transparent);
+  right: 1px;
+}
+
+.rb-table-viewport[data-can-scroll-left="true"]::before,
+.rb-table-viewport[data-can-scroll-right="true"]::after {
+  opacity: 1;
+}
+
+.rb-table-scroll {
+  border: 1px solid var(--rb-border);
+  border-radius: 0 0 8px 8px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior: contain;
+  width: 100%;
+}
+
+.rb-table-block table {
+  border-collapse: collapse;
+  display: table;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.rb-table-block[data-mode="fit"] table {
+  min-width: max(100%, var(--rb-table-fit-min-width));
+  table-layout: auto;
+}
+
+.rb-table-block[data-mode="wide"] table {
+  min-width: max(100%, var(--rb-table-wide-min-width));
+}
+
+.rb-table-block[data-columns="2"] th:first-child,
+.rb-table-block[data-columns="2"] td:first-child {
+  max-width: var(--rb-table-first-column-width);
+  width: var(--rb-table-first-column-width);
+}
+
+.rb-table-block th,
+.rb-table-block td {
+  border: 1px solid var(--rb-border);
+  hyphens: none;
+  overflow-wrap: normal;
+  padding: var(--rb-table-cell-padding, 0.45em 0.62em);
   text-align: left;
   vertical-align: top;
+  word-break: normal;
 }
 
-.rb-content th {
+.rb-table-block a,
+.rb-table-block code,
+.rb-table-long-token {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.rb-table-block th {
   background: var(--rb-code);
   font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.rb-table-block thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rb-table-block tbody tr:nth-child(even) {
+  background: var(--rb-table-stripe);
+}
+
+.rb-table-block[data-rb-table-fullscreen="true"] {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 100vmax rgba(8, 11, 16, 0.72),
+    0 16px 50px rgba(0, 0, 0, 0.3);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  inset: 16px;
+  margin: 0;
+  max-height: calc(100dvh - 32px);
+  max-width: calc(100dvw - 32px);
+  min-width: 0;
+  overflow: hidden;
+  padding: 10px;
+  position: fixed;
+  transform: none;
+  width: auto;
+  z-index: 20;
+}
+
+.rb-table-block[data-rb-table-fullscreen="true"] .rb-block-toolbar {
+  border-bottom: 1px solid var(--rb-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.rb-table-block[data-rb-table-fullscreen="true"] .rb-table-viewport {
+  min-height: 0;
+}
+
+.rb-table-block[data-rb-table-fullscreen="true"] .rb-table-scroll {
+  border-radius: 8px;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
 }
 
 @media (max-width: 900px) {
@@ -289,9 +551,26 @@
   .rb-controls select {
     width: 100%;
   }
+
+  .rb-response-navigation {
+    flex-basis: 100%;
+  }
+
+  .rb-table-block[data-rb-table-fullscreen="true"] {
+    inset: 8px;
+    max-height: calc(100dvh - 16px);
+    max-width: calc(100dvw - 16px);
+  }
 }
 
 @media print {
+  :host,
+  .rb-reader-mount {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
   .rb-reader {
     background: #fff;
     color: #000;
@@ -314,6 +593,22 @@
     box-shadow: none;
     max-width: none;
     padding: 0;
+  }
+
+  .rb-block-toolbar {
+    display: none;
+  }
+
+  .rb-table-block,
+  .rb-table-block[data-mode="wide"] {
+    left: auto;
+    transform: none;
+    width: auto;
+  }
+
+  .rb-table-scroll {
+    border: 0;
+    overflow: visible;
   }
 }
 

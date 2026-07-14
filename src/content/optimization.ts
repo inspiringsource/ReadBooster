@@ -7,7 +7,10 @@ import type {
   OptimizeResponse,
 } from "./messages";
 
-export type ReaderMounter = (response: ExtractedResponse) => Promise<unknown>;
+export type ReaderMounter = (
+  responses: ExtractedResponse[],
+  initialResponseIndex: number,
+) => Promise<unknown>;
 
 export interface OptimizationService {
   getStatus(): ContentStatusResponse;
@@ -54,12 +57,13 @@ export function createOptimizationService(
     }
 
     try {
-      const response = adapter.getLatestAssistantResponse();
-      if (!response) {
+      const responses = adapter.getAllAssistantResponses();
+      if (responses.length === 0) {
         return { ok: false, supported: true, reason: "no-response" };
       }
-      await mountResponse(response);
-      return { ok: true, supported: true, source: response.source };
+      const initialResponseIndex = responses.length - 1;
+      await mountResponse(responses, initialResponseIndex);
+      return { ok: true, supported: true, source: responses[initialResponseIndex].source };
     } catch {
       return { ok: false, supported: true, reason: "reader-error" };
     }

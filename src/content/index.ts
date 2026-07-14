@@ -22,16 +22,19 @@ function loadReaderModule(): Promise<typeof import("../reader/mountReader")> {
   return readerModulePromise;
 }
 
-async function mountExtractedResponse(response: ExtractedResponse): Promise<void> {
+async function mountExtractedResponses(
+  responses: ExtractedResponse[],
+  initialResponseIndex: number,
+): Promise<void> {
   const readerModule = await loadReaderModule();
   if (disposed) {
     readerModule.unmountReader();
     throw new Error("ReadBooster content script was disposed");
   }
-  await readerModule.mountReader(response);
+  await readerModule.mountReader(responses, initialResponseIndex);
 }
 
-const optimizationService = createOptimizationService(adapter, mountExtractedResponse);
+const optimizationService = createOptimizationService(adapter, mountExtractedResponses);
 
 function ensureButton(): void {
   if (

@@ -27,6 +27,7 @@ const FALLBACK_AUTHOR_LABEL_SELECTORS = [
   ":scope > div:first-child > h6",
   ':scope > [data-testid="conversation-turn-author"]',
 ].join(",");
+const ASSISTANT_AUTHOR_LABEL = /^(chatgpt|assistant)(\s+said)?\s*:?$/i;
 
 const HOST_UI_SELECTORS = [
   "button",
@@ -82,9 +83,13 @@ export class ChatGPTAdapter implements ConversationAdapter {
     try {
       const candidates = this.getAssistantContainers();
       for (let index = candidates.length - 1; index >= 0; index -= 1) {
-        const response = this.extractResponse(candidates[index], index);
-        if (response) {
-          return response;
+        try {
+          const response = this.extractResponse(candidates[index], index);
+          if (response) {
+            return response;
+          }
+        } catch {
+          // A stale or changing newest turn must not prevent trying the preceding valid turn.
         }
       }
     } catch {
@@ -100,7 +105,9 @@ export class ChatGPTAdapter implements ConversationAdapter {
 
     try {
       return this.getAssistantContainers().some((container) => {
-        const contentRoot = this.findContentRoot(container);
+        const clone = container.cloneNode(true) as Element;
+        this.pruneHostOnlyContent(clone);
+        const contentRoot = this.findContentRoot(clone);
         return Boolean(contentRoot.textContent?.trim());
       });
     } catch {
@@ -113,13 +120,25 @@ export class ChatGPTAdapter implements ConversationAdapter {
       return [];
     }
 
+    let candidates: Element[];
     try {
-      return this.getAssistantContainers()
-        .map((container, index) => this.extractResponse(container, index))
-        .filter((response): response is ExtractedResponse => response !== null);
+      candidates = this.getAssistantContainers();
     } catch {
       return [];
     }
+
+    const responses: ExtractedResponse[] = [];
+    candidates.forEach((container, index) => {
+      try {
+        const response = this.extractResponse(container, index);
+        if (response) {
+          responses.push(response);
+        }
+      } catch {
+        // Individual stale turns are skipped without discarding the rest of the conversation.
+      }
+    });
+    return responses;
   }
 
   observePageChanges(callback: () => void): () => void {
@@ -159,7 +178,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
       const labels = article.querySelectorAll(FALLBACK_AUTHOR_LABEL_SELECTORS);
       if (
         Array.from(labels).some((label) =>
-          /^(chatgpt|assistant)(\s+said)?\s*:?$/i.test(label.textContent?.trim() ?? ""),
+          ASSISTANT_AUTHOR_LABEL.test(label.textContent?.trim() ?? ""),
         )
       ) {
         rawCandidates.push(article);
@@ -204,7 +223,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
 
   private extractResponse(container: Element, index: number): ExtractedResponse | null {
     const clone = container.cloneNode(true) as Element;
-    clone.querySelectorAll(HOST_UI_SELECTORS).forEach((element) => element.remove());
+    this.pruneHostOnlyContent(clone);
 
     // `.markdown` is a secondary content-boundary hint, not the assistant-turn selector.
     // If ChatGPT removes it, extraction safely falls back to the semantic container clone.
@@ -250,5 +269,14 @@ export class ChatGPTAdapter implements ConversationAdapter {
       candidate.closest("[data-message-id]") ??
       candidate
     );
+  }
+
+  private pruneHostOnlyContent(container: Element): void {
+    container.querySelectorAll(HOST_UI_SELECTORS).forEach((element) => element.remove());
+    container.querySelectorAll(FALLBACK_AUTHOR_LABEL_SELECTORS).forEach((label) => {
+      if (ASSISTANT_AUTHOR_LABEL.test(label.textContent?.trim() ?? "")) {
+        label.remove();
+      }
+    });
   }
 }

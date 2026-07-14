@@ -1,10 +1,12 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
+import packageJson from "../../package.json";
+
 export default defineManifest({
   manifest_version: 3,
   name: "ReadBooster",
   description: "Read AI-generated responses in a calm, adjustable reader view.",
-  version: "0.1.0",
+  version: packageJson.version,
   permissions: ["storage"],
   host_permissions: ["https://chatgpt.com/*", "https://claude.ai/*", "https://gemini.google.com/*"],
   action: {

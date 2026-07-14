@@ -44,15 +44,16 @@ describe("optimization service", () => {
 
     expect(duplicate).toBe(first);
     expect(service.isBusy()).toBe(true);
-    expect(adapter.getLatestAssistantResponse).toHaveBeenCalledOnce();
+    expect(adapter.getAllAssistantResponses).toHaveBeenCalledOnce();
     expect(mount).toHaveBeenCalledOnce();
+    expect(mount).toHaveBeenCalledWith([RESPONSE], 0);
 
     resolveMount();
     await expect(first).resolves.toMatchObject({ ok: true });
     expect(service.isBusy()).toBe(false);
 
     await expect(service.optimizeLatest()).resolves.toMatchObject({ ok: true });
-    expect(adapter.getLatestAssistantResponse).toHaveBeenCalledTimes(2);
+    expect(adapter.getAllAssistantResponses).toHaveBeenCalledTimes(2);
     expect(mount).toHaveBeenCalledTimes(2);
   });
 
@@ -67,5 +68,20 @@ describe("optimization service", () => {
     });
     expect(adapter.hasLatestAssistantResponse).toHaveBeenCalledOnce();
     expect(adapter.getLatestAssistantResponse).not.toHaveBeenCalled();
+    expect(adapter.getAllAssistantResponses).not.toHaveBeenCalled();
+  });
+
+  it("fails safely when no responses remain available", async () => {
+    const adapter = implementedAdapter();
+    vi.mocked(adapter.getAllAssistantResponses).mockReturnValue([]);
+    const mount = vi.fn();
+    const service = createOptimizationService(adapter, mount);
+
+    await expect(service.optimizeLatest()).resolves.toEqual({
+      ok: false,
+      supported: true,
+      reason: "no-response",
+    });
+    expect(mount).not.toHaveBeenCalled();
   });
 });

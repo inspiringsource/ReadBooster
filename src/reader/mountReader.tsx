@@ -95,10 +95,17 @@ export function unmountReader(): void {
   removeOrphanArtifacts();
 }
 
-export async function mountReader(response: ExtractedResponse): Promise<() => void> {
+export async function mountReader(
+  responses: ExtractedResponse[],
+  initialResponseIndex = responses.length - 1,
+): Promise<() => void> {
   const requestId = ++mountRequestId;
   cleanupActiveReader(true);
   removeOrphanArtifacts();
+
+  if (responses.length === 0) {
+    return () => undefined;
+  }
 
   const previouslyFocused = getDeepActiveElement();
   const preferences = await loadReaderPreferences();
@@ -114,12 +121,17 @@ export async function mountReader(response: ExtractedResponse): Promise<() => vo
   host.id = READER_HOST_ID;
   host.style.position = "fixed";
   host.style.inset = "0";
+  host.style.height = "100dvh";
+  host.style.maxHeight = "100dvh";
+  host.style.overflow = "hidden";
+  host.style.width = "100%";
   host.style.zIndex = "2147483647";
 
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = readerStyles;
   const mountPoint = document.createElement("div");
+  mountPoint.className = "rb-reader-mount";
   shadow.append(style, mountPoint);
 
   const printStyle = document.createElement("style");
@@ -127,7 +139,13 @@ export async function mountReader(response: ExtractedResponse): Promise<() => vo
   printStyle.textContent = `
     @media print {
       body > *:not(#${READER_HOST_ID}) { display: none !important; }
-      #${READER_HOST_ID} { position: static !important; }
+      #${READER_HOST_ID} {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        position: static !important;
+        width: auto !important;
+      }
     }
   `;
   document.head.append(printStyle);
@@ -154,7 +172,8 @@ export async function mountReader(response: ExtractedResponse): Promise<() => vo
   try {
     root.render(
       <ReaderView
-        response={response}
+        responses={responses}
+        initialResponseIndex={Math.min(Math.max(initialResponseIndex, 0), responses.length - 1)}
         initialPreferences={preferences}
         onClose={() => queueMicrotask(cleanup)}
       />,

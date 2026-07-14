@@ -10,9 +10,12 @@ import type {
   SpacingLevel,
   TextSize,
 } from "../shared/types";
+import type { TableDisplayState } from "./blockControls";
+import { ResponseContent } from "./ResponseContent";
 
 interface ReaderViewProps {
-  response: ExtractedResponse;
+  responses: ExtractedResponse[];
+  initialResponseIndex: number;
   initialPreferences: ReaderPreferences;
   onClose: () => void;
 }
@@ -49,16 +52,30 @@ async function copyText(text: string): Promise<void> {
   }
 }
 
-export function ReaderView({ response, initialPreferences, onClose }: ReaderViewProps) {
+export function ReaderView({
+  responses,
+  initialResponseIndex,
+  initialPreferences,
+  onClose,
+}: ReaderViewProps) {
   const [preferences, setPreferences] = useState(initialPreferences);
+  const [currentResponseIndex, setCurrentResponseIndex] = useState(initialResponseIndex);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const dialogRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [tableSessionStates] = useState(() => new Map<string, TableDisplayState>());
+  const response = responses[currentResponseIndex];
 
   useEffect(() => {
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent): void => {
+      const fullscreenTable = dialogRef.current?.querySelector('[data-rb-table-fullscreen="true"]');
+      if (fullscreenTable) {
+        return;
+      }
+
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -67,12 +84,36 @@ export function ReaderView({ response, initialPreferences, onClose }: ReaderView
       }
 
       if (event.key !== "Tab" || !dialogRef.current) {
+        const target = event.target;
+        const isFormControl =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement;
+        const isTableViewport =
+          target instanceof Element && Boolean(target.closest(".rb-table-scroll"));
+        const scrollArea = scrollAreaRef.current;
+        if (!isFormControl && !isTableViewport && scrollArea) {
+          const pageDistance = Math.max(120, scrollArea.clientHeight * 0.85);
+          const scrollCommands: Partial<Record<string, () => void>> = {
+            PageDown: () => scrollArea.scrollBy({ top: pageDistance }),
+            PageUp: () => scrollArea.scrollBy({ top: -pageDistance }),
+            Home: () => scrollArea.scrollTo({ top: 0 }),
+            End: () => scrollArea.scrollTo({ top: scrollArea.scrollHeight }),
+            ArrowDown: () => scrollArea.scrollBy({ top: 48 }),
+            ArrowUp: () => scrollArea.scrollBy({ top: -48 }),
+          };
+          const scroll = scrollCommands[event.key];
+          if (scroll) {
+            event.preventDefault();
+            scroll();
+          }
+        }
         return;
       }
 
       const focusable = Array.from(
         dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+          'button:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), a[href], [tabindex]:not([tabindex="-1"]):not([hidden])',
         ),
       );
       if (focusable.length === 0) {
@@ -139,6 +180,16 @@ export function ReaderView({ response, initialPreferences, onClose }: ReaderView
     }
   };
 
+  const showPreviousResponse = (): void => {
+    setCopyStatus("idle");
+    setCurrentResponseIndex((index) => Math.max(0, index - 1));
+  };
+
+  const showNextResponse = (): void => {
+    setCopyStatus("idle");
+    setCurrentResponseIndex((index) => Math.min(responses.length - 1, index + 1));
+  };
+
   return (
     <div
       ref={dialogRef}
@@ -157,6 +208,28 @@ export function ReaderView({ response, initialPreferences, onClose }: ReaderView
         </div>
 
         <div className="rb-controls" aria-label="Reader preferences">
+          <div className="rb-response-navigation" aria-label="Assistant response navigation">
+            <button
+              type="button"
+              onClick={showPreviousResponse}
+              disabled={currentResponseIndex === 0}
+              aria-label="Show previous assistant response"
+            >
+              Previous
+            </button>
+            <output className="rb-response-position" aria-live="polite">
+              Response {currentResponseIndex + 1} of {responses.length}
+            </output>
+            <button
+              type="button"
+              onClick={showNextResponse}
+              disabled={currentResponseIndex === responses.length - 1}
+              aria-label="Show next assistant response"
+            >
+              Next
+            </button>
+          </div>
+
           <label>
             <span>Preset</span>
             <select
@@ -210,9 +283,21 @@ export function ReaderView({ response, initialPreferences, onClose }: ReaderView
             </select>
           </label>
 
-          <button type="button" onClick={() => void handleCopy()} aria-label="Copy response text">
+          <button
+            type="button"
+            onClick={() => void handleCopy()}
+            aria-label="Copy response text"
+            aria-describedby="rb-copy-status"
+          >
             {copyStatus === "copied" ? "Copied" : copyStatus === "failed" ? "Copy failed" : "Copy"}
           </button>
+          <span id="rb-copy-status" className="rb-visually-hidden" role="status" aria-live="polite">
+            {copyStatus === "copied"
+              ? "Response copied."
+              : copyStatus === "failed"
+                ? "Copy failed."
+                : ""}
+          </span>
           <button type="button" onClick={() => window.print()} aria-label="Print response">
             Print
           </button>
@@ -228,12 +313,13 @@ export function ReaderView({ response, initialPreferences, onClose }: ReaderView
         </div>
       </header>
 
-      <main className="rb-scroll-area">
-        <article
-          className="rb-content"
-          aria-label="Latest assistant response"
-          dangerouslySetInnerHTML={{ __html: response.html }}
-        />
+      <main
+        ref={scrollAreaRef}
+        className="rb-scroll-area"
+        data-rb-scroll-container="vertical"
+        aria-label="Reader content"
+      >
+        <ResponseContent response={response} tableSessionStates={tableSessionStates} />
       </main>
     </div>
   );

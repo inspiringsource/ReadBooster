@@ -10,6 +10,8 @@ afterEach(() => {
   unmountReader();
   cleanup();
   document.body.innerHTML = "";
+  document.body.removeAttribute("style");
   document.head.innerHTML = "";
+  document.documentElement.removeAttribute("style");
   vi.unstubAllGlobals();
 });

@@ -90,4 +90,26 @@ describe("ChatGPTAdapter", () => {
     expect(responses).toHaveLength(1);
     expect(responses[0].id).toBe("conversation-turn-labeled");
   });
+
+  it("returns every valid assistant response in actual document order", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-testid="conversation-turn-1">
+        <div data-message-content><p>First response</p></div>
+      </article>
+      <article data-message-author-role="assistant" data-message-id="second-response">
+        <div class="markdown"><p>Second response</p></div>
+      </article>
+      <article data-testid="conversation-turn-3">
+        <header><h6>ChatGPT said:</h6></header>
+        <div class="markdown"><p>Third response</p></div>
+      </article>
+    `;
+
+    const responses = new ChatGPTAdapter(document, "chatgpt.com").getAllAssistantResponses();
+    expect(responses.map((response) => response.text)).toEqual([
+      "First response",
+      "Second response",
+      "Third response",
+    ]);
+  });
 });

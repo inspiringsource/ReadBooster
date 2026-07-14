@@ -31,8 +31,8 @@ describe("reader lifecycle", () => {
       },
     });
 
-    const firstMount = mountReader(RESPONSE);
-    const secondMount = mountReader({ ...RESPONSE, id: "response-2" });
+    const firstMount = mountReader([RESPONSE]);
+    const secondMount = mountReader([{ ...RESPONSE, id: "response-2" }]);
     resolveStorage({});
 
     await act(async () => {
@@ -49,18 +49,22 @@ describe("reader lifecycle", () => {
     const ordinaryBackground = document.createElement("main");
     const alreadyInert = document.createElement("aside");
     alreadyInert.setAttribute("inert", "");
+    document.documentElement.style.overflow = "clip";
+    document.body.style.overflow = "scroll";
     document.body.append(opener, ordinaryBackground, alreadyInert);
     opener.focus();
 
     await act(async () => {
-      await mountReader(RESPONSE);
-      await mountReader({ ...RESPONSE, id: "replacement" });
+      await mountReader([RESPONSE]);
+      await mountReader([{ ...RESPONSE, id: "replacement" }]);
     });
 
     expect(document.querySelectorAll(`#${READER_HOST_ID}`)).toHaveLength(1);
     expect(document.querySelectorAll("#readbooster-print-style")).toHaveLength(1);
     expect(ordinaryBackground.inert).toBe(true);
     expect(alreadyInert.inert).toBe(true);
+    expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.overflow).toBe("scroll");
 
     await act(async () => unmountReader());
 
@@ -69,6 +73,8 @@ describe("reader lifecycle", () => {
     expect(ordinaryBackground.hasAttribute("inert")).toBe(false);
     expect(alreadyInert.hasAttribute("inert")).toBe(true);
     expect(document.activeElement).toBe(opener);
+    expect(document.documentElement.style.overflow).toBe("clip");
+    expect(document.body.style.overflow).toBe("scroll");
   });
 
   it("wraps focus in both directions, closes on Escape, and restores focus", async () => {
@@ -80,7 +86,7 @@ describe("reader lifecycle", () => {
     opener.focus();
 
     await act(async () => {
-      await mountReader(RESPONSE);
+      await mountReader([RESPONSE]);
     });
 
     const host = readerHost();
