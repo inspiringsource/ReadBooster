@@ -109,6 +109,8 @@ describe("table block controls", () => {
 
     expect(block.dataset.mode).toBe("fit");
     expect(block.dataset.columns).toBe("4");
+    expect(block.dataset.printWidthPressure).toBe("normal");
+    expect(block.querySelector(".rb-table-print-hint")).toBeNull();
     expect(block.style.getPropertyValue("--rb-table-wide-min-width")).toBe("44rem");
     expect(scrollRegion.getAttribute("role")).toBe("region");
     expect(scrollRegion.tabIndex).toBe(0);
@@ -174,6 +176,10 @@ describe("table block controls", () => {
     expect(blocks[0].dataset.mode).toBe("fit");
     expect(blocks[1].dataset.columns).toBe("6");
     expect(blocks[1].dataset.mode).toBe("fit");
+    expect(blocks[1].dataset.printWidthPressure).toBe("high");
+    expect(blocks[1].querySelector(".rb-table-print-hint")?.textContent).toContain(
+      "Landscape orientation",
+    );
     cleanup();
   });
 

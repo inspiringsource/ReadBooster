@@ -119,6 +119,10 @@ export function enhanceTables(root: HTMLElement, options: EnhanceTablesOptions):
     block.dataset.rbTableEnhanced = "true";
     block.dataset.layout = "viewport-constrained";
     block.dataset.columns = String(columnCount);
+    block.dataset.printWidthPressure = columnCount >= 6 ? "high" : "normal";
+    if (columnCount >= 6) {
+      block.classList.add("rb-table-print-wide");
+    }
     block.style.setProperty("--rb-table-panel-inline-gutter", "32px");
     block.style.setProperty("--rb-table-fit-min-width", `${getFitMinimumWidth(columnCount)}rem`);
     block.style.setProperty("--rb-table-wide-min-width", `${getWideMinimumWidth(columnCount)}rem`);
@@ -127,7 +131,7 @@ export function enhanceTables(root: HTMLElement, options: EnhanceTablesOptions):
     }
 
     const toolbar = document.createElement("div");
-    toolbar.className = "rb-block-toolbar";
+    toolbar.className = "rb-block-toolbar rb-print-hidden";
     toolbar.setAttribute("role", "toolbar");
     toolbar.setAttribute("aria-label", `Table ${tableIndex + 1} display controls`);
 
@@ -184,9 +188,20 @@ export function enhanceTables(root: HTMLElement, options: EnhanceTablesOptions):
     const viewport = document.createElement("div");
     viewport.className = "rb-table-viewport";
 
+    const printHint =
+      columnCount >= 6
+        ? Object.assign(document.createElement("p"), {
+            className: "rb-table-print-hint",
+            textContent: "Wide table: Landscape orientation may improve readability.",
+          })
+        : null;
+
     table.replaceWith(block);
     scrollContainer.append(table);
     viewport.append(scrollContainer);
+    if (printHint) {
+      block.append(printHint);
+    }
     block.append(toolbar, viewport);
 
     const view = document.defaultView;

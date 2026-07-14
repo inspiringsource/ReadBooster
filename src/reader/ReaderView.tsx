@@ -33,6 +33,12 @@ const LINE_HEIGHT_VALUES: Record<SpacingLevel, string> = {
   roomy: "1.9",
 };
 
+const SOURCE_LABELS: Record<ExtractedResponse["source"], string> = {
+  chatgpt: "ChatGPT",
+  claude: "Claude",
+  gemini: "Gemini",
+};
+
 async function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -201,7 +207,7 @@ export function ReaderView({
       aria-labelledby="rb-reader-title"
       style={readerStyle}
     >
-      <header className="rb-toolbar">
+      <header className="rb-toolbar rb-print-hidden">
         <div className="rb-brand">
           <span className="rb-eyebrow">ReadBooster</span>
           <h1 id="rb-reader-title">Optimized response</h1>
@@ -311,6 +317,14 @@ export function ReaderView({
             Close
           </button>
         </div>
+      </header>
+
+      <header className="rb-print-metadata">
+        <h1>ReadBooster — Optimized response</h1>
+        <p>
+          {SOURCE_LABELS[response.source]} · Response {currentResponseIndex + 1} of{" "}
+          {responses.length}
+        </p>
       </header>
 
       <main

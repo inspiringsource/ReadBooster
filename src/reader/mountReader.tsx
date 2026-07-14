@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { loadReaderPreferences } from "../shared/storage";
 import type { ExtractedResponse } from "../shared/types";
 import readerStyles from "./reader.css?inline";
+import readerPrintStyles from "./reader.print.css?inline";
 import { ReaderView } from "./ReaderView";
 
 export const READER_HOST_ID = "readbooster-reader-root";
@@ -129,7 +130,7 @@ export async function mountReader(
 
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
-  style.textContent = readerStyles;
+  style.textContent = `${readerStyles}\n${readerPrintStyles}`;
   const mountPoint = document.createElement("div");
   mountPoint.className = "rb-reader-mount";
   shadow.append(style, mountPoint);
@@ -137,6 +138,11 @@ export async function mountReader(
   const printStyle = document.createElement("style");
   printStyle.id = PRINT_STYLE_ID;
   printStyle.textContent = `
+    @page {
+      margin: 12mm;
+      size: auto;
+    }
+
     @media print {
       body > *:not(#${READER_HOST_ID}) { display: none !important; }
       #${READER_HOST_ID} {

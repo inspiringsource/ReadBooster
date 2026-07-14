@@ -205,6 +205,11 @@
   width: 1px;
 }
 
+.rb-print-metadata,
+.rb-table-print-hint {
+  display: none;
+}
+
 .rb-content {
   background: var(--rb-surface);
   border: 1px solid var(--rb-border);
@@ -560,55 +565,6 @@
     inset: 8px;
     max-height: calc(100dvh - 16px);
     max-width: calc(100dvw - 16px);
-  }
-}
-
-@media print {
-  :host,
-  .rb-reader-mount {
-    height: auto;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .rb-reader {
-    background: #fff;
-    color: #000;
-    display: block;
-    height: auto;
-    width: auto;
-  }
-
-  .rb-toolbar {
-    display: none;
-  }
-
-  .rb-scroll-area {
-    overflow: visible;
-    padding: 0;
-  }
-
-  .rb-content {
-    border: 0;
-    box-shadow: none;
-    max-width: none;
-    padding: 0;
-  }
-
-  .rb-block-toolbar {
-    display: none;
-  }
-
-  .rb-table-block,
-  .rb-table-block[data-mode="wide"] {
-    left: auto;
-    transform: none;
-    width: auto;
-  }
-
-  .rb-table-scroll {
-    border: 0;
-    overflow: visible;
   }
 }
 

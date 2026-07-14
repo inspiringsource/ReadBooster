@@ -123,6 +123,19 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 19. Open the popup on an unrelated website and confirm it reports that the page is unsupported.
 20. Visit Claude and Gemini and confirm no page optimization button is injected and the popup reports that support is not yet implemented.
 
+### 0.2.3 print and PDF checklist
+
+1. Print a response with no table.
+2. Print a two-column table in Portrait.
+3. Print a six-column table in Portrait and confirm no columns are clipped.
+4. Switch the screen table to Wide, scroll horizontally, then print and confirm the entire table appears.
+5. Test Compact text before printing.
+6. Test Landscape manually for a wide table.
+7. Confirm table headers repeat when the table spans pages, where Chrome supports it.
+8. Cancel printing and confirm the live reader remains unchanged.
+9. Print twice and confirm no duplicate styles or controls appear.
+10. Save as PDF and inspect every page.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -179,6 +192,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Navigation is sequential only. There is no conversation-outline sidebar or combined editable conversation document.
 - Reader output keeps the supported semantic HTML but does not retain host syntax highlighting, interactive widgets, diagrams, canvases, embedded media, or host-specific styling.
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
+- Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - ReadBooster does not provide arbitrary document editing or selected-text resizing.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
