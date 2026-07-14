@@ -68,6 +68,13 @@
     scrollbar-gutter: auto;
   }
 
+  .rb-reader-body {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
   .rb-content {
     background: #fff !important;
     border: 0 !important;

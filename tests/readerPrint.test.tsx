@@ -37,9 +37,11 @@ describe("print layout", () => {
     const tableToolbar = shadow.querySelector<HTMLElement>(".rb-block-toolbar")!;
     const metadata = shadow.querySelector<HTMLElement>(".rb-print-metadata")!;
     const block = shadow.querySelector<HTMLElement>(".rb-table-block")!;
+    const outline = shadow.querySelector<HTMLElement>(".rb-outline")!;
 
     expect(readerToolbar.classList.contains("rb-print-hidden")).toBe(true);
     expect(tableToolbar.classList.contains("rb-print-hidden")).toBe(true);
+    expect(outline.classList.contains("rb-print-hidden")).toBe(true);
     expect(metadata.textContent).toContain("ReadBooster — Optimized response");
     expect(metadata.textContent).toContain("ChatGPT · Response 1 of 1");
     expect(block.dataset.printWidthPressure).toBe("high");
@@ -112,7 +114,7 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.2.3 as the manifest source of truth", () => {
-    expect(packageJson.version).toBe("0.2.3");
+  it("uses package version 0.3.0 as the manifest source of truth", () => {
+    expect(packageJson.version).toBe("0.3.0");
   });
 });

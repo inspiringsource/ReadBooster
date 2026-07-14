@@ -16,6 +16,7 @@ describe.each([
       canExtractResponses: false,
     });
     expect(adapter.hasLatestAssistantResponse()).toBe(false);
+    expect(adapter.getConversationDocument()).toBeNull();
     expect(adapter.getLatestAssistantResponse()).toBeNull();
     expect(adapter.getAllAssistantResponses()).toEqual([]);
   });

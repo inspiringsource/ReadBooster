@@ -1,4 +1,5 @@
-import type { ExtractedResponse } from "../shared/types";
+import type { ConversationDocument, DocumentContentBlock } from "../shared/types";
+import { assistantBlocks } from "../shared/types";
 import type { ConversationAdapter } from "./adapters/ConversationAdapter";
 import type {
   ContentRequest,
@@ -8,8 +9,8 @@ import type {
 } from "./messages";
 
 export type ReaderMounter = (
-  responses: ExtractedResponse[],
-  initialResponseIndex: number,
+  document: ConversationDocument,
+  initialResponse: DocumentContentBlock,
 ) => Promise<unknown>;
 
 export interface OptimizationService {
@@ -57,13 +58,17 @@ export function createOptimizationService(
     }
 
     try {
-      const responses = adapter.getAllAssistantResponses();
+      const document = adapter.getConversationDocument();
+      if (!document) {
+        return { ok: false, supported: true, reason: "no-response" };
+      }
+      const responses = assistantBlocks(document);
       if (responses.length === 0) {
         return { ok: false, supported: true, reason: "no-response" };
       }
-      const initialResponseIndex = responses.length - 1;
-      await mountResponse(responses, initialResponseIndex);
-      return { ok: true, supported: true, source: responses[initialResponseIndex].source };
+      const initialResponse = responses.at(-1)!;
+      await mountResponse(document, initialResponse);
+      return { ok: true, supported: true, source: document.source };
     } catch {
       return { ok: false, supported: true, reason: "reader-error" };
     }

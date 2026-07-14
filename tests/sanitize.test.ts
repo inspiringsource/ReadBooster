@@ -41,6 +41,42 @@ describe("semantic plain text", () => {
 });
 
 describe("response sanitization", () => {
+  it("creates document-wide unique source and heading IDs per stable block", () => {
+    const first = sanitizeResponseHtml(
+      fixture(
+        '<h2>Repeated heading</h2><table><tr><th id="name">Name</th><td headers="name">A</td></tr></table>',
+      ),
+      "assistant-one",
+    );
+    const second = sanitizeResponseHtml(
+      fixture(
+        '<h2>Repeated heading</h2><table><tr><th id="name">Name</th><td headers="name">B</td></tr></table>',
+      ),
+      "assistant-two",
+    );
+    const firstDom = fixture(first.html);
+    const secondDom = fixture(second.html);
+    const firstIds = Array.from(
+      firstDom.querySelectorAll<HTMLElement>("[id]"),
+      (element) => element.id,
+    );
+    const secondIds = Array.from(
+      secondDom.querySelectorAll<HTMLElement>("[id]"),
+      (element) => element.id,
+    );
+
+    expect(new Set([...firstIds, ...secondIds]).size).toBe(firstIds.length + secondIds.length);
+    expect(firstDom.querySelector("h2")?.id).not.toBe(secondDom.querySelector("h2")?.id);
+    expect(firstDom.querySelector("h2")?.id).toContain("assistant-one");
+    expect(secondDom.querySelector("h2")?.id).toContain("assistant-two");
+    expect(firstDom.querySelector("td")?.getAttribute("headers")).toBe(
+      firstDom.querySelector("th")?.id,
+    );
+    expect(secondDom.querySelector("td")?.getAttribute("headers")).toBe(
+      secondDom.querySelector("th")?.id,
+    );
+  });
+
   it("removes dangerous links, event handlers, styles, and data attributes", () => {
     const { html } = sanitizeResponseHtml(
       fixture(`

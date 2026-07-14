@@ -1,4 +1,4 @@
-import type { ExtractedResponse } from "../../shared/types";
+import type { ConversationDocument, ExtractedResponse } from "../../shared/types";
 import type { ConversationAdapter } from "./ConversationAdapter";
 
 export class ClaudeAdapter implements ConversationAdapter {
@@ -19,6 +19,10 @@ export class ClaudeAdapter implements ConversationAdapter {
   // Scaffold only: no extraction is claimed until live DOM behavior is manually verified.
   hasLatestAssistantResponse(): boolean {
     return false;
+  }
+
+  getConversationDocument(): ConversationDocument | null {
+    return null;
   }
 
   getLatestAssistantResponse(): ExtractedResponse | null {

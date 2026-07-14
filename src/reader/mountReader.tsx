@@ -1,7 +1,13 @@
 import { createRoot, type Root } from "react-dom/client";
 
 import { loadReaderPreferences } from "../shared/storage";
-import type { ExtractedResponse } from "../shared/types";
+import type {
+  ConversationDocument,
+  ConversationTurn,
+  DocumentContentBlock,
+  ExtractedResponse,
+} from "../shared/types";
+import { assistantBlocks } from "../shared/types";
 import readerStyles from "./reader.css?inline";
 import readerPrintStyles from "./reader.print.css?inline";
 import { ReaderView } from "./ReaderView";
@@ -96,10 +102,71 @@ export function unmountReader(): void {
   removeOrphanArtifacts();
 }
 
-export async function mountReader(
+export type ReaderInitialSelection = DocumentContentBlock | ConversationTurn | string | undefined;
+
+function legacyResponsesToDocument(responses: readonly ExtractedResponse[]): ConversationDocument {
+  const turns = responses.map((response, index) => {
+    const block: DocumentContentBlock = {
+      id: response.id,
+      role: "assistant",
+      html: response.html,
+      text: response.text,
+      provenance: {
+        kind: "original",
+        platform: response.source,
+        sourceUrl: "",
+        extractedAt: response.extractedAt,
+        contentFingerprint: `legacy-${response.id}`,
+      },
+    };
+    return { id: `legacy-turn-${index}`, index, prompt: null, response: block };
+  });
+  return {
+    id: "legacy-response-document",
+    source: responses[0]?.source ?? "chatgpt",
+    title: null,
+    sourceUrl: "",
+    extractedAt: responses[0]?.extractedAt ?? new Date().toISOString(),
+    turns,
+  };
+}
+
+function selectedBlockId(
+  conversation: ConversationDocument,
+  selection: ReaderInitialSelection | number,
+): string | undefined {
+  const responses = assistantBlocks(conversation);
+  if (typeof selection === "number") {
+    return responses[Math.min(Math.max(selection, 0), responses.length - 1)]?.id;
+  }
+  if (typeof selection === "string") {
+    return selection;
+  }
+  if (selection && "role" in selection) {
+    return selection.role === "assistant" ? selection.id : undefined;
+  }
+  if (selection?.response) {
+    return selection.response.id;
+  }
+  return responses.at(-1)?.id;
+}
+
+export function mountReader(
+  conversation: ConversationDocument,
+  initialSelection?: ReaderInitialSelection,
+): Promise<() => void>;
+/** @deprecated Compatibility boundary for 0.2.x callers and fixtures. */
+export function mountReader(
   responses: ExtractedResponse[],
-  initialResponseIndex = responses.length - 1,
+  initialResponseIndex?: number,
+): Promise<() => void>;
+export async function mountReader(
+  input: ConversationDocument | ExtractedResponse[],
+  initialSelection?: ReaderInitialSelection | number,
 ): Promise<() => void> {
+  const conversation = Array.isArray(input) ? legacyResponsesToDocument(input) : input;
+  const responses = assistantBlocks(conversation);
+  const initialResponseId = selectedBlockId(conversation, initialSelection);
   const requestId = ++mountRequestId;
   cleanupActiveReader(true);
   removeOrphanArtifacts();
@@ -178,8 +245,8 @@ export async function mountReader(
   try {
     root.render(
       <ReaderView
-        responses={responses}
-        initialResponseIndex={Math.min(Math.max(initialResponseIndex, 0), responses.length - 1)}
+        conversation={conversation}
+        initialResponseId={initialResponseId}
         initialPreferences={preferences}
         onClose={() => queueMicrotask(cleanup)}
       />,

@@ -4,18 +4,20 @@ import { preferencesForPreset } from "../shared/preferences";
 import { saveReaderPreferences } from "../shared/storage";
 import type {
   AppearanceMode,
-  ExtractedResponse,
+  ConversationDocument,
   ReaderPreferences,
   ReaderPreset,
   SpacingLevel,
   TextSize,
 } from "../shared/types";
+import { assistantBlocks } from "../shared/types";
 import type { TableDisplayState } from "./blockControls";
 import { ResponseContent } from "./ResponseContent";
+import { ResponseOutline } from "./ResponseOutline";
 
 interface ReaderViewProps {
-  responses: ExtractedResponse[];
-  initialResponseIndex: number;
+  conversation: ConversationDocument;
+  initialResponseId?: string;
   initialPreferences: ReaderPreferences;
   onClose: () => void;
 }
@@ -33,7 +35,7 @@ const LINE_HEIGHT_VALUES: Record<SpacingLevel, string> = {
   roomy: "1.9",
 };
 
-const SOURCE_LABELS: Record<ExtractedResponse["source"], string> = {
+const SOURCE_LABELS: Record<ConversationDocument["source"], string> = {
   chatgpt: "ChatGPT",
   claude: "Claude",
   gemini: "Gemini",
@@ -59,19 +61,42 @@ async function copyText(text: string): Promise<void> {
 }
 
 export function ReaderView({
-  responses,
-  initialResponseIndex,
+  conversation,
+  initialResponseId,
   initialPreferences,
   onClose,
 }: ReaderViewProps) {
+  const responses = useMemo(() => assistantBlocks(conversation), [conversation]);
+  const initialResponseIndex = Math.max(
+    0,
+    responses.findIndex((response) => response.id === initialResponseId),
+  );
   const [preferences, setPreferences] = useState(initialPreferences);
   const [currentResponseIndex, setCurrentResponseIndex] = useState(initialResponseIndex);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [isNarrow, setIsNarrow] = useState(
+    () =>
+      typeof window.matchMedia === "function" && window.matchMedia("(max-width: 900px)").matches,
+  );
+  const [outlineOpen, setOutlineOpen] = useState(() => !isNarrow);
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [tableSessionStates] = useState(() => new Map<string, TableDisplayState>());
   const response = responses[currentResponseIndex];
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") {
+      return;
+    }
+    const media = window.matchMedia("(max-width: 900px)");
+    const handleChange = (event: MediaQueryListEvent): void => {
+      setIsNarrow(event.matches);
+      setOutlineOpen(!event.matches);
+    };
+    media.addEventListener?.("change", handleChange);
+    return () => media.removeEventListener?.("change", handleChange);
+  }, []);
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -188,11 +213,17 @@ export function ReaderView({
 
   const showPreviousResponse = (): void => {
     setCopyStatus("idle");
+    if (isNarrow) {
+      setOutlineOpen(false);
+    }
     setCurrentResponseIndex((index) => Math.max(0, index - 1));
   };
 
   const showNextResponse = (): void => {
     setCopyStatus("idle");
+    if (isNarrow) {
+      setOutlineOpen(false);
+    }
     setCurrentResponseIndex((index) => Math.min(responses.length - 1, index + 1));
   };
 
@@ -308,6 +339,15 @@ export function ReaderView({
             Print
           </button>
           <button
+            type="button"
+            aria-controls="rb-response-outline"
+            aria-expanded={outlineOpen}
+            aria-label={outlineOpen ? "Close response outline" : "Open response outline"}
+            onClick={() => setOutlineOpen((open) => !open)}
+          >
+            {outlineOpen ? "Hide outline" : "Outline"}
+          </button>
+          <button
             ref={closeButtonRef}
             type="button"
             className="rb-close"
@@ -322,19 +362,31 @@ export function ReaderView({
       <header className="rb-print-metadata">
         <h1>ReadBooster — Optimized response</h1>
         <p>
-          {SOURCE_LABELS[response.source]} · Response {currentResponseIndex + 1} of{" "}
+          {SOURCE_LABELS[conversation.source]} · Response {currentResponseIndex + 1} of{" "}
           {responses.length}
         </p>
       </header>
 
-      <main
-        ref={scrollAreaRef}
-        className="rb-scroll-area"
-        data-rb-scroll-container="vertical"
-        aria-label="Reader content"
+      <div
+        className="rb-reader-body"
+        data-outline-open={outlineOpen ? "true" : "false"}
+        data-narrow={isNarrow ? "true" : "false"}
       >
-        <ResponseContent response={response} tableSessionStates={tableSessionStates} />
-      </main>
+        <ResponseOutline
+          key={response.id}
+          response={response}
+          scrollAreaRef={scrollAreaRef}
+          open={outlineOpen}
+        />
+        <main
+          ref={scrollAreaRef}
+          className="rb-scroll-area"
+          data-rb-scroll-container="vertical"
+          aria-label="Reader content"
+        >
+          <ResponseContent response={response} tableSessionStates={tableSessionStates} />
+        </main>
+      </div>
     </div>
   );
 }

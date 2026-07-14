@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster is a local-first Chrome extension that opens a ChatGPT conversation's assistant responses in a focused, full-screen reader overlay, starting with the latest response. The reader improves typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing the response.
+ReadBooster 0.3.0 is a local-first Chrome extension that normalizes a ChatGPT conversation into chronological user/assistant turns and opens its assistant responses in a focused, full-screen reader overlay, starting with the latest response. The reader improves typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing the response.
 
 > **Privacy:** ReadBooster processes content locally in your browser.
 
@@ -11,8 +11,9 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Detect configured AI conversation sites.
 - Inject one idempotent **Optimize Reading** control.
 - Serialize optimization requests so rapid repeated activation cannot create duplicate readers.
-- Extract and sanitize ChatGPT assistant responses in document order, opening the latest by default.
+- Extract and sanitize ChatGPT prompts and assistant responses into a platform-neutral conversation document, opening the latest assistant block by default.
 - Navigate between responses with Previous and Next controls without remounting the reader.
+- Show a collapsible, nested heading outline for the active assistant response, including click-to-scroll and visible-section highlighting.
 - Remove host controls and sanitize the cloned HTML with a conservative allowlist.
 - Open a Shadow DOM-isolated full-screen reader overlay.
 - Preserve paragraphs, headings, lists, links, blockquotes, code, tables, emphasis, and preformatted text.
@@ -35,13 +36,21 @@ ReadBooster has no backend, account system, analytics, remote assets, AI API, or
 
 No background service worker is present because the popup can communicate directly with the content script and preferences can be stored directly from extension contexts.
 
+## Normalized conversation foundation
+
+The ChatGPT adapter's principal extraction result is a `ConversationDocument`. It contains a source URL, optional safely obtained title, extraction timestamp, and chronological `ConversationTurn` records. Each turn can contain a user prompt, an assistant response, or either side alone so streaming and unusual DOM transitions fail safely. Content blocks carry explicit roles, stable host message IDs when available, deterministic fallback IDs otherwise, and immutable original-source provenance with a content fingerprint.
+
+Sanitized element and heading IDs are namespaced with the stable content-block ID. This keeps source ID and table `headers` relationships valid while ensuring that identically named headings in separate responses remain unique in a future multi-block DOM.
+
+The 0.3.0 reader is one view over this document but still renders only one assistant response at a time. Continuous conversation document rendering is not implemented yet. Bookmarks, annotations, editing, AI revisions, cloud storage, search, selective export, and whole-conversation printing also remain future work.
+
 ## Website and adapter status
 
-| Website                      | Host access | Adapter implementation                               | Automated verification                    | Manual Chrome verification                  |
-| ---------------------------- | ----------- | ---------------------------------------------------- | ----------------------------------------- | ------------------------------------------- |
-| ChatGPT (`chatgpt.com`)      | Configured  | Ordered assistant-response extraction and navigation | Mock DOM fixture tests                    | **Not yet verified** against the live site  |
-| Claude (`claude.ai`)         | Configured  | Scaffold; safely returns `null` / `[]`               | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
-| Gemini (`gemini.google.com`) | Configured  | Scaffold; safely returns `null` / `[]`               | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
+| Website                      | Host access | Adapter implementation                                                   | Automated verification                    | Manual Chrome verification                  |
+| ---------------------------- | ----------- | ------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------- |
+| ChatGPT (`chatgpt.com`)      | Configured  | Normalized prompt/response turns, active-response navigation and outline | Compact mock DOM and reader tests         | **Not yet verified** against the live site  |
+| Claude (`claude.ai`)         | Configured  | Scaffold; safely returns `null` / `[]`                                   | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
+| Gemini (`gemini.google.com`) | Configured  | Scaffold; safely returns `null` / `[]`                                   | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
 
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
 
@@ -136,11 +145,25 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 9. Print twice and confirm no duplicate styles or controls appear.
 10. Save as PDF and inspect every page.
 
+### 0.3.0 normalized conversation and outline checklist
+
+1. Open a conversation containing several prompt/response turns and confirm the latest assistant response still opens first.
+2. Navigate Previous and Next and confirm the response count, content, and outline rebuild for each active response.
+3. Confirm the outline uses only real `h1`–`h6` headings, preserves their nesting, and does not create entries from paragraphs.
+4. Select every outline item and confirm its heading scrolls into view inside the reader while wide tables retain independent horizontal scrolling.
+5. Scroll through a long headed response and confirm the current outline section changes appropriately.
+6. Open a response without headings and confirm the concise empty state appears.
+7. Open and close the outline using keyboard controls and confirm focus remains trapped in the reader with visible focus styling.
+8. At a narrow Chrome window width, confirm the outline starts collapsed and opens as a responsive drawer without disabling reader scrolling.
+9. Change table modes, open and close the outline, and switch away and back; confirm table controls are not duplicated and session state survives.
+10. Print or save as PDF and confirm the outline and its controls are absent while the active response and tables retain the verified 0.2.3 layout.
+11. Exercise a streaming response and a conversation with an incomplete turn; confirm extraction fails safely and no stale duplicate outline items appear.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
 - The only requested Chrome permission is `storage`; host access is limited to the three configured sites.
-- Extraction clones assistant responses; it does not mutate the host conversation.
+- Extraction clones user prompts and assistant responses into an in-memory normalized document; it does not mutate the host conversation.
 - Host controls are removed before DOMPurify applies a conservative element and attribute allowlist.
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
 - Extracted response HTML and text remain in memory for the active reader session and are not written to storage.
@@ -172,6 +195,8 @@ src/
 ├── reader/
 │   ├── blockControls.ts
 │   ├── mountReader.tsx
+│   ├── outline.ts
+│   ├── ResponseOutline.tsx
 │   ├── ResponseContent.tsx
 │   ├── ReaderView.tsx
 │   └── reader.css
@@ -189,12 +214,12 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - The ChatGPT DOM is private and changes over time. Live manual verification is pending, and selectors may require maintenance.
 - Claude and Gemini are host-aware scaffolds only; they intentionally return no extracted response.
 - Responses are captured when the reader opens; new streamed responses do not appear until ReadBooster is reopened.
-- Navigation is sequential only. There is no conversation-outline sidebar or combined editable conversation document.
+- Navigation is sequential and the outline covers only the active assistant response. Continuous conversation rendering is not implemented.
 - Reader output keeps the supported semantic HTML but does not retain host syntax highlighting, interactive widgets, diagrams, canvases, embedded media, or host-specific styling.
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
-- ReadBooster does not provide arbitrary document editing or selected-text resizing.
+- ReadBooster does not provide bookmarks, annotations, document editing, AI revisions, selective export, or selected-text resizing.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -202,4 +227,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include a combined full-conversation view, conversation outlines, search, bookmarks, tags, highlights, notes, and export improvements. These features are not implemented in this MVP.
+Later roadmap candidates include continuous full-conversation rendering over the normalized model, search, bookmarks, annotations, editing, AI-assisted revisions, and selective export. These features are not implemented in 0.3.0.

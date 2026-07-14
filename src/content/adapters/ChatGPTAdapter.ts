@@ -1,23 +1,28 @@
-import type { ExtractedResponse } from "../../shared/types";
+import type {
+  ConversationDocument,
+  ConversationRole,
+  ConversationTurn,
+  DocumentContentBlock,
+  ExtractedResponse,
+} from "../../shared/types";
+import { assistantBlocks, toExtractedResponse } from "../../shared/types";
 import { sanitizeResponseHtml } from "../sanitize";
 import type { ConversationAdapter } from "./ConversationAdapter";
 
 const HOSTNAME = "chatgpt.com";
 
-// These selectors intentionally favor message metadata and semantic turn attributes.
-// ChatGPT's DOM is not a public API, so review them during every manual browser verification.
-const ASSISTANT_CONTAINER_SELECTORS = [
-  '[data-message-author-role="assistant"]',
-  'article[data-turn="assistant"]',
-];
+// Prefer message metadata and semantic turn attributes. ChatGPT's DOM is private, so these
+// selectors still require live review even though generated presentation classes are avoided.
+const ROLE_CONTAINER_SELECTORS: Record<ConversationRole, readonly string[]> = {
+  assistant: ['[data-message-author-role="assistant"]', 'article[data-turn="assistant"]'],
+  user: ['[data-message-author-role="user"]', 'article[data-turn="user"]'],
+};
 
 const TURN_ARTICLE_SELECTOR = [
-  'article[data-turn="assistant"]',
+  "article[data-turn]",
   'article[data-testid^="conversation-turn-"]',
 ].join(",");
 
-// Fallback labels are intentionally restricted to plausible author-label positions.
-// Avoid broad heading/aria-label queries because response controls also expose labels.
 const FALLBACK_AUTHOR_LABEL_SELECTORS = [
   ":scope > h5",
   ":scope > h6",
@@ -27,7 +32,10 @@ const FALLBACK_AUTHOR_LABEL_SELECTORS = [
   ":scope > div:first-child > h6",
   ':scope > [data-testid="conversation-turn-author"]',
 ].join(",");
-const ASSISTANT_AUTHOR_LABEL = /^(chatgpt|assistant)(\s+said)?\s*:?$/i;
+const AUTHOR_LABELS: Record<ConversationRole, RegExp> = {
+  assistant: /^(chatgpt|assistant)(\s+said)?\s*:?$/i,
+  user: /^(you|user)(\s+said)?\s*:?$/i,
+};
 
 const HOST_UI_SELECTORS = [
   "button",
@@ -49,12 +57,57 @@ const HOST_UI_SELECTORS = [
   '[aria-label*="menu" i]',
 ].join(",");
 
+interface MessageCandidate {
+  element: Element;
+  role: ConversationRole;
+}
+
 function simpleHash(value: string): string {
   let hash = 5381;
   for (let index = 0; index < value.length; index += 1) {
     hash = (hash * 33) ^ value.charCodeAt(index);
   }
   return (hash >>> 0).toString(36);
+}
+
+function pairBlocksIntoTurns(blocks: readonly DocumentContentBlock[]): ConversationTurn[] {
+  const paired: Array<{
+    prompt: DocumentContentBlock | null;
+    response: DocumentContentBlock | null;
+  }> = [];
+  let current: {
+    prompt: DocumentContentBlock | null;
+    response: DocumentContentBlock | null;
+  } | null = null;
+
+  for (const block of blocks) {
+    if (block.role === "user") {
+      if (current && (current.prompt || current.response)) {
+        paired.push(current);
+      }
+      current = { prompt: block, response: null };
+      continue;
+    }
+
+    if (!current) {
+      current = { prompt: null, response: null };
+    } else if (current.response) {
+      paired.push(current);
+      current = { prompt: null, response: null };
+    }
+    current.response = block;
+  }
+
+  if (current && (current.prompt || current.response)) {
+    paired.push(current);
+  }
+
+  return paired.map((turn, index) => ({
+    id: `turn-${index}-${turn.prompt?.id ?? "missing-prompt"}-${turn.response?.id ?? "missing-response"}`,
+    index,
+    prompt: turn.prompt,
+    response: turn.response,
+  }));
 }
 
 export class ChatGPTAdapter implements ConversationAdapter {
@@ -69,76 +122,76 @@ export class ChatGPTAdapter implements ConversationAdapter {
   constructor(
     private readonly doc: Document = document,
     private readonly hostname: string = window.location.hostname,
+    private readonly currentUrl?: string,
   ) {}
 
   isSupportedPage(): boolean {
     return this.hostname === HOSTNAME || this.hostname.endsWith(`.${HOSTNAME}`);
   }
 
-  getLatestAssistantResponse(): ExtractedResponse | null {
+  getConversationDocument(): ConversationDocument | null {
     if (!this.isSupportedPage()) {
       return null;
     }
 
     try {
-      const candidates = this.getAssistantContainers();
-      for (let index = candidates.length - 1; index >= 0; index -= 1) {
+      const sourceUrl = this.currentUrl ?? this.doc.location?.href ?? window.location.href;
+      const sourceConversationId = this.getSourceConversationId(sourceUrl);
+      const extractedAt = new Date().toISOString();
+      const blocks: DocumentContentBlock[] = [];
+
+      this.getMessageCandidates().forEach((candidate, index) => {
         try {
-          const response = this.extractResponse(candidates[index], index);
-          if (response) {
-            return response;
+          const block = this.extractBlock(
+            candidate.element,
+            candidate.role,
+            index,
+            sourceUrl,
+            sourceConversationId,
+            extractedAt,
+          );
+          if (block) {
+            blocks.push(block);
           }
         } catch {
-          // A stale or changing newest turn must not prevent trying the preceding valid turn.
+          // Streaming or stale message nodes are skipped without losing stable neighboring turns.
         }
+      });
+
+      if (blocks.length === 0) {
+        return null;
       }
+
+      return {
+        id: sourceConversationId
+          ? `chatgpt-${sourceConversationId}`
+          : `chatgpt-document-${simpleHash(sourceUrl)}`,
+        source: this.source,
+        title: this.getSafeTitle(),
+        sourceUrl,
+        extractedAt,
+        turns: pairBlocksIntoTurns(blocks),
+      };
     } catch {
-      // ChatGPT's DOM is not a public contract; extraction must fail safely.
+      return null;
     }
-    return null;
+  }
+
+  getLatestAssistantResponse(): ExtractedResponse | null {
+    const conversation = this.getConversationDocument();
+    return conversation
+      ? (assistantBlocks(conversation).map(toExtractedResponse).at(-1) ?? null)
+      : null;
   }
 
   hasLatestAssistantResponse(): boolean {
-    if (!this.isSupportedPage()) {
-      return false;
-    }
-
-    try {
-      return this.getAssistantContainers().some((container) => {
-        const clone = container.cloneNode(true) as Element;
-        this.pruneHostOnlyContent(clone);
-        const contentRoot = this.findContentRoot(clone);
-        return Boolean(contentRoot.textContent?.trim());
-      });
-    } catch {
-      return false;
-    }
+    const conversation = this.getConversationDocument();
+    return Boolean(conversation && assistantBlocks(conversation).length > 0);
   }
 
   getAllAssistantResponses(): ExtractedResponse[] {
-    if (!this.isSupportedPage()) {
-      return [];
-    }
-
-    let candidates: Element[];
-    try {
-      candidates = this.getAssistantContainers();
-    } catch {
-      return [];
-    }
-
-    const responses: ExtractedResponse[] = [];
-    candidates.forEach((container, index) => {
-      try {
-        const response = this.extractResponse(container, index);
-        if (response) {
-          responses.push(response);
-        }
-      } catch {
-        // Individual stale turns are skipped without discarding the rest of the conversation.
-      }
-    });
-    return responses;
+    const conversation = this.getConversationDocument();
+    return conversation ? assistantBlocks(conversation).map(toExtractedResponse) : [];
   }
 
   observePageChanges(callback: () => void): () => void {
@@ -163,90 +216,95 @@ export class ChatGPTAdapter implements ConversationAdapter {
     };
   }
 
-  private getAssistantContainers(): Element[] {
-    const rawCandidates: Element[] = [];
-
-    // Collect every selector family because ChatGPT can temporarily render mixed turn shapes
-    // during streaming, branching, or SPA transitions.
-    for (const selector of ASSISTANT_CONTAINER_SELECTORS) {
-      rawCandidates.push(...this.doc.querySelectorAll(selector));
+  private getMessageCandidates(): MessageCandidate[] {
+    const raw: MessageCandidate[] = [];
+    for (const role of ["user", "assistant"] as const) {
+      for (const selector of ROLE_CONTAINER_SELECTORS[role]) {
+        this.doc.querySelectorAll(selector).forEach((element) => raw.push({ element, role }));
+      }
     }
 
-    // Last-resort fallback for current turn articles that expose only an author label.
-    // English text is less resilient and may need localization-aware maintenance later.
     for (const article of this.doc.querySelectorAll('article[data-testid^="conversation-turn-"]')) {
-      const labels = article.querySelectorAll(FALLBACK_AUTHOR_LABEL_SELECTORS);
-      if (
-        Array.from(labels).some((label) =>
-          ASSISTANT_AUTHOR_LABEL.test(label.textContent?.trim() ?? ""),
-        )
-      ) {
-        rawCandidates.push(article);
+      const labels = Array.from(article.querySelectorAll(FALLBACK_AUTHOR_LABEL_SELECTORS));
+      for (const role of ["user", "assistant"] as const) {
+        if (labels.some((label) => AUTHOR_LABELS[role].test(label.textContent?.trim() ?? ""))) {
+          raw.push({ element: article, role });
+          break;
+        }
       }
     }
 
-    const identitySet = new Set<Element>();
-    const canonicalCandidates: Element[] = [];
-    for (const candidate of rawCandidates) {
-      const canonical = this.canonicalizeCandidate(candidate);
-      if (!identitySet.has(canonical)) {
-        identitySet.add(canonical);
-        canonicalCandidates.push(canonical);
+    const byElement = new Map<Element, MessageCandidate>();
+    for (const candidate of raw) {
+      const canonical = this.canonicalizeCandidate(candidate.element);
+      if (!byElement.has(canonical)) {
+        byElement.set(canonical, { element: canonical, role: candidate.role });
       }
     }
 
-    canonicalCandidates.sort((left, right) => {
-      if (left === right) {
+    const ordered = Array.from(byElement.values()).sort((left, right) => {
+      if (left.element === right.element) {
         return 0;
       }
-      const position = left.compareDocumentPosition(right);
+      const position = left.element.compareDocumentPosition(right.element);
       return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
 
-    // Distinct DOM nodes can represent the same message during transitions. Keep the newest
-    // occurrence for stable host identifiers, then restore actual document order.
-    const seenStableIds = new Set<string>();
-    const deduplicatedNewestFirst: Element[] = [];
-    for (let index = canonicalCandidates.length - 1; index >= 0; index -= 1) {
-      const candidate = canonicalCandidates[index];
-      const stableId = this.getStableHostId(candidate);
-      if (stableId && seenStableIds.has(stableId)) {
+    // During SPA transitions the same host message can exist twice. Retain its newest node.
+    const seen = new Set<string>();
+    const newestFirst: MessageCandidate[] = [];
+    for (let index = ordered.length - 1; index >= 0; index -= 1) {
+      const candidate = ordered[index];
+      const hostId = this.getStableHostId(candidate.element);
+      const dedupeKey = hostId ? `${candidate.role}:${hostId}` : "";
+      if (dedupeKey && seen.has(dedupeKey)) {
         continue;
       }
-      if (stableId) {
-        seenStableIds.add(stableId);
+      if (dedupeKey) {
+        seen.add(dedupeKey);
       }
-      deduplicatedNewestFirst.push(candidate);
+      newestFirst.push(candidate);
     }
-    return deduplicatedNewestFirst.reverse();
+    return newestFirst.reverse();
   }
 
-  private extractResponse(container: Element, index: number): ExtractedResponse | null {
+  private extractBlock(
+    container: Element,
+    role: ConversationRole,
+    index: number,
+    sourceUrl: string,
+    sourceConversationId: string | undefined,
+    extractedAt: string,
+  ): DocumentContentBlock | null {
     const clone = container.cloneNode(true) as Element;
     this.pruneHostOnlyContent(clone);
-
-    // `.markdown` is a secondary content-boundary hint, not the assistant-turn selector.
-    // If ChatGPT removes it, extraction safely falls back to the semantic container clone.
     const contentRoot = this.findContentRoot(clone);
-    const { html, text } = sanitizeResponseHtml(contentRoot);
+    const sourceMessageId = this.getStableHostId(container) || undefined;
+    const fallbackSeed = (contentRoot.textContent ?? "").replace(/\s+/g, " ").trim();
+    const id = sourceMessageId || `chatgpt-${role}-${index}-${simpleHash(fallbackSeed)}`;
+    const { html, text } = sanitizeResponseHtml(contentRoot, id);
     if (!text) {
       return null;
     }
 
-    const hostId = this.getStableHostId(container);
-
     return {
-      id: hostId || `chatgpt-${index}-${simpleHash(text)}`,
-      source: this.source,
+      id,
+      role,
       html,
       text,
-      extractedAt: new Date().toISOString(),
+      provenance: {
+        kind: "original",
+        platform: this.source,
+        sourceUrl,
+        ...(sourceConversationId ? { sourceConversationId } : {}),
+        ...(sourceMessageId ? { sourceMessageId } : {}),
+        extractedAt,
+        contentFingerprint: `djb2-${simpleHash(`${role}\n${html}\n${text}`)}`,
+      },
     };
   }
 
   private findContentRoot(container: Element): Element {
-    // The class-based hints are secondary boundaries inside a semantically identified turn.
-    // They must never be used on their own to determine whether a turn belongs to the assistant.
     return (
       container.querySelector('[data-message-content], .markdown, [class*="prose"]') ?? container
     );
@@ -262,8 +320,6 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   private canonicalizeCandidate(candidate: Element): Element {
-    // Prefer the outer turn article even when an inner message node also has a stable ID.
-    // This prevents one response from being represented by both its turn and content wrapper.
     return (
       candidate.closest(TURN_ARTICLE_SELECTOR) ??
       candidate.closest("[data-message-id]") ??
@@ -274,9 +330,32 @@ export class ChatGPTAdapter implements ConversationAdapter {
   private pruneHostOnlyContent(container: Element): void {
     container.querySelectorAll(HOST_UI_SELECTORS).forEach((element) => element.remove());
     container.querySelectorAll(FALLBACK_AUTHOR_LABEL_SELECTORS).forEach((label) => {
-      if (ASSISTANT_AUTHOR_LABEL.test(label.textContent?.trim() ?? "")) {
+      if (
+        AUTHOR_LABELS.user.test(label.textContent?.trim() ?? "") ||
+        AUTHOR_LABELS.assistant.test(label.textContent?.trim() ?? "")
+      ) {
         label.remove();
       }
     });
+  }
+
+  private getSourceConversationId(sourceUrl: string): string | undefined {
+    try {
+      const match = new URL(sourceUrl).pathname.match(/^\/c\/([^/?#]+)/);
+      return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private getSafeTitle(): string | null {
+    const title = this.doc.title
+      .trim()
+      .replace(/\s*[|—-]\s*ChatGPT\s*$/i, "")
+      .trim();
+    if (!title || /^(chatgpt|new chat)$/i.test(title) || title.length > 200) {
+      return null;
+    }
+    return title;
   }
 }

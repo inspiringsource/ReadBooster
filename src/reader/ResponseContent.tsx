@@ -1,10 +1,10 @@
 import { memo, useLayoutEffect, useRef } from "react";
 
-import type { ExtractedResponse } from "../shared/types";
+import type { DocumentContentBlock } from "../shared/types";
 import { enhanceTables, type TableDisplayState } from "./blockControls";
 
 interface ResponseContentProps {
-  response: ExtractedResponse;
+  response: DocumentContentBlock;
   tableSessionStates: Map<string, TableDisplayState>;
 }
 

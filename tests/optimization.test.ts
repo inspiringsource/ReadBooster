@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ConversationAdapter } from "../src/content/adapters/ConversationAdapter";
 import { createOptimizationService } from "../src/content/optimization";
-import type { ExtractedResponse } from "../src/shared/types";
+import type {
+  ConversationDocument,
+  DocumentContentBlock,
+  ExtractedResponse,
+} from "../src/shared/types";
 
 const RESPONSE: ExtractedResponse = {
   id: "latest",
@@ -10,6 +14,31 @@ const RESPONSE: ExtractedResponse = {
   html: "<p>Latest response</p>",
   text: "Latest response",
   extractedAt: "2026-07-14T00:00:00.000Z",
+};
+
+const BLOCK: DocumentContentBlock = {
+  id: RESPONSE.id,
+  role: "assistant",
+  html: RESPONSE.html,
+  text: RESPONSE.text,
+  provenance: {
+    kind: "original",
+    platform: "chatgpt",
+    sourceUrl: "https://chatgpt.com/c/test",
+    sourceConversationId: "test",
+    sourceMessageId: RESPONSE.id,
+    extractedAt: RESPONSE.extractedAt,
+    contentFingerprint: "djb2-test",
+  },
+};
+
+const DOCUMENT: ConversationDocument = {
+  id: "chatgpt-test",
+  source: "chatgpt",
+  title: null,
+  sourceUrl: "https://chatgpt.com/c/test",
+  extractedAt: RESPONSE.extractedAt,
+  turns: [{ id: "turn-0", index: 0, prompt: null, response: BLOCK }],
 };
 
 function implementedAdapter(): ConversationAdapter {
@@ -22,6 +51,7 @@ function implementedAdapter(): ConversationAdapter {
       canExtractResponses: true,
     },
     isSupportedPage: vi.fn(() => true),
+    getConversationDocument: vi.fn(() => DOCUMENT),
     hasLatestAssistantResponse: vi.fn(() => true),
     getLatestAssistantResponse: vi.fn(() => RESPONSE),
     getAllAssistantResponses: vi.fn(() => [RESPONSE]),
@@ -44,16 +74,16 @@ describe("optimization service", () => {
 
     expect(duplicate).toBe(first);
     expect(service.isBusy()).toBe(true);
-    expect(adapter.getAllAssistantResponses).toHaveBeenCalledOnce();
+    expect(adapter.getConversationDocument).toHaveBeenCalledOnce();
     expect(mount).toHaveBeenCalledOnce();
-    expect(mount).toHaveBeenCalledWith([RESPONSE], 0);
+    expect(mount).toHaveBeenCalledWith(DOCUMENT, BLOCK);
 
     resolveMount();
     await expect(first).resolves.toMatchObject({ ok: true });
     expect(service.isBusy()).toBe(false);
 
     await expect(service.optimizeLatest()).resolves.toMatchObject({ ok: true });
-    expect(adapter.getAllAssistantResponses).toHaveBeenCalledTimes(2);
+    expect(adapter.getConversationDocument).toHaveBeenCalledTimes(2);
     expect(mount).toHaveBeenCalledTimes(2);
   });
 
@@ -73,7 +103,7 @@ describe("optimization service", () => {
 
   it("fails safely when no responses remain available", async () => {
     const adapter = implementedAdapter();
-    vi.mocked(adapter.getAllAssistantResponses).mockReturnValue([]);
+    vi.mocked(adapter.getConversationDocument).mockReturnValue({ ...DOCUMENT, turns: [] });
     const mount = vi.fn();
     const service = createOptimizationService(adapter, mount);
 

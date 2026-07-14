@@ -41,7 +41,8 @@ describe("reader scrolling structure", () => {
     expect(reader.contains(toolbar)).toBe(true);
     expect(reader.contains(scrollArea)).toBe(true);
     expect(toolbar.parentElement).toBe(reader);
-    expect(scrollArea.parentElement).toBe(reader);
+    expect(scrollArea.parentElement?.classList.contains("rb-reader-body")).toBe(true);
+    expect(scrollArea.parentElement?.parentElement).toBe(reader);
     expect(scrollArea.dataset.rbScrollContainer).toBe("vertical");
     expect(scrollArea.contains(content)).toBe(true);
     expect(content.querySelector(".rb-table-block")).toBeNull();

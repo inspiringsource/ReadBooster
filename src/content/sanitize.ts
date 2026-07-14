@@ -79,12 +79,21 @@ export interface SanitizedContent {
   text: string;
 }
 
-function namespaceSemanticIds(root: ParentNode, prefix: string): void {
+function safeIdPart(value: string): string {
+  const safe = value
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return safe || "block";
+}
+
+function namespaceSemanticIds(root: ParentNode, blockId: string): void {
   const idMap = new Map<string, string>();
   let nextId = 0;
   for (const elementWithId of root.querySelectorAll<HTMLElement>("[id]")) {
     const sourceId = elementWithId.id;
-    const readerId = `${prefix}-${nextId++}`;
+    const readerId = `rb-content-${safeIdPart(blockId)}-source-${nextId++}-${safeIdPart(sourceId)}`;
     if (!idMap.has(sourceId)) {
       idMap.set(sourceId, readerId);
     }
@@ -100,6 +109,16 @@ function namespaceSemanticIds(root: ParentNode, prefix: string): void {
     } else {
       cell.removeAttribute("headers");
     }
+  }
+
+  let headingIndex = 0;
+  for (const heading of root.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6")) {
+    if (!heading.id) {
+      heading.id = `rb-content-${safeIdPart(blockId)}-heading-${headingIndex}-${safeIdPart(
+        heading.textContent?.trim() ?? "heading",
+      )}`;
+    }
+    headingIndex += 1;
   }
 }
 
@@ -245,9 +264,13 @@ export function serializeSemanticText(root: ParentNode): string {
     .replace(/^\n+|\n+$/g, "");
 }
 
-export function sanitizeResponseHtml(element: Element): SanitizedContent {
+export function sanitizeResponseHtml(
+  element: Element,
+  blockNamespace = "legacy-response",
+): SanitizedContent {
   const sourceClone = element.cloneNode(true) as Element;
-  namespaceSemanticIds(sourceClone, "rb-source");
+  // Namespace before DOMPurify so clobber-prone source IDs are retained safely.
+  namespaceSemanticIds(sourceClone, blockNamespace);
 
   const sanitized = DOMPurify.sanitize(sourceClone.innerHTML, {
     ALLOWED_TAGS,
@@ -267,8 +290,8 @@ export function sanitizeResponseHtml(element: Element): SanitizedContent {
     link.setAttribute("rel", "noopener noreferrer");
   }
 
-  // Namespace again after sanitization so source IDs cannot collide with reader controls.
-  namespaceSemanticIds(template.content, "rb-content");
+  // A block-specific namespace prevents collisions when several blocks are rendered later.
+  namespaceSemanticIds(template.content, blockNamespace);
 
   const container = ownerDocument.createElement("div");
   container.append(template.content.cloneNode(true));

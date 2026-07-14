@@ -166,11 +166,100 @@
 }
 
 .rb-controls :focus-visible,
+.rb-outline-link:focus-visible,
 .rb-content a:focus-visible,
 .rb-block-toolbar button:focus-visible,
 .rb-table-scroll:focus-visible {
   outline: 3px solid var(--rb-accent);
   outline-offset: 2px;
+}
+
+.rb-reader-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.rb-reader-body[data-outline-open="true"] {
+  grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);
+}
+
+.rb-outline {
+  background: var(--rb-surface);
+  border-right: 1px solid var(--rb-border);
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 14px 48px;
+}
+
+.rb-outline[hidden] {
+  display: none;
+}
+
+.rb-outline h2 {
+  font-size: 15px;
+  line-height: 1.3;
+  margin: 0 8px 14px;
+}
+
+.rb-outline nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rb-outline nav ul ul {
+  border-left: 1px solid var(--rb-border);
+  margin-left: 10px;
+  padding-left: 7px;
+}
+
+.rb-outline li + li {
+  margin-top: 3px;
+}
+
+.rb-outline-link {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--rb-muted);
+  cursor: pointer;
+  display: block;
+  font:
+    600 13px/1.35 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  padding: 7px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.rb-outline-link:hover {
+  background: var(--rb-code);
+  color: var(--rb-text);
+}
+
+.rb-outline-link[aria-current="location"] {
+  background: var(--rb-code);
+  color: var(--rb-accent);
+  font-weight: 750;
+}
+
+.rb-outline-empty {
+  color: var(--rb-muted);
+  font:
+    500 13px/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  margin: 0 8px;
 }
 
 .rb-controls .rb-close {
@@ -559,6 +648,22 @@
 
   .rb-response-navigation {
     flex-basis: 100%;
+  }
+
+  .rb-reader-body,
+  .rb-reader-body[data-outline-open="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rb-outline {
+    border: 0;
+    border-right: 1px solid var(--rb-border);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.18);
+    inset: 0 auto 0 0;
+    max-width: min(86vw, 19rem);
+    position: absolute;
+    width: 100%;
+    z-index: 10;
   }
 
   .rb-table-block[data-rb-table-fullscreen="true"] {
