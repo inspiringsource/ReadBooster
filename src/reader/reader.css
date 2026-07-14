@@ -1,0 +1,326 @@
+:host {
+  all: initial;
+  color-scheme: light dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.rb-reader {
+  --rb-background: #f6f3ec;
+  --rb-surface: #fffdf8;
+  --rb-text: #20242b;
+  --rb-muted: #626a75;
+  --rb-border: #d9d3c7;
+  --rb-accent: #2357d9;
+  --rb-code: #ece8df;
+  background: var(--rb-background);
+  color: var(--rb-text);
+  display: grid;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+.rb-reader[data-appearance="dark"] {
+  --rb-background: #15181d;
+  --rb-surface: #1d2128;
+  --rb-text: #ecedf0;
+  --rb-muted: #adb3be;
+  --rb-border: #3b414c;
+  --rb-accent: #8aafff;
+  --rb-code: #292e37;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rb-reader[data-appearance="system"] {
+    --rb-background: #15181d;
+    --rb-surface: #1d2128;
+    --rb-text: #ecedf0;
+    --rb-muted: #adb3be;
+    --rb-border: #3b414c;
+    --rb-accent: #8aafff;
+    --rb-code: #292e37;
+  }
+}
+
+.rb-toolbar {
+  align-items: center;
+  background: var(--rb-surface);
+  border-bottom: 1px solid var(--rb-border);
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 12px clamp(16px, 3vw, 40px);
+}
+
+.rb-brand h1 {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 2px 0 0;
+}
+
+.rb-eyebrow {
+  color: var(--rb-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rb-controls {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.rb-controls label {
+  color: var(--rb-muted);
+  display: grid;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 3px;
+}
+
+.rb-controls select,
+.rb-controls button {
+  appearance: none;
+  background: var(--rb-background);
+  border: 1px solid var(--rb-border);
+  border-radius: 7px;
+  color: var(--rb-text);
+  cursor: pointer;
+  font:
+    600 13px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.rb-controls select {
+  min-width: 104px;
+}
+
+.rb-controls button:hover,
+.rb-controls select:hover {
+  border-color: var(--rb-accent);
+}
+
+.rb-controls :focus-visible,
+.rb-content a:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+.rb-controls .rb-close {
+  background: var(--rb-accent);
+  border-color: var(--rb-accent);
+  color: #fff;
+}
+
+.rb-reader[data-appearance="dark"] .rb-close {
+  color: #11141a;
+}
+
+.rb-scroll-area {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(30px, 6vw, 72px) 20px 96px;
+}
+
+.rb-content {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-size: var(--rb-font-size);
+  line-height: var(--rb-line-height);
+  margin: 0 auto;
+  max-width: 72ch;
+  padding: clamp(28px, 6vw, 64px);
+  overflow-wrap: anywhere;
+}
+
+.rb-reader[data-preset="dyslexia-friendly"] .rb-content {
+  font-family: Arial, Verdana, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.035em;
+  max-width: 66ch;
+  word-spacing: 0.08em;
+}
+
+.rb-content > :first-child {
+  margin-top: 0;
+}
+
+.rb-content > :last-child {
+  margin-bottom: 0;
+}
+
+.rb-content p,
+.rb-content ul,
+.rb-content ol,
+.rb-content blockquote,
+.rb-content pre,
+.rb-content table,
+.rb-content details {
+  margin-block: 1.15em;
+}
+
+.rb-content h1,
+.rb-content h2,
+.rb-content h3,
+.rb-content h4,
+.rb-content h5,
+.rb-content h6 {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.3;
+  margin: 1.7em 0 0.55em;
+}
+
+.rb-content h1 {
+  font-size: 1.8em;
+}
+.rb-content h2 {
+  font-size: 1.5em;
+}
+.rb-content h3 {
+  font-size: 1.25em;
+}
+
+.rb-content ul,
+.rb-content ol {
+  padding-left: 1.6em;
+}
+
+.rb-content li + li {
+  margin-top: 0.45em;
+}
+
+.rb-content blockquote {
+  border-left: 4px solid var(--rb-accent);
+  color: var(--rb-muted);
+  margin-inline: 0;
+  padding: 0.2em 0 0.2em 1.2em;
+}
+
+.rb-content a {
+  color: var(--rb-accent);
+  text-decoration-thickness: 0.09em;
+  text-underline-offset: 0.16em;
+}
+
+.rb-content code {
+  background: var(--rb-code);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.86em;
+  padding: 0.12em 0.32em;
+}
+
+.rb-content pre {
+  background: var(--rb-code);
+  border: 1px solid var(--rb-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  padding: 1em;
+  white-space: pre;
+}
+
+.rb-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.rb-content table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  width: max-content;
+}
+
+.rb-content th,
+.rb-content td {
+  border: 1px solid var(--rb-border);
+  padding: 0.55em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rb-content th {
+  background: var(--rb-code);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (max-width: 900px) {
+  .rb-toolbar {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  .rb-controls {
+    justify-content: flex-start;
+  }
+
+  .rb-controls label {
+    flex: 1 1 120px;
+  }
+
+  .rb-controls select {
+    width: 100%;
+  }
+}
+
+@media print {
+  .rb-reader {
+    background: #fff;
+    color: #000;
+    display: block;
+    height: auto;
+    width: auto;
+  }
+
+  .rb-toolbar {
+    display: none;
+  }
+
+  .rb-scroll-area {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .rb-content {
+    border: 0;
+    box-shadow: none;
+    max-width: none;
+    padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
