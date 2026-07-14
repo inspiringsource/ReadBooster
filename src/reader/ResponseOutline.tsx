@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 
 import type { DocumentContentBlock } from "../shared/types";
 import { buildOutline, flattenOutline, type OutlineItem } from "./outline";
@@ -46,8 +46,22 @@ function OutlineItems({
 export function ResponseOutline({ response, scrollAreaRef, open }: ResponseOutlineProps) {
   const outline = useMemo(() => buildOutline([response]), [response]);
   const flatOutline = useMemo(() => flattenOutline(outline), [outline]);
-  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(
-    flatOutline[0]?.targetHeadingId ?? null,
+  const firstHeadingId = flatOutline[0]?.targetHeadingId ?? null;
+  const headingCollectionKey = JSON.stringify(
+    flatOutline.map((item) => [item.targetBlockId, item.targetHeadingId, item.level, item.text]),
+  );
+  const outlineStateKey = `${response.id}:${open ? "open" : "closed"}:${headingCollectionKey}`;
+  const [activeHeading, setActiveHeading] = useState<{
+    stateKey: string;
+    headingId: string | null;
+  }>(() => ({ stateKey: outlineStateKey, headingId: firstHeadingId }));
+  const activeHeadingId =
+    activeHeading.stateKey === outlineStateKey ? activeHeading.headingId : firstHeadingId;
+  const setActiveHeadingId = useCallback(
+    (headingId: string | null): void => {
+      setActiveHeading({ stateKey: outlineStateKey, headingId });
+    },
+    [outlineStateKey],
   );
 
   useEffect(() => {
@@ -97,7 +111,7 @@ export function ResponseOutline({ response, scrollAreaRef, open }: ResponseOutli
       scrollArea.removeEventListener("scroll", updateFromScroll);
       observer?.disconnect();
     };
-  }, [flatOutline, open, response.id, scrollAreaRef]);
+  }, [flatOutline, open, response.id, scrollAreaRef, setActiveHeadingId]);
 
   const selectHeading = (item: OutlineItem): void => {
     const scrollArea = scrollAreaRef.current;

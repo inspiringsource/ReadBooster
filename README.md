@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.3.0 is a local-first Chrome extension that normalizes a ChatGPT conversation into chronological user/assistant turns and opens its assistant responses in a focused, full-screen reader overlay, starting with the latest response. The reader improves typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing the response.
+ReadBooster 0.3.1 is a local-first Chrome extension that normalizes a ChatGPT conversation into chronological user/assistant turns and opens its assistant responses in a focused, full-screen reader overlay, starting with the latest response. The reader improves typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing the response.
 
 > **Privacy:** ReadBooster processes content locally in your browser.
 
@@ -42,7 +42,9 @@ The ChatGPT adapter's principal extraction result is a `ConversationDocument`. I
 
 Sanitized element and heading IDs are namespaced with the stable content-block ID. This keeps source ID and table `headers` relationships valid while ensuring that identically named headings in separate responses remain unique in a future multi-block DOM.
 
-The 0.3.0 reader is one view over this document but still renders only one assistant response at a time. Continuous conversation document rendering is not implemented yet. Bookmarks, annotations, editing, AI revisions, cloud storage, search, selective export, and whole-conversation printing also remain future work.
+The 0.3.x reader is one view over this document but still renders only one assistant response at a time. Continuous conversation document rendering is not implemented yet. Bookmarks, annotations, editing, AI revisions, cloud storage, search, selective export, and whole-conversation printing also remain future work.
+
+Version 0.3.1 is a focused stabilization release: popup availability checks use a lightweight assistant-candidate probe, multi-block outline hierarchy resets at response boundaries, and the active outline section resets when the response, visibility, or heading collection changes.
 
 ## Website and adapter status
 
@@ -227,4 +229,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include continuous full-conversation rendering over the normalized model, search, bookmarks, annotations, editing, AI-assisted revisions, and selective export. These features are not implemented in 0.3.0.
+Later roadmap candidates include continuous full-conversation rendering over the normalized model, search, bookmarks, annotations, editing, AI-assisted revisions, and selective export. These features are not implemented in 0.3.1.

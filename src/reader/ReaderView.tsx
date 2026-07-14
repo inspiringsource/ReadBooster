@@ -373,7 +373,7 @@ export function ReaderView({
         data-narrow={isNarrow ? "true" : "false"}
       >
         <ResponseOutline
-          key={response.id}
+          key={`${response.id}:${outlineOpen ? "open" : "closed"}`}
           response={response}
           scrollAreaRef={scrollAreaRef}
           open={outlineOpen}

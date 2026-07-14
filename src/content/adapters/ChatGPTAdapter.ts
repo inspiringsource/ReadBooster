@@ -185,8 +185,27 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   hasLatestAssistantResponse(): boolean {
-    const conversation = this.getConversationDocument();
-    return Boolean(conversation && assistantBlocks(conversation).length > 0);
+    if (!this.isSupportedPage()) {
+      return false;
+    }
+
+    try {
+      for (const selector of ROLE_CONTAINER_SELECTORS.assistant) {
+        if (this.doc.querySelector(selector)) {
+          return true;
+        }
+      }
+
+      return Array.from(
+        this.doc.querySelectorAll('article[data-testid^="conversation-turn-"]'),
+      ).some((article) =>
+        Array.from(article.querySelectorAll(FALLBACK_AUTHOR_LABEL_SELECTORS)).some((label) =>
+          AUTHOR_LABELS.assistant.test(label.textContent?.trim() ?? ""),
+        ),
+      );
+    } catch {
+      return false;
+    }
   }
 
   getAllAssistantResponses(): ExtractedResponse[] {

@@ -1,8 +1,9 @@
-import { act, fireEvent } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { sanitizeResponseHtml } from "../src/content/sanitize";
 import { mountReader, READER_HOST_ID } from "../src/reader/mountReader";
+import { ResponseOutline } from "../src/reader/ResponseOutline";
 import type { ConversationDocument, DocumentContentBlock } from "../src/shared/types";
 
 function block(id: string, sourceHtml: string): DocumentContentBlock {
@@ -100,7 +101,7 @@ describe("active response outline", () => {
   it("highlights the visible section and cleans observers while switching responses", async () => {
     FakeIntersectionObserver.instances = [];
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
-    const first = block("first", "<h2>First heading</h2>");
+    const first = block("first", "<h2>First heading</h2><h3>First detail</h3>");
     const second = block("second", "<h2>Second heading</h2><h3>Second detail</h3>");
     await act(async () => mountReader(conversation(first, second), second));
     const shadow = shadowRoot();
@@ -121,11 +122,41 @@ describe("active response outline", () => {
     });
     expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("Second detail");
 
-    fireEvent.click(shadow.querySelector('[aria-label="Show previous assistant response"]')!);
-    await vi.waitFor(() => expect(shadow.querySelectorAll(".rb-outline-link")).toHaveLength(1));
-    expect(shadow.querySelector(".rb-outline-link")?.textContent).toBe("First heading");
+    fireEvent.click(shadow.querySelector('[aria-label="Close response outline"]')!);
+    fireEvent.click(shadow.querySelector('[aria-label="Open response outline"]')!);
+    expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("Second heading");
     expect(observer.disconnect).toHaveBeenCalledOnce();
     expect(FakeIntersectionObserver.instances).toHaveLength(2);
+
+    fireEvent.click(shadow.querySelector('[aria-label="Show previous assistant response"]')!);
+    await vi.waitFor(() => expect(shadow.querySelectorAll(".rb-outline-link")).toHaveLength(2));
+    expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("First heading");
+    expect(FakeIntersectionObserver.instances[1].disconnect).toHaveBeenCalledOnce();
+    expect(FakeIntersectionObserver.instances).toHaveLength(3);
+  });
+
+  it("resets the active heading when the heading collection changes", () => {
+    const initial = block("stable-response", "<h2>Initial heading</h2><h3>Initial detail</h3>");
+    const updated = block("stable-response", "<h2>Updated heading</h2><h3>Updated detail</h3>");
+    const scrollArea = document.createElement("main");
+    scrollArea.innerHTML = `<article class="rb-content">${initial.html}</article>`;
+    Object.defineProperty(scrollArea, "scrollTo", { configurable: true, value: vi.fn() });
+    document.body.append(scrollArea);
+    const scrollAreaRef = { current: scrollArea };
+    const view = render(
+      <ResponseOutline response={initial} scrollAreaRef={scrollAreaRef} open={true} />,
+    );
+
+    fireEvent.click(view.getByRole("button", { name: "Initial detail" }));
+    expect(view.container.querySelector('[aria-current="location"]')?.textContent).toBe(
+      "Initial detail",
+    );
+
+    scrollArea.innerHTML = `<article class="rb-content">${updated.html}</article>`;
+    view.rerender(<ResponseOutline response={updated} scrollAreaRef={scrollAreaRef} open={true} />);
+    expect(view.container.querySelector('[aria-current="location"]')?.textContent).toBe(
+      "Updated heading",
+    );
   });
 
   it("shows a concise empty state and supports opening and closing from the keyboard control", async () => {

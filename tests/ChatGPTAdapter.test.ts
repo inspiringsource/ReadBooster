@@ -3,6 +3,21 @@ import { describe, expect, it, vi } from "vitest";
 import { ChatGPTAdapter } from "../src/content/adapters/ChatGPTAdapter";
 
 describe("ChatGPTAdapter", () => {
+  it("checks assistant availability without extracting or cloning the conversation", () => {
+    document.body.innerHTML = `
+      <article data-turn="user"><p>First prompt</p></article>
+      <article data-turn="user"><p>Second prompt</p></article>
+      <article data-turn="assistant"><div data-message-content></div></article>
+    `;
+    const adapter = new ChatGPTAdapter(document, "chatgpt.com");
+    const extraction = vi.spyOn(adapter, "getConversationDocument");
+    const cloneNode = vi.spyOn(Element.prototype, "cloneNode");
+
+    expect(adapter.hasLatestAssistantResponse()).toBe(true);
+    expect(extraction).not.toHaveBeenCalled();
+    expect(cloneNode).not.toHaveBeenCalled();
+  });
+
   it("extracts a normalized conversation in chronological user/assistant turns", () => {
     document.body.innerHTML = `
       <article data-turn="user" data-message-id="prompt-1"><div data-message-content><p>First prompt</p></div></article>

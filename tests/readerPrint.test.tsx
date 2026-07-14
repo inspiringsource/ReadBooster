@@ -114,7 +114,7 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.3.0 as the manifest source of truth", () => {
-    expect(packageJson.version).toBe("0.3.0");
+  it("uses package version 0.3.1 as the manifest source of truth", () => {
+    expect(packageJson.version).toBe("0.3.1");
   });
 });

@@ -27,6 +27,9 @@ export function buildOutline(blocks: readonly DocumentContentBlock[]): OutlineIt
   let documentOrder = 0;
 
   for (const block of blocks) {
+    // Heading hierarchy is local to a content block. A later response must never inherit
+    // semantic ancestry from the final heading of an earlier response.
+    stack.length = 0;
     const template = document.createElement("template");
     template.innerHTML = block.html;
 

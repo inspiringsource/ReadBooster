@@ -47,4 +47,22 @@ describe("normalized content outline", () => {
     expect(outline[0].children[0].children.map((item) => item.text)).toEqual(["C"]);
     expect(flattenOutline(outline).map((item) => item.level)).toEqual([2, 4, 6, 3, 2]);
   });
+
+  it("resets heading hierarchy at content block boundaries", () => {
+    const outline = buildOutline([
+      block("first-response", '<h2 id="first-h2">First response section</h2>'),
+      block("second-response", '<h3 id="second-h3">Second response section</h3>'),
+    ]);
+
+    expect(outline.map((item) => item.text)).toEqual([
+      "First response section",
+      "Second response section",
+    ]);
+    expect(outline[0].children).toEqual([]);
+    expect(outline[1].children).toEqual([]);
+    expect(flattenOutline(outline).map((item) => item.targetBlockId)).toEqual([
+      "first-response",
+      "second-response",
+    ]);
+  });
 });
