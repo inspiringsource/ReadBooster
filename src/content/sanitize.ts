@@ -35,6 +35,7 @@ const ALLOWED_TAGS = [
   "sub",
   "details",
   "summary",
+  "cite",
   "figure",
   "figcaption",
   "img",
@@ -150,6 +151,15 @@ const LANGUAGE_ALIASES: Record<string, string> = {
   xml: "html",
 };
 
+export function normalizeSupportedCodeLanguageLabel(value: string): string | null {
+  const normalized = value
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/^(?:language|lang)\s*:\s*/, "");
+  return LANGUAGE_ALIASES[normalized] ?? null;
+}
+
 function preserveExplicitCodeLanguages(root: ParentNode): void {
   for (const code of root.querySelectorAll<HTMLElement>("pre code")) {
     const wrapper = code.closest("pre");
@@ -183,6 +193,17 @@ export function isSafeImageSource(value: string): boolean {
   return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(source);
 }
 
+export function isKnownFaviconSource(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      /(^|\.)google\.[a-z.]+$/i.test(url.hostname) && /^\/s2\/favicons(?:\/|$)/i.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function isSafeLinkHref(value: string): boolean {
   const href = value.trim();
   return /^(?:https?:|mailto:|tel:)/i.test(href) || !/^[a-z][a-z0-9+.-]*:/i.test(href);
@@ -191,7 +212,7 @@ function isSafeLinkHref(value: string): boolean {
 function validateSanitizedImages(root: ParentNode): void {
   for (const image of root.querySelectorAll<HTMLImageElement>("img")) {
     const source = image.getAttribute("src") ?? "";
-    if (!isSafeImageSource(source)) {
+    if (!isSafeImageSource(source) || isKnownFaviconSource(source)) {
       image.remove();
       continue;
     }

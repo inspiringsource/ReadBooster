@@ -740,6 +740,20 @@
   text-underline-offset: 0.16em;
 }
 
+.rb-content cite {
+  color: var(--rb-muted);
+  display: inline;
+  font:
+    600 0.72em/1.35 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  white-space: normal;
+}
+
+.rb-content cite a {
+  color: inherit;
+}
+
 .rb-content code {
   background: var(--rb-code);
   border-radius: 4px;

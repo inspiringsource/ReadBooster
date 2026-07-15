@@ -18,7 +18,7 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Keep associated prompts available through collapsed, accessible disclosures.
 - Remove host controls and sanitize the cloned HTML with a conservative allowlist.
 - Open a Shadow DOM-isolated full-screen reader overlay.
-- Preserve paragraphs, headings, lists, links, blockquotes, safe response images/charts, code, tables, emphasis, and preformatted text.
+- Preserve paragraphs, headings, lists, links, blockquotes, verified safe response images, code, tables, emphasis, and preformatted text. Extraction of the current live ChatGPT generated-chart structure remains pending.
 - Add response-local code toolbars with language labels, exact Copy code, and optional locally bundled syntax color.
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
@@ -63,7 +63,9 @@ The persisted **Open document at** setting controls only initial Document-mode p
 
 ## Safe visual content and code readability
 
-ReadBooster 0.4.3 preserves meaningful response images and generated canvas charts in their approximate source position. The ChatGPT adapter inspects only media inside extracted response content, excludes elements inside host controls, converts readable canvases locally to PNG data URLs, and emits platform-neutral `figure`, `img`, and optional `figcaption` markup. Safe PNG/JPEG/GIF/WebP data URLs, same-page Blob URLs, and already-present HTTPS image sources are accepted; unsafe schemes, raw SVG, scripts, event handlers, host widgets, and arbitrary controls remain excluded. Semantic Copy contains image alternative text and captions, never binary image data. Responsive reader and print CSS keep captured charts within the viewport or printable page width without dark-mode inversion.
+ReadBooster 0.4.3 introduced safe media sanitization, responsive figure rendering, and generic fixture coverage for response images and canvases. It did **not** successfully capture the generated chart found during subsequent live ChatGPT testing: the chart is outside the prose root used by the 0.4.3 extraction boundary, and its original host structure still needs to be incorporated from a reduced live fixture. This documentation therefore does not claim general live-chart support for 0.4.3.
+
+The existing safe-media boundary accepts verified PNG/JPEG/GIF/WebP data URLs, same-page Blob URLs, and already-present HTTPS response-image sources while rejecting unsafe schemes, raw SVG, scripts, event handlers, host widgets, arbitrary controls, and known citation favicons. Semantic Copy contains retained alternative text and captions, never binary image data. Responsive reader and print CSS are ready for supported figures without applying destructive dark-mode inversion.
 
 Canvas capture can fail when its bitmap is unavailable or origin-restricted. In that case ReadBooster preserves surrounding prose and code and inserts the restrained text “Visual could not be captured.” It does not fetch or screenshot an entire host widget. Meaningful raw SVG is not admitted through the sanitizer; a verified chart container currently follows the same safe-failure path because SVG also represents many ChatGPT interface icons.
 

@@ -186,6 +186,72 @@ describe("ChatGPTAdapter", () => {
     expect(response.html).not.toContain("Download");
   });
 
+  it("normalizes live-output citation favicons without promoting them to document media", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="citation-regression">
+        <div data-message-content>
+          <p>
+            Supporting sources
+            <a data-testid="citation-chip" href="https://www.masswerk.at/example?utm_source=chatgpt.com">
+              <img alt="" width="128" height="128" src="https://www.google.com/s2/favicons?domain=https://www.masswerk.at&amp;sz=128">
+              <span>mass:werk</span><span>+1</span>
+            </a>
+            <a data-testid="source-reference" href="https://datavizblog.com/napoleon?utm_medium=chat">
+              <img alt="" width="128" height="128" src="https://icons.example.test/favicon.png">
+              <span>datavizblog.com</span>
+            </a>
+          </p>
+          <img alt="" width="128" height="128" src="https://images.example.test/not-a-chart.png">
+        </div>
+      </article>
+    `;
+
+    const response = new ChatGPTAdapter(document, "chatgpt.com").getLatestAssistantResponse()!;
+    const output = document.createElement("div");
+    output.innerHTML = response.html;
+
+    expect(output.querySelectorAll("img")).toHaveLength(0);
+    expect(output.querySelectorAll("figure")).toHaveLength(0);
+    expect(output.querySelectorAll("cite")).toHaveLength(2);
+    expect(
+      output.querySelector('cite a[href="https://www.masswerk.at/example"]')?.textContent,
+    ).toBe("Source: mass:werk");
+    expect(
+      output.querySelector('cite a[href="https://datavizblog.com/napoleon"]')?.textContent,
+    ).toBe("Source: datavizblog.com");
+    expect(response.html).not.toContain("s2/favicons");
+    expect(response.html).not.toContain("+1");
+    expect(response.html).not.toContain("Visual could not be captured");
+    expect(response.text).toContain("Source: mass:werk");
+  });
+
+  it.each([
+    ["Python", "python", "import matplotlib.pyplot as plt"],
+    ["TypeScript", "typescript", "const answer: number = 42;"],
+  ])("moves a supported %s host label into code metadata", (hostLabel, language, codeText) => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="language-${language}">
+        <div data-message-content>
+          <div data-testid="code-block">
+            <div data-testid="code-block-header"><span>${hostLabel}</span><button>Copy code</button></div>
+            <pre><code>${codeText}\n</code></pre>
+          </div>
+        </div>
+      </article>
+    `;
+
+    const response = new ChatGPTAdapter(document, "chatgpt.com").getLatestAssistantResponse()!;
+    const output = document.createElement("div");
+    output.innerHTML = response.html;
+    const code = output.querySelector("code")!;
+
+    expect(code.getAttribute("lang")).toBe(language);
+    expect(code.textContent).toBe(`${codeText}\n`);
+    expect(response.text).toBe(codeText);
+    expect(response.html).not.toContain(hostLabel);
+    expect(response.html).not.toContain("Copy code");
+  });
+
   it("retains an image-only assistant response", () => {
     document.body.innerHTML = `
       <article data-turn="assistant" data-message-id="image-only">

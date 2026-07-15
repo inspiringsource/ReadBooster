@@ -5,7 +5,7 @@ import { enhanceCodeBlocks } from "../src/reader/codeControls";
 
 function codeFixture(language = "python"): HTMLElement {
   const root = document.createElement("article");
-  root.innerHTML = `<pre><code lang="${language}">def greet(name):\n    return f"Hello {name}"\n</code></pre>`;
+  root.innerHTML = `<pre><code lang="${language}">import matplotlib.pyplot as plt\n\nplt.plot([1, 2], [3, 4])\n</code></pre>`;
   document.body.append(root);
   return root;
 }

@@ -83,6 +83,25 @@ describe("response sanitization", () => {
     expect(text).toBe("Generated chart");
   });
 
+  it("rejects Google favicon-service images without creating media or failure output", () => {
+    const { html, text } = sanitizeResponseHtml(
+      fixture(`
+        <p>
+          <a href="https://www.masswerk.at/">
+            <img alt="" width="128" height="128" src="https://www.google.com/s2/favicons?domain=https://www.masswerk.at&amp;sz=128">
+            mass:werk
+          </a>
+        </p>
+      `),
+    );
+
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<figure");
+    expect(html).not.toContain("Visual could not be captured");
+    expect(html).toContain('href="https://www.masswerk.at/"');
+    expect(text).toBe("mass:werk");
+  });
+
   it("creates document-wide unique source and heading IDs per stable block", () => {
     const first = sanitizeResponseHtml(
       fixture(

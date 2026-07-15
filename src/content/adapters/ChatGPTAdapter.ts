@@ -6,7 +6,12 @@ import type {
   ExtractedResponse,
 } from "../../shared/types";
 import { assistantBlocks, toExtractedResponse } from "../../shared/types";
-import { isSafeImageSource, sanitizeResponseHtml } from "../sanitize";
+import {
+  isKnownFaviconSource,
+  isSafeImageSource,
+  normalizeSupportedCodeLanguageLabel,
+  sanitizeResponseHtml,
+} from "../sanitize";
 import type { ConversationAdapter } from "./ConversationAdapter";
 
 const HOSTNAME = "chatgpt.com";
@@ -74,6 +79,18 @@ const VISUAL_CONTROL_ANCESTOR_SELECTOR = [
   '[role="menu"]',
   '[data-testid*="control" i]',
   '[data-testid*="action" i]',
+].join(",");
+
+const CITATION_CONTEXT_SELECTOR = [
+  '[data-testid*="citation" i]',
+  '[data-testid*="source" i]',
+  '[data-testid*="reference" i]',
+  '[aria-label*="citation" i]',
+  '[aria-label*="source" i]',
+  '[aria-label*="reference" i]',
+  '[role="doc-biblioref"]',
+  "[data-citation]",
+  "[data-reference-id]",
 ].join(",");
 
 interface MessageCandidate {
@@ -318,6 +335,8 @@ export class ChatGPTAdapter implements ConversationAdapter {
     const sourceContentRoot = this.findContentRoot(container);
     const clonedContentRoot = this.findContentRoot(clone);
     this.preserveVisualContent(sourceContentRoot, clonedContentRoot);
+    this.preserveHostCodeLanguages(clonedContentRoot);
+    this.removeCitationCounters(clonedContentRoot);
     this.pruneHostOnlyContent(clone);
     const contentRoot = this.findContentRoot(clone);
     const sourceMessageId = this.getStableHostId(container) || undefined;
@@ -395,7 +414,15 @@ export class ChatGPTAdapter implements ConversationAdapter {
 
     sourceMedia.forEach((source, index) => {
       const clone = clonedMedia[index];
-      if (!clone || !this.isMeaningfulVisual(source)) {
+      if (!clone) {
+        return;
+      }
+      if (source instanceof HTMLImageElement && this.isCitationImage(source)) {
+        this.normalizeCitationImage(clone);
+        return;
+      }
+      if (!this.isMeaningfulVisual(source)) {
+        clone.remove();
         return;
       }
 
@@ -433,7 +460,10 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   private isMeaningfulVisual(element: Element): boolean {
-    if (element.closest(VISUAL_CONTROL_ANCESTOR_SELECTOR)) {
+    if (
+      element.closest(VISUAL_CONTROL_ANCESTOR_SELECTOR) ||
+      (element instanceof HTMLImageElement && this.isCitationImage(element))
+    ) {
       return false;
     }
     const verifiedContainer = Boolean(element.closest(VISUAL_RESULT_CONTAINER_SELECTOR));
@@ -462,9 +492,136 @@ export class ChatGPTAdapter implements ConversationAdapter {
       return false;
     }
     const source = element.getAttribute("src") ?? "";
-    const hasUsefulAlternative = Boolean(element.getAttribute("alt")?.trim());
-    const usefulSize = element.naturalWidth >= 48 || element.naturalHeight >= 48;
-    return isSafeImageSource(source) && (verifiedContainer || hasUsefulAlternative || usefulSize);
+    const bounds = element.getBoundingClientRect();
+    const renderedWidth = Math.max(bounds.width, element.naturalWidth);
+    const renderedHeight = Math.max(bounds.height, element.naturalHeight);
+    const declaredWidth = element.width;
+    const declaredHeight = element.height;
+    const hasMeaningfulDimensions =
+      Math.max(renderedWidth, declaredWidth) >= 96 &&
+      Math.max(renderedHeight, declaredHeight) >= 64;
+    const hasStrongStandaloneEvidence =
+      !element.closest("a[href]") && renderedWidth >= 320 && renderedHeight >= 120;
+    const semanticFigure = Boolean(element.closest("figure"));
+    return (
+      isSafeImageSource(source) &&
+      (semanticFigure ||
+        (hasMeaningfulDimensions && verifiedContainer) ||
+        hasStrongStandaloneEvidence)
+    );
+  }
+
+  private isCitationImage(image: HTMLImageElement): boolean {
+    if (isKnownFaviconSource(image.getAttribute("src") ?? "")) {
+      return true;
+    }
+    if (image.closest(CITATION_CONTEXT_SELECTOR)) {
+      return true;
+    }
+    const anchor = image.closest("a[href]");
+    if (!anchor || image.getAttribute("alt") !== "") {
+      return false;
+    }
+    const text = (anchor.textContent ?? "").replace(/\s+/g, " ").trim();
+    const width = image.width;
+    const height = image.height;
+    return Boolean(text) && width > 0 && height > 0 && width <= 128 && height <= 128;
+  }
+
+  private normalizeCitationImage(imageClone: Element): void {
+    const anchor = imageClone.closest<HTMLAnchorElement>("a[href]");
+    if (!anchor) {
+      imageClone.remove();
+      return;
+    }
+    const label = (anchor.textContent ?? "")
+      .replace(/(?:^|\s)\+\d+(?=\s|$)/g, " ")
+      .replace(/\+\d+\s*$/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const href = this.cleanCitationHref(anchor.getAttribute("href") ?? "");
+    if (!label || !href) {
+      anchor.remove();
+      return;
+    }
+    const citation = this.doc.createElement("cite");
+    const link = this.doc.createElement("a");
+    link.href = href;
+    link.textContent = /^source\s*:/i.test(label) ? label : `Source: ${label}`;
+    citation.append(link);
+    anchor.replaceWith(citation);
+  }
+
+  private cleanCitationHref(value: string): string | null {
+    try {
+      const url = new URL(value, this.currentUrl ?? this.doc.location?.href);
+      if (url.protocol !== "https:" && url.protocol !== "http:") {
+        return null;
+      }
+      if (/(^|\.)google\.[a-z.]+$/i.test(url.hostname) && url.pathname === "/url") {
+        const target = url.searchParams.get("url") ?? url.searchParams.get("q");
+        if (target) {
+          return this.cleanCitationHref(target);
+        }
+      }
+      for (const key of Array.from(url.searchParams.keys())) {
+        if (/^utm_/i.test(key) || /^(?:gclid|fbclid)$/i.test(key)) {
+          url.searchParams.delete(key);
+        }
+      }
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  private removeCitationCounters(root: Element): void {
+    root.querySelectorAll(CITATION_CONTEXT_SELECTOR).forEach((context) => {
+      context.querySelectorAll("*").forEach((element) => {
+        if (element.children.length === 0 && /^\s*\+\d+\s*$/.test(element.textContent ?? "")) {
+          element.remove();
+        }
+      });
+    });
+  }
+
+  private preserveHostCodeLanguages(root: Element): void {
+    for (const code of root.querySelectorAll<HTMLElement>("pre code")) {
+      if (
+        code.hasAttribute("lang") ||
+        Array.from(code.classList).some((name) => /^(?:language|lang)-/i.test(name))
+      ) {
+        continue;
+      }
+      let boundary: Element | null = code.closest("pre");
+      for (let depth = 0; boundary && boundary !== root && depth < 4; depth += 1) {
+        const label = this.findHostLanguageLabel(boundary.previousElementSibling);
+        if (label) {
+          code.setAttribute("lang", label.language);
+          label.element.remove();
+          break;
+        }
+        boundary = boundary.parentElement;
+      }
+    }
+  }
+
+  private findHostLanguageLabel(
+    candidate: Element | null,
+  ): { element: Element; language: string } | null {
+    if (!candidate) {
+      return null;
+    }
+    const elements = [candidate, ...Array.from(candidate.querySelectorAll("*"))].reverse();
+    for (const element of elements) {
+      const clone = element.cloneNode(true) as Element;
+      clone.querySelectorAll(HOST_UI_SELECTORS).forEach((control) => control.remove());
+      const language = normalizeSupportedCodeLanguageLabel(clone.textContent ?? "");
+      if (language) {
+        return { element, language };
+      }
+    }
+    return null;
   }
 
   private captureImage(source: HTMLImageElement): HTMLImageElement | null {
