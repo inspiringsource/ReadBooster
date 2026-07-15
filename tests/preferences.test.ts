@@ -24,6 +24,8 @@ describe("reader preferences", () => {
       textSize: "large",
       spacing: "roomy",
       preset: "dyslexia-friendly",
+      codeAppearance: "color",
+      documentOpenAt: "latest",
     });
   });
 
@@ -33,6 +35,8 @@ describe("reader preferences", () => {
       textSize: "large",
       spacing: "roomy",
       preset: "dyslexia-friendly",
+      codeAppearance: "color",
+      documentOpenAt: "latest",
     });
   });
 
@@ -49,6 +53,35 @@ describe("reader preferences", () => {
       textSize: "medium",
       spacing: "comfortable",
       preset: "comfortable",
+      codeAppearance: "color",
+      documentOpenAt: "latest",
     });
+  });
+
+  it("migrates older preferences and preserves independent code and opening settings", () => {
+    expect(
+      normalizeReaderPreferences({
+        appearance: "dark",
+        textSize: "small",
+        spacing: "compact",
+        preset: "custom",
+        codeAppearance: "plain",
+        documentOpenAt: "beginning",
+      }),
+    ).toEqual({
+      appearance: "dark",
+      textSize: "small",
+      spacing: "compact",
+      preset: "custom",
+      codeAppearance: "plain",
+      documentOpenAt: "beginning",
+    });
+
+    expect(
+      preferencesForPreset("comfortable", "light", {
+        codeAppearance: "plain",
+        documentOpenAt: "beginning",
+      }),
+    ).toMatchObject({ codeAppearance: "plain", documentOpenAt: "beginning" });
   });
 });

@@ -65,7 +65,7 @@ describe("reader header refinement", () => {
     const shadow = shadowRoot();
     const primary = shadow.querySelector(".rb-toolbar-primary")!;
 
-    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.4.2");
+    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.4.3");
     expect(primary.contains(button(shadow, "Document"))).toBe(true);
     expect(primary.contains(button(shadow, "Focus"))).toBe(true);
     expect(primary.contains(button(shadow, "Hide outline"))).toBe(true);
@@ -123,6 +123,24 @@ describe("reader header refinement", () => {
     expect(shadow.querySelector(".rb-table-block")).toBe(tableBlock);
     expect((shadow.querySelector(".rb-table-block") as HTMLElement).dataset.mode).toBe("wide");
     expect(prompt.open).toBe(true);
+
+    fireEvent.click(settingsTrigger);
+    fireEvent.change(shadow.querySelector('[aria-label="Code appearance"]')!, {
+      target: { value: "plain" },
+    });
+    fireEvent.change(shadow.querySelector('[aria-label="Open document at"]')!, {
+      target: { value: "beginning" },
+    });
+    await vi.waitFor(() =>
+      expect(storageSet).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          readerPreferences: expect.objectContaining({
+            codeAppearance: "plain",
+            documentOpenAt: "beginning",
+          }),
+        }),
+      ),
+    );
   });
 
   it("closes panels before the reader and restores focus after Escape and outside clicks", async () => {
@@ -174,7 +192,7 @@ describe("reader header refinement", () => {
     expect(writeText).toHaveBeenCalledOnce();
     expect(print).toHaveBeenCalledOnce();
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Version 0.4.2 Beta",
+      "Version 0.4.3 Beta",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
       "ReadBooster processes content locally in your browser.",

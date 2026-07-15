@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
+import type { CodeAppearance } from "../shared/types";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { flattenOutline } from "./outline";
 import type { ConversationSection } from "./presentation";
@@ -12,6 +13,7 @@ interface ContinuousDocumentViewProps {
   tableSessionStates: Map<string, TableDisplayState>;
   fullscreenCoordinator: TableFullscreenCoordinator;
   onActiveChange: (sectionId: string, headingId: string | null) => void;
+  codeAppearance: CodeAppearance;
 }
 
 export function ContinuousDocumentView({
@@ -20,6 +22,7 @@ export function ContinuousDocumentView({
   tableSessionStates,
   fullscreenCoordinator,
   onActiveChange,
+  codeAppearance,
 }: ContinuousDocumentViewProps) {
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
@@ -109,6 +112,7 @@ export function ContinuousDocumentView({
               tableSessionStates={tableSessionStates}
               fullscreenCoordinator={fullscreenCoordinator}
               variant="document"
+              codeAppearance={codeAppearance}
             />
           </section>
         ))}

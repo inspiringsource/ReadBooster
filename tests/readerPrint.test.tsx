@@ -139,9 +139,17 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.4.2 as the manifest source of truth", () => {
+  it("uses package version 0.4.3 as the manifest source of truth", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.4.2");
+    expect(packageJson.version).toBe("0.4.3");
     expect(manifestSource).toContain("version: packageJson.version");
+  });
+
+  it("prints responsive figures while excluding code controls", () => {
+    expect(PRINT_CSS).toMatch(/\.rb-content figure[\s\S]+break-inside: avoid/);
+    expect(PRINT_CSS).toMatch(/\.rb-content figure img[\s\S]+max-width: 100% !important/);
+    expect(PRINT_CSS).toContain(".rb-code-block");
+    expect(PRINT_CSS).toContain(".rb-print-hidden");
+    expect(PRINT_CSS).toContain(".rb-block-toolbar");
   });
 });

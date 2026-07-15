@@ -100,9 +100,49 @@ describe("minimal continuous document mode", () => {
     expect(shadow.querySelectorAll(".rb-response-navigation")).toHaveLength(0);
     expect(shadow.querySelectorAll(".rb-outline-group")).toHaveLength(3);
     expect(
+      shadow.querySelector('.rb-outline-group-link[aria-current="location"]')?.textContent,
+    ).toBe("Third section");
+    expect(
       Array.from(shadow.querySelectorAll(".rb-section-indicator"), (item) => item.textContent),
     ).toEqual(["Section 1", "Section 2", "Section 3"]);
     expect(shadow.textContent).not.toMatch(/Turn \d/);
+  });
+
+  it("uses the persisted beginning preference only when the reader initially opens", async () => {
+    vi.stubGlobal("chrome", {
+      storage: {
+        local: {
+          get: vi.fn().mockResolvedValue({
+            readerPreferences: {
+              appearance: "system",
+              textSize: "medium",
+              spacing: "comfortable",
+              preset: "comfortable",
+              codeAppearance: "color",
+              documentOpenAt: "beginning",
+            },
+          }),
+          set: vi.fn(),
+        },
+      },
+    });
+    await act(async () => mountReader(fixture()));
+    const shadow = shadowRoot();
+    const scrollArea = shadow.querySelector<HTMLElement>(".rb-scroll-area")!;
+    expect(
+      shadow.querySelector('.rb-outline-group-link[aria-current="location"]')?.textContent,
+    ).toBe("First section");
+
+    scrollArea.scrollTop = 321;
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll<HTMLButtonElement>("button")).find(
+        (button) => button.textContent === "Reading settings",
+      )!,
+    );
+    fireEvent.change(shadow.querySelector('[aria-label="Reader appearance"]')!, {
+      target: { value: "dark" },
+    });
+    expect(scrollArea.scrollTop).toBe(321);
   });
 
   it("keeps prompts collapsed and lets disclosures expand independently", async () => {
@@ -218,7 +258,7 @@ describe("minimal continuous document mode", () => {
       fireEvent.click(shadow.querySelector('[aria-label="Copy focused response"]')!);
       await Promise.resolve();
     });
-    expect(writeText.mock.calls[1][0]).toBe(fixture().turns[0].response?.text);
+    expect(writeText.mock.calls[1][0]).toBe(fixture().turns[2].response?.text);
     fireEvent.click(shadow.querySelector('[aria-label="Print focused response"]')!);
     expect(print).toHaveBeenCalledTimes(2);
   });

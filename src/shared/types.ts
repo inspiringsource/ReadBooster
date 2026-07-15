@@ -69,10 +69,14 @@ export type AppearanceMode = "system" | "light" | "dark";
 export type TextSize = "small" | "medium" | "large" | "x-large";
 export type SpacingLevel = "compact" | "comfortable" | "roomy";
 export type ReaderPreset = "comfortable" | "dyslexia-friendly" | "custom";
+export type CodeAppearance = "color" | "plain";
+export type DocumentOpenAt = "latest" | "beginning";
 
 export interface ReaderPreferences {
   appearance: AppearanceMode;
   textSize: TextSize;
   spacing: SpacingLevel;
   preset: ReaderPreset;
+  codeAppearance: CodeAppearance;
+  documentOpenAt: DocumentOpenAt;
 }

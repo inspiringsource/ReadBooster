@@ -35,6 +35,9 @@ const ALLOWED_TAGS = [
   "sub",
   "details",
   "summary",
+  "figure",
+  "figcaption",
+  "img",
   "div",
   "span",
 ];
@@ -52,6 +55,10 @@ const ALLOWED_ATTR = [
   "start",
   "reversed",
   "value",
+  "src",
+  "alt",
+  "width",
+  "height",
 ];
 
 const FLOW_BLOCK_TAGS = new Set([
@@ -60,6 +67,8 @@ const FLOW_BLOCK_TAGS = new Set([
   "BLOCKQUOTE",
   "DETAILS",
   "DIV",
+  "FIGCAPTION",
+  "FIGURE",
   "H1",
   "H2",
   "H3",
@@ -122,6 +131,87 @@ function namespaceSemanticIds(root: ParentNode, blockId: string): void {
   }
 }
 
+const LANGUAGE_ALIASES: Record<string, string> = {
+  bash: "bash",
+  css: "css",
+  html: "html",
+  javascript: "javascript",
+  js: "javascript",
+  json: "json",
+  markdown: "markdown",
+  md: "markdown",
+  python: "python",
+  py: "python",
+  shell: "bash",
+  sh: "bash",
+  sql: "sql",
+  ts: "typescript",
+  typescript: "typescript",
+  xml: "html",
+};
+
+function preserveExplicitCodeLanguages(root: ParentNode): void {
+  for (const code of root.querySelectorAll<HTMLElement>("pre code")) {
+    const wrapper = code.closest("pre");
+    const candidates = [
+      code.getAttribute("lang"),
+      code.getAttribute("data-language"),
+      wrapper?.getAttribute("data-language"),
+      ...Array.from(code.classList).filter((name) => /^(?:language|lang)-/i.test(name)),
+      ...(wrapper
+        ? Array.from(wrapper.classList).filter((name) => /^(?:language|lang)-/i.test(name))
+        : []),
+    ];
+    for (const candidate of candidates) {
+      const normalized = candidate
+        ?.toLowerCase()
+        .replace(/^(language|lang)-/, "")
+        .trim();
+      if (normalized && /^[a-z0-9+#.-]{1,32}$/.test(normalized)) {
+        code.setAttribute("lang", LANGUAGE_ALIASES[normalized] ?? normalized);
+        break;
+      }
+    }
+  }
+}
+
+export function isSafeImageSource(value: string): boolean {
+  const source = value.trim();
+  if (/^blob:/i.test(source) || /^https:\/\//i.test(source)) {
+    return true;
+  }
+  return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(source);
+}
+
+function isSafeLinkHref(value: string): boolean {
+  const href = value.trim();
+  return /^(?:https?:|mailto:|tel:)/i.test(href) || !/^[a-z][a-z0-9+.-]*:/i.test(href);
+}
+
+function validateSanitizedImages(root: ParentNode): void {
+  for (const image of root.querySelectorAll<HTMLImageElement>("img")) {
+    const source = image.getAttribute("src") ?? "";
+    if (!isSafeImageSource(source)) {
+      image.remove();
+      continue;
+    }
+    if (!image.hasAttribute("alt")) {
+      image.alt = "Generated chart";
+    }
+    for (const attribute of ["width", "height"] as const) {
+      const value = image.getAttribute(attribute) ?? "";
+      if (value && !/^\d{1,5}$/.test(value)) {
+        image.removeAttribute(attribute);
+      }
+    }
+  }
+  for (const figure of root.querySelectorAll("figure")) {
+    if (!figure.querySelector("img") && !(figure.textContent ?? "").trim()) {
+      figure.remove();
+    }
+  }
+}
+
 function serializeInlineNodes(nodes: Iterable<Node>): string {
   let value = "";
   for (const node of nodes) {
@@ -134,6 +224,8 @@ function serializeInlineNodes(nodes: Iterable<Node>): string {
     }
     if (node.tagName === "BR") {
       value += "\n";
+    } else if (node.tagName === "IMG") {
+      value += node.getAttribute("alt") ?? "";
     } else if (node.tagName === "CODE") {
       value += (node.textContent ?? "").replace(/\r\n?/g, "\n");
     } else if (FLOW_BLOCK_TAGS.has(node.tagName)) {
@@ -217,6 +309,19 @@ function serializeBlock(element: Element): string {
       return serializeList(element);
     case "TABLE":
       return serializeTable(element);
+    case "FIGURE": {
+      const alternative = Array.from(element.querySelectorAll("img"))
+        .map((image) => image.getAttribute("alt") ?? "")
+        .filter(Boolean)
+        .join("\n");
+      const caption = Array.from(element.querySelectorAll("figcaption"))
+        .map((item) => serializeFlow(item).trim())
+        .filter(Boolean)
+        .join("\n");
+      return [alternative, caption]
+        .filter((part, index, values) => part && values.indexOf(part) === index)
+        .join("\n");
+    }
     case "BLOCKQUOTE": {
       const quote = serializeFlow(element);
       return quote
@@ -269,6 +374,7 @@ export function sanitizeResponseHtml(
   blockNamespace = "legacy-response",
 ): SanitizedContent {
   const sourceClone = element.cloneNode(true) as Element;
+  preserveExplicitCodeLanguages(sourceClone);
   // Namespace before DOMPurify so clobber-prone source IDs are retained safely.
   namespaceSemanticIds(sourceClone, blockNamespace);
 
@@ -279,13 +385,21 @@ export function sanitizeResponseHtml(
     ALLOW_DATA_ATTR: false,
     FORBID_TAGS: ["style", "script", "iframe", "object", "embed", "form"],
     FORBID_ATTR: ["style"],
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:https?|mailto|tel):|blob:|data:image\/(?:png|jpe?g|gif|webp);base64,|(?!(?:[a-z][a-z0-9+.-]*):))/i,
   });
 
   const ownerDocument = element.ownerDocument;
   const template = ownerDocument.createElement("template");
   template.innerHTML = sanitized;
 
+  validateSanitizedImages(template.content);
+
   for (const link of template.content.querySelectorAll("a[href]")) {
+    if (!isSafeLinkHref(link.getAttribute("href") ?? "")) {
+      link.removeAttribute("href");
+      continue;
+    }
     link.setAttribute("target", "_blank");
     link.setAttribute("rel", "noopener noreferrer");
   }

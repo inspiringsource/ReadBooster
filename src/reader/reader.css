@@ -34,6 +34,11 @@
   --rb-code: #ece8df;
   --rb-table-stripe: #f5f1e8;
   --rb-table-scroll-shadow: rgba(32, 36, 43, 0.28);
+  --rb-code-keyword: #8b2bb9;
+  --rb-code-string: #087f5b;
+  --rb-code-number: #b44b00;
+  --rb-code-title: #1456b8;
+  --rb-code-comment: #68717e;
   background: var(--rb-background);
   color: var(--rb-text);
   display: grid;
@@ -63,6 +68,11 @@
   --rb-code: #292e37;
   --rb-table-stripe: #242a33;
   --rb-table-scroll-shadow: rgba(0, 0, 0, 0.72);
+  --rb-code-keyword: #d8a0ff;
+  --rb-code-string: #80dfb7;
+  --rb-code-number: #ffbd7a;
+  --rb-code-title: #91baff;
+  --rb-code-comment: #aeb6c2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,6 +86,11 @@
     --rb-code: #292e37;
     --rb-table-stripe: #242a33;
     --rb-table-scroll-shadow: rgba(0, 0, 0, 0.72);
+    --rb-code-keyword: #d8a0ff;
+    --rb-code-string: #80dfb7;
+    --rb-code-number: #ffbd7a;
+    --rb-code-title: #91baff;
+    --rb-code-comment: #aeb6c2;
   }
 }
 
@@ -295,6 +310,7 @@
 .rb-outline-link:focus-visible,
 .rb-prompt-disclosure summary:focus-visible,
 .rb-content a:focus-visible,
+.rb-code-toolbar button:focus-visible,
 .rb-block-toolbar button:focus-visible,
 .rb-table-scroll:focus-visible {
   outline: 3px solid var(--rb-accent);
@@ -650,6 +666,31 @@
   margin-block: 1.15em;
 }
 
+.rb-content figure {
+  margin: 1.5em auto;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.rb-content figure img,
+.rb-content > img {
+  display: block;
+  height: auto;
+  margin-inline: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.rb-content figcaption {
+  color: var(--rb-muted);
+  font:
+    500 0.75em/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  margin-top: 0.65em;
+}
+
 .rb-content h1,
 .rb-content h2,
 .rb-content h3,
@@ -719,6 +760,83 @@
 .rb-content pre code {
   background: transparent;
   padding: 0;
+}
+
+.rb-code-block {
+  margin-block: 1.15em;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rb-code-block .rb-code-toolbar {
+  align-items: center;
+  background: var(--rb-code);
+  border: 1px solid var(--rb-border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 5px 7px 5px 11px;
+}
+
+.rb-code-language {
+  color: var(--rb-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rb-code-toolbar button {
+  appearance: none;
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 5px;
+  color: var(--rb-text);
+  cursor: pointer;
+  font:
+    650 12px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
+.rb-code-toolbar button:hover {
+  border-color: var(--rb-accent);
+}
+
+.rb-code-block > pre {
+  border-radius: 0 0 8px 8px;
+  margin: 0;
+  max-width: 100%;
+}
+
+.rb-code-highlighted .hljs-keyword,
+.rb-code-highlighted .hljs-selector-tag,
+.rb-code-highlighted .hljs-literal {
+  color: var(--rb-code-keyword);
+}
+
+.rb-code-highlighted .hljs-string,
+.rb-code-highlighted .hljs-attr {
+  color: var(--rb-code-string);
+}
+
+.rb-code-highlighted .hljs-number,
+.rb-code-highlighted .hljs-symbol {
+  color: var(--rb-code-number);
+}
+
+.rb-code-highlighted .hljs-title,
+.rb-code-highlighted .hljs-built_in {
+  color: var(--rb-code-title);
+}
+
+.rb-code-highlighted .hljs-comment,
+.rb-code-highlighted .hljs-quote {
+  color: var(--rb-code-comment);
+  font-style: italic;
 }
 
 .rb-table-block {

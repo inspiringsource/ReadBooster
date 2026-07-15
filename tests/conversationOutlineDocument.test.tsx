@@ -71,16 +71,17 @@ describe("grouped conversation outline", () => {
 
     const groups = shadow.querySelectorAll(".rb-outline-group");
     expect(groups).toHaveLength(2);
-    expect(groups[0].querySelectorAll(".rb-outline-link")).toHaveLength(1);
+    expect(groups[0].querySelectorAll(".rb-outline-link")).toHaveLength(0);
     expect(groups[0].textContent).not.toContain("FirstFirst");
-    expect(groups[1].querySelectorAll(".rb-outline-link")).toHaveLength(0);
+    expect(groups[1].querySelectorAll(".rb-outline-link")).toHaveLength(1);
 
-    fireEvent.click(shadow.querySelector('[aria-label="Expand headings for Second"]')!);
+    fireEvent.click(shadow.querySelector('[aria-label="Expand headings for First"]')!);
+    expect(groups[0].querySelector(".rb-outline-link")?.textContent).toBe("First detail");
     expect(groups[1].querySelector(".rb-outline-link")?.textContent).toBe("Second detail");
     fireEvent.click(shadow.querySelectorAll<HTMLButtonElement>(".rb-outline-group-link")[0]);
-    expect(groups[1].querySelector(".rb-outline-link")?.textContent).toBe("Second detail");
     expect(scrollTo).toHaveBeenCalled();
 
+    fireEvent.click(shadow.querySelector('[aria-label="Expand headings for Second"]')!);
     fireEvent.click(groups[1].querySelector<HTMLButtonElement>(".rb-outline-link")!);
     expect(scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: "smooth" }));
     expect(shadow.activeElement?.id).toBe(

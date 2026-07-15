@@ -41,6 +41,48 @@ describe("semantic plain text", () => {
 });
 
 describe("response sanitization", () => {
+  it("retains safe semantic media and includes alternatives and captions in copy text", () => {
+    const { html, text } = sanitizeResponseHtml(
+      fixture(`
+        <figure id="chart">
+          <img src="data:image/png;base64,AAAA" alt="Campaign timeline" width="800" height="400" onclick="bad()">
+          <figcaption>Campaign reach by year</figcaption>
+        </figure>
+        <img src="blob:https://chatgpt.com/safe-image" alt="Rendered image">
+        <img src="https://example.com/already-rendered.png" alt="Remote response image">
+      `),
+      "media-response",
+    );
+    const sanitized = fixture(html);
+
+    expect(sanitized.querySelectorAll("img")).toHaveLength(3);
+    expect(sanitized.querySelector("figure")?.id).toContain("media-response");
+    expect(sanitized.querySelector("img")?.getAttribute("onclick")).toBeNull();
+    expect(text).toContain("Campaign timeline\nCampaign reach by year");
+    expect(text).toContain("Rendered image");
+    expect(text).not.toContain("data:image");
+  });
+
+  it("rejects unsafe image sources and arbitrary SVG while retaining decorative alternatives", () => {
+    const { html, text } = sanitizeResponseHtml(
+      fixture(`
+        <img src="javascript:alert(1)" alt="Unsafe">
+        <img src="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=" alt="Unsafe SVG">
+        <svg onload="alert(1)"><script>alert(2)</script><circle></circle></svg>
+        <img src="data:image/png;base64,AAAA" alt="">
+        <img src="data:image/png;base64,BBBB">
+      `),
+    );
+    const sanitized = fixture(html);
+
+    expect(sanitized.querySelector("svg")).toBeNull();
+    expect(sanitized.querySelectorAll("img")).toHaveLength(2);
+    expect(sanitized.querySelectorAll("img")[0].getAttribute("alt")).toBe("");
+    expect(sanitized.querySelectorAll("img")[1].getAttribute("alt")).toBe("Generated chart");
+    expect(html).not.toContain("javascript:");
+    expect(text).toBe("Generated chart");
+  });
+
   it("creates document-wide unique source and heading IDs per stable block", () => {
     const first = sanitizeResponseHtml(
       fixture(
@@ -118,5 +160,16 @@ describe("response sanitization", () => {
     expect(sanitized.querySelector("td")?.getAttribute("headers")).toBe(headerId);
     expect(text).toContain("5. Five\n6. Six");
     expect(text).toContain("Unclosed");
+  });
+
+  it("retains only an explicit safe code language marker", () => {
+    const { html } = sanitizeResponseHtml(
+      fixture(
+        '<pre class="host-wrapper"><code class="language-rust host-token">fn main() {}</code></pre>',
+      ),
+    );
+    expect(html).toContain('<code lang="rust">');
+    expect(html).not.toContain("host-wrapper");
+    expect(html).not.toContain("host-token");
   });
 });

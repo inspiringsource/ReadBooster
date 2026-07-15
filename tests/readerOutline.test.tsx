@@ -136,13 +136,13 @@ describe("active response outline", () => {
     fireEvent.click(shadow.querySelector('[aria-label="Open response outline"]')!);
     expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("Second heading");
     expect(observer.disconnect).toHaveBeenCalledOnce();
-    expect(FakeIntersectionObserver.instances).toHaveLength(3);
+    expect(FakeIntersectionObserver.instances).toHaveLength(2);
 
     fireEvent.click(shadow.querySelector('[aria-label="Show previous assistant response"]')!);
     await vi.waitFor(() => expect(shadow.querySelectorAll(".rb-outline-link")).toHaveLength(2));
     expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("First heading");
-    expect(FakeIntersectionObserver.instances[2].disconnect).toHaveBeenCalledOnce();
-    expect(FakeIntersectionObserver.instances).toHaveLength(4);
+    expect(FakeIntersectionObserver.instances[1].disconnect).toHaveBeenCalledOnce();
+    expect(FakeIntersectionObserver.instances).toHaveLength(3);
   });
 
   it("resets the active heading when the heading collection changes", () => {

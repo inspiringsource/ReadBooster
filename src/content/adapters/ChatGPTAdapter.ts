@@ -6,7 +6,7 @@ import type {
   ExtractedResponse,
 } from "../../shared/types";
 import { assistantBlocks, toExtractedResponse } from "../../shared/types";
-import { sanitizeResponseHtml } from "../sanitize";
+import { isSafeImageSource, sanitizeResponseHtml } from "../sanitize";
 import type { ConversationAdapter } from "./ConversationAdapter";
 
 const HOSTNAME = "chatgpt.com";
@@ -55,6 +55,25 @@ const HOST_UI_SELECTORS = [
   '[aria-label*="read aloud" i]',
   '[aria-label*="audio" i]',
   '[aria-label*="menu" i]',
+].join(",");
+
+// These semantic or host-metadata containers are intentionally narrow. ChatGPT's generated
+// output DOM is private and must be rechecked when its artifact markup changes.
+const VISUAL_RESULT_CONTAINER_SELECTOR = [
+  "figure",
+  '[data-testid*="chart" i]',
+  '[data-testid*="artifact" i]',
+  '[data-testid*="generated-output" i]',
+  '[aria-label*="chart" i]',
+].join(",");
+
+const VISUAL_CONTROL_ANCESTOR_SELECTOR = [
+  "button",
+  '[role="button"]',
+  "nav",
+  '[role="menu"]',
+  '[data-testid*="control" i]',
+  '[data-testid*="action" i]',
 ].join(",");
 
 interface MessageCandidate {
@@ -296,13 +315,25 @@ export class ChatGPTAdapter implements ConversationAdapter {
     extractedAt: string,
   ): DocumentContentBlock | null {
     const clone = container.cloneNode(true) as Element;
+    const sourceContentRoot = this.findContentRoot(container);
+    const clonedContentRoot = this.findContentRoot(clone);
+    this.preserveVisualContent(sourceContentRoot, clonedContentRoot);
     this.pruneHostOnlyContent(clone);
     const contentRoot = this.findContentRoot(clone);
     const sourceMessageId = this.getStableHostId(container) || undefined;
-    const fallbackSeed = (contentRoot.textContent ?? "").replace(/\s+/g, " ").trim();
+    const fallbackSeed = [
+      (contentRoot.textContent ?? "").replace(/\s+/g, " ").trim(),
+      ...Array.from(contentRoot.querySelectorAll("img"), (image) =>
+        [image.getAttribute("alt"), image.getAttribute("width"), image.getAttribute("height")]
+          .filter(Boolean)
+          .join(":"),
+      ),
+    ].join("|");
     const id = sourceMessageId || `chatgpt-${role}-${index}-${simpleHash(fallbackSeed)}`;
     const { html, text } = sanitizeResponseHtml(contentRoot, id);
-    if (!text) {
+    const sanitizedContainer = this.doc.createElement("div");
+    sanitizedContainer.innerHTML = html;
+    if (!text && !sanitizedContainer.querySelector("img, figure")) {
       return null;
     }
 
@@ -356,6 +387,141 @@ export class ChatGPTAdapter implements ConversationAdapter {
         label.remove();
       }
     });
+  }
+
+  private preserveVisualContent(sourceRoot: Element, clonedRoot: Element): void {
+    const sourceMedia = Array.from(sourceRoot.querySelectorAll("img, canvas, svg"));
+    const clonedMedia = Array.from(clonedRoot.querySelectorAll("img, canvas, svg"));
+
+    sourceMedia.forEach((source, index) => {
+      const clone = clonedMedia[index];
+      if (!clone || !this.isMeaningfulVisual(source)) {
+        return;
+      }
+
+      if (source instanceof HTMLImageElement) {
+        const image = this.captureImage(source);
+        if (image) {
+          this.replaceVisual(clone, image);
+        } else {
+          this.replaceWithCaptureNotice(clone);
+        }
+        return;
+      }
+
+      if (source instanceof HTMLCanvasElement) {
+        try {
+          const image = this.doc.createElement("img");
+          const capturedSource = source.toDataURL("image/png");
+          if (!isSafeImageSource(capturedSource)) {
+            throw new Error("Canvas capture did not produce a safe raster image");
+          }
+          image.src = capturedSource;
+          image.alt = this.visualAlternative(source);
+          this.setIntrinsicDimensions(image, source.width, source.height);
+          this.replaceVisual(clone, image);
+        } catch {
+          this.replaceWithCaptureNotice(clone);
+        }
+        return;
+      }
+
+      // Raw SVG remains outside the sanitizer trust boundary. A verified chart container gets an
+      // accessible failure notice; unrelated interface icons are simply pruned below.
+      this.replaceWithCaptureNotice(clone);
+    });
+  }
+
+  private isMeaningfulVisual(element: Element): boolean {
+    if (element.closest(VISUAL_CONTROL_ANCESTOR_SELECTOR)) {
+      return false;
+    }
+    const verifiedContainer = Boolean(element.closest(VISUAL_RESULT_CONTAINER_SELECTOR));
+    if (element instanceof SVGElement) {
+      const labelledAsVisual = /\b(chart|graph|diagram|plot|visual)\b/i.test(
+        element.getAttribute("aria-label") ?? "",
+      );
+      const viewBox = (element.getAttribute("viewBox") ?? "")
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
+      const viewBoxIsLarge = viewBox.length === 4 && (viewBox[2] >= 64 || viewBox[3] >= 64);
+      const bounds = element.getBoundingClientRect();
+      const renderedLarge = bounds.width >= 64 || bounds.height >= 64;
+      const intrinsicLarge =
+        Number.parseFloat(element.getAttribute("width") ?? "0") >= 64 ||
+        Number.parseFloat(element.getAttribute("height") ?? "0") >= 64;
+      return (
+        verifiedContainer && (labelledAsVisual || viewBoxIsLarge || renderedLarge || intrinsicLarge)
+      );
+    }
+    if (element instanceof HTMLCanvasElement) {
+      return verifiedContainer || element.width >= 64 || element.height >= 64;
+    }
+    if (!(element instanceof HTMLImageElement)) {
+      return false;
+    }
+    const source = element.getAttribute("src") ?? "";
+    const hasUsefulAlternative = Boolean(element.getAttribute("alt")?.trim());
+    const usefulSize = element.naturalWidth >= 48 || element.naturalHeight >= 48;
+    return isSafeImageSource(source) && (verifiedContainer || hasUsefulAlternative || usefulSize);
+  }
+
+  private captureImage(source: HTMLImageElement): HTMLImageElement | null {
+    const sourceUrl = source.getAttribute("src") ?? "";
+    if (!isSafeImageSource(sourceUrl)) {
+      return null;
+    }
+    const image = this.doc.createElement("img");
+    image.src = sourceUrl;
+    image.alt = this.visualAlternative(source);
+    this.setIntrinsicDimensions(
+      image,
+      source.naturalWidth || source.width,
+      source.naturalHeight || source.height,
+    );
+    return image;
+  }
+
+  private visualAlternative(source: Element): string {
+    if (source instanceof HTMLImageElement && source.hasAttribute("alt")) {
+      return source.getAttribute("alt")?.trim() ?? "";
+    }
+    const labelled = source.getAttribute("aria-label")?.trim();
+    const caption = source.closest("figure")?.querySelector("figcaption")?.textContent?.trim();
+    return labelled || caption || "Generated chart";
+  }
+
+  private setIntrinsicDimensions(image: HTMLImageElement, width: number, height: number): void {
+    if (Number.isFinite(width) && width > 0) {
+      image.width = Math.round(width);
+    }
+    if (Number.isFinite(height) && height > 0) {
+      image.height = Math.round(height);
+    }
+  }
+
+  private replaceVisual(sourceClone: Element, image: HTMLImageElement): void {
+    if (sourceClone.closest("figure")) {
+      sourceClone.replaceWith(image);
+      return;
+    }
+    const figure = this.doc.createElement("figure");
+    figure.append(image);
+    sourceClone.replaceWith(figure);
+  }
+
+  private replaceWithCaptureNotice(sourceClone: Element): void {
+    const caption = this.doc.createElement("figcaption");
+    caption.textContent = "Visual could not be captured.";
+    const existingFigure = sourceClone.closest("figure");
+    if (existingFigure) {
+      sourceClone.replaceWith(caption);
+      return;
+    }
+    const figure = this.doc.createElement("figure");
+    figure.append(caption);
+    sourceClone.replaceWith(figure);
   }
 
   private getSourceConversationId(sourceUrl: string): string | undefined {

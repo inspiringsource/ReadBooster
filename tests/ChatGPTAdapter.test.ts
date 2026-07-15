@@ -161,6 +161,78 @@ describe("ChatGPTAdapter", () => {
     expect(response?.html).toContain('rel="noopener noreferrer"');
   });
 
+  it("preserves response images and captions in logical order while excluding artifact controls", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="visual-answer">
+        <div data-message-content>
+          <p>Before chart</p>
+          <figure data-testid="generated-chart">
+            <img src="data:image/png;base64,AAAA" alt="Napoleon campaign chart" width="640" height="320">
+            <figcaption>Army size over time</figcaption>
+            <button aria-label="Download chart">Download</button>
+          </figure>
+          <p>After chart</p>
+          <pre><code class="language-python">print("done")</code></pre>
+        </div>
+      </article>
+    `;
+
+    const response = new ChatGPTAdapter(document, "chatgpt.com").getLatestAssistantResponse()!;
+    expect(response.html.indexOf("Before chart")).toBeLessThan(response.html.indexOf("<figure"));
+    expect(response.html.indexOf("<figure")).toBeLessThan(response.html.indexOf("After chart"));
+    expect(response.html).toContain('alt="Napoleon campaign chart"');
+    expect(response.html).toContain("<figcaption>Army size over time</figcaption>");
+    expect(response.html).toContain('<code lang="python">');
+    expect(response.html).not.toContain("Download");
+  });
+
+  it("retains an image-only assistant response", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="image-only">
+        <figure><img src="data:image/png;base64,AAAA" alt="Generated map"></figure>
+      </article>
+    `;
+    const response = new ChatGPTAdapter(document, "chatgpt.com").getLatestAssistantResponse();
+    expect(response?.id).toBe("image-only");
+    expect(response?.text).toBe("Generated map");
+  });
+
+  it("captures a meaningful canvas locally and falls back safely when capture fails", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="canvas-success">
+        <p>Canvas result</p><figure><canvas width="600" height="300" aria-label="Generated chart"></canvas></figure>
+      </article>
+      <article data-turn="assistant" data-message-id="canvas-failure">
+        <p>Restricted result</p><div data-testid="chart-output"><canvas width="600" height="300"></canvas></div>
+      </article>
+    `;
+    const canvases = document.querySelectorAll("canvas");
+    vi.spyOn(canvases[0], "toDataURL").mockReturnValue("data:image/png;base64,AAAA");
+    vi.spyOn(canvases[1], "toDataURL").mockImplementation(() => {
+      throw new DOMException("Tainted canvas", "SecurityError");
+    });
+
+    const responses = new ChatGPTAdapter(document, "chatgpt.com").getAllAssistantResponses();
+    expect(responses[0].html).toContain('src="data:image/png;base64,AAAA"');
+    expect(responses[0].html).toContain('width="600"');
+    expect(responses[1].html).toContain("Visual could not be captured.");
+    expect(responses[1].text).toContain("Restricted result");
+  });
+
+  it("does not preserve raw SVG or visual controls as response media", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="svg-chart">
+        <p>SVG result</p>
+        <div data-testid="generated-chart"><svg aria-label="Chart" viewBox="0 0 600 300"><path d="M0 0"></path></svg></div>
+        <button><img src="data:image/png;base64,AAAA" alt="Download icon"></button>
+      </article>
+    `;
+    const response = new ChatGPTAdapter(document, "chatgpt.com").getLatestAssistantResponse()!;
+    expect(response.html).not.toContain("<svg");
+    expect(response.html).not.toContain("Download icon");
+    expect(response.html).toContain("Visual could not be captured.");
+  });
+
   it("fails safely on a non-ChatGPT hostname", () => {
     document.body.innerHTML = '<div data-message-author-role="assistant"><p>Answer</p></div>';
     const adapter = new ChatGPTAdapter(document, "example.com");

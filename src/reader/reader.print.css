@@ -147,6 +147,39 @@
     page-break-after: avoid;
   }
 
+  .rb-content figure {
+    break-inside: avoid;
+    margin: 4mm auto;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  .rb-content figure img,
+  .rb-content > img {
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: contain;
+  }
+
+  .rb-content figcaption {
+    color: #444 !important;
+    break-before: avoid-page;
+    page-break-before: avoid;
+  }
+
+  .rb-code-block {
+    break-inside: auto;
+    margin: 0 0 4mm;
+    max-width: 100%;
+    page-break-inside: auto;
+  }
+
+  .rb-code-block > pre {
+    border-radius: 6px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
   .rb-content a {
     color: #111 !important;
   }

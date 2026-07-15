@@ -1,17 +1,19 @@
 import { memo, useLayoutEffect, useRef } from "react";
 
-import type { DocumentContentBlock } from "../shared/types";
+import type { CodeAppearance, DocumentContentBlock } from "../shared/types";
 import {
   enhanceTables,
   type TableDisplayState,
   type TableFullscreenCoordinator,
 } from "./blockControls";
+import { enhanceCodeBlocks } from "./codeControls";
 
 interface ResponseContentProps {
   response: DocumentContentBlock;
   tableSessionStates: Map<string, TableDisplayState>;
   variant?: "document" | "focus";
   fullscreenCoordinator?: TableFullscreenCoordinator;
+  codeAppearance: CodeAppearance;
 }
 
 /**
@@ -23,6 +25,7 @@ export const ResponseContent = memo(function ResponseContent({
   tableSessionStates,
   variant = "focus",
   fullscreenCoordinator,
+  codeAppearance,
 }: ResponseContentProps) {
   const contentRef = useRef<HTMLElement>(null);
 
@@ -36,6 +39,13 @@ export const ResponseContent = memo(function ResponseContent({
       fullscreenCoordinator,
     });
   }, [fullscreenCoordinator, response.html, response.id, tableSessionStates]);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current) {
+      return;
+    }
+    return enhanceCodeBlocks(contentRef.current, { appearance: codeAppearance });
+  }, [codeAppearance, response.html, response.id]);
 
   return (
     <article

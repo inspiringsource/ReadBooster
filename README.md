@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.4.2 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.4.3 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser.
 
@@ -18,10 +18,11 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Keep associated prompts available through collapsed, accessible disclosures.
 - Remove host controls and sanitize the cloned HTML with a conservative allowlist.
 - Open a Shadow DOM-isolated full-screen reader overlay.
-- Preserve paragraphs, headings, lists, links, blockquotes, code, tables, emphasis, and preformatted text.
+- Preserve paragraphs, headings, lists, links, blockquotes, safe response images/charts, code, tables, emphasis, and preformatted text.
+- Add response-local code toolbars with language labels, exact Copy code, and optional locally bundled syntax color.
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
-- Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
+- Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
 - Store only validated reader preferences in `chrome.storage.local`.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
@@ -34,6 +35,7 @@ ReadBooster has no backend, account system, analytics, remote assets, AI API, or
 - Chrome Manifest V3
 - `@crxjs/vite-plugin` for a lightweight Vite-to-MV3 build pipeline
 - DOMPurify for maintained browser-side HTML sanitization
+- Highlight.js core with a deliberately registered language subset for local syntax highlighting
 - Vitest, jsdom, and Testing Library for focused DOM unit tests
 - ESLint and Prettier for code quality and formatting conventions
 
@@ -56,6 +58,16 @@ Associated prompts are collapsed under **View prompt** and are visually subordin
 Focus mode preserves the 0.3.1 reader: one assistant response, Previous and Next, response position, active-response outline, responsive drawer, Copy, Print, preferences, and table controls. Switching to Focus uses the active document section where possible. Returning to Document restores its prior scroll position when practical. Reading preferences and response-specific table session state are shared across both modes.
 
 Copy and Print follow the active mode. Document Copy creates a simple assistant-only text document containing each derived section title and response text; prompt bodies are excluded. Document Print includes all assistant sections and section labels while excluding prompts, outlines, header panels, and application/table controls. Focus Copy and Print remain scoped to the focused response.
+
+The persisted **Open document at** setting controls only initial Document-mode positioning. **Latest section** (the default for new and migrated preferences) opens at the final eligible section title, not the bottom of its response. **Beginning** selects the first section. Subsequent user scrolling and the existing Document/Focus scroll-restoration behavior are not overridden by rerenders.
+
+## Safe visual content and code readability
+
+ReadBooster 0.4.3 preserves meaningful response images and generated canvas charts in their approximate source position. The ChatGPT adapter inspects only media inside extracted response content, excludes elements inside host controls, converts readable canvases locally to PNG data URLs, and emits platform-neutral `figure`, `img`, and optional `figcaption` markup. Safe PNG/JPEG/GIF/WebP data URLs, same-page Blob URLs, and already-present HTTPS image sources are accepted; unsafe schemes, raw SVG, scripts, event handlers, host widgets, and arbitrary controls remain excluded. Semantic Copy contains image alternative text and captions, never binary image data. Responsive reader and print CSS keep captured charts within the viewport or printable page width without dark-mode inversion.
+
+Canvas capture can fail when its bitmap is unavailable or origin-restricted. In that case ReadBooster preserves surrounding prose and code and inserts the restrained text “Visual could not be captured.” It does not fetch or screenshot an entire host widget. Meaningful raw SVG is not admitted through the sanitizer; a verified chart container currently follows the same safe-failure path because SVG also represents many ChatGPT interface icons.
+
+Every block-level code section receives a local enhancement toolbar with its explicit language and **Copy code**. Copy preserves the code text, line breaks, and indentation and excludes prose and the language label. Color mode lazily loads a selected Highlight.js bundle for Python, JavaScript, TypeScript, JSON, HTML, CSS, shell, SQL, and Markdown. Unsupported or unlabeled code remains readable plain code without guessing. Plain mode removes color tokens while preserving the code block and horizontal scrolling. Code appearance is persisted independently of typography presets. ReadBooster does not add Run and never executes response code.
 
 ## Reader header and About
 
@@ -82,7 +94,7 @@ To replace the icons later, begin with a square high-resolution source, preserve
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
 
 Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
-Gemini remains scaffold-only in 0.4.2; this branding release does not add an adapter.
+Gemini remains scaffold-only in 0.4.3; this release does not add an adapter.
 
 ## Install dependencies
 
@@ -238,6 +250,25 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 7. Confirm Chrome does not show a generic placeholder icon in the toolbar or extension-management page.
 8. Recheck existing Document and Focus reader behavior after loading the branded build.
 
+### 0.4.3 content fidelity and opening acceptance checklist
+
+1. Reopen the Napoleon chart response that exposed the regression and confirm the chart is present.
+2. Confirm the chart remains between its surrounding prose and Python code.
+3. Inspect charts in light and dark reader appearances; confirm intrinsically light charts are not inverted.
+4. Print and Save as PDF in Document and Focus modes; confirm charts fit without clipping and captions stay nearby.
+5. Open a conversation with charts in separate responses and confirm none collide or duplicate.
+6. Open a response containing only an image and confirm it remains an eligible document section.
+7. Inspect Python syntax coloring and its language label in several code blocks.
+8. Select Plain code appearance and confirm structure, whitespace, and horizontal scrolling remain intact.
+9. Copy code, save it manually outside ReadBooster, and run it only in an environment you trust; confirm ReadBooster itself never executes it.
+10. Exercise several code blocks in one response and confirm each receives exactly one correctly associated toolbar.
+11. Select **Latest section**, close and reopen the reader, and confirm it opens at the final section title rather than its bottom.
+12. Select **Beginning**, close and reopen, and confirm the first section is active.
+13. Change each opening preference, reopen again, and confirm local persistence.
+14. Switch Document/Focus repeatedly and confirm existing document-scroll restoration remains intact.
+15. Exercise Fit, Wide, Fullscreen, Compact text, and Reset to confirm table behavior is unaffected.
+16. Repeat chart, code, opening, mode, and table checks at Chrome zoom levels from 80% through 150%.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -277,6 +308,7 @@ src/
 │   └── popup.css
 ├── reader/
 │   ├── blockControls.ts
+│   ├── codeControls.ts
 │   ├── ContinuousDocumentView.tsx
 │   ├── ConversationOutline.tsx
 │   ├── FocusResponseView.tsx
@@ -287,6 +319,7 @@ src/
 │   ├── ResponseOutline.tsx
 │   ├── ResponseContent.tsx
 │   ├── ReaderView.tsx
+│   ├── syntaxHighlight.ts
 │   └── reader.css
 └── shared/
     ├── preferences.ts
@@ -303,11 +336,12 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Claude and Gemini are host-aware scaffolds only; they intentionally return no extracted response.
 - Responses are captured when the reader opens; new streamed responses do not appear until ReadBooster is reopened.
 - Document mode is intentionally non-virtualized in 0.4.0. Virtualization remains a future option only if real conversations demonstrate a need.
-- Reader output keeps the supported semantic HTML but does not retain host syntax highlighting, interactive widgets, diagrams, canvases, embedded media, or host-specific styling.
+- Generated canvas charts are preserved only when local `toDataURL()` capture succeeds. Origin-restricted or unavailable bitmaps fall back to an accessible notice; arbitrary SVG, interactive artifacts, video, audio, host controls, and host-specific styling remain excluded.
+- HTTPS response images are retained from existing response markup but are never fetched separately by extraction. Their later availability can still depend on the original URL and browser cache or access policy.
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
-- ReadBooster 0.4.2 does not provide search, bookmarks, annotations, editing, AI revisions, selective print/export, additional extracting platform adapters, or persistence of document-mode state. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.4.3 does not provide search, bookmarks, annotations, editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, or persistence of transient document-mode state. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -315,4 +349,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, and separately verified platform adapters. These features are not implemented in 0.4.2.
+Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, and separately verified platform adapters. These features are not implemented in 0.4.3.

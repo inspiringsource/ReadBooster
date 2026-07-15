@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 
-import type { DocumentContentBlock } from "../shared/types";
+import type { CodeAppearance, DocumentContentBlock } from "../shared/types";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { ResponseContent } from "./ResponseContent";
 import { ResponseOutline } from "./ResponseOutline";
@@ -11,6 +11,7 @@ interface FocusResponseViewProps {
   outlineOpen: boolean;
   tableSessionStates: Map<string, TableDisplayState>;
   fullscreenCoordinator: TableFullscreenCoordinator;
+  codeAppearance: CodeAppearance;
 }
 
 export function FocusResponseView({
@@ -19,6 +20,7 @@ export function FocusResponseView({
   outlineOpen,
   tableSessionStates,
   fullscreenCoordinator,
+  codeAppearance,
 }: FocusResponseViewProps) {
   return (
     <>
@@ -39,6 +41,7 @@ export function FocusResponseView({
           tableSessionStates={tableSessionStates}
           fullscreenCoordinator={fullscreenCoordinator}
           variant="focus"
+          codeAppearance={codeAppearance}
         />
       </main>
     </>

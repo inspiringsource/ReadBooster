@@ -5,7 +5,9 @@ import { preferencesForPreset } from "../shared/preferences";
 import { saveReaderPreferences } from "../shared/storage";
 import type {
   AppearanceMode,
+  CodeAppearance,
   ConversationDocument,
+  DocumentOpenAt,
   ReaderPreferences,
   ReaderPreset,
   SpacingLevel,
@@ -87,10 +89,12 @@ export function ReaderView({
   );
   const initialResponseIndex =
     requestedInitialIndex >= 0 ? requestedInitialIndex : responses.length - 1;
+  const initialDocumentSection =
+    initialPreferences.documentOpenAt === "beginning" ? sections[0] : sections.at(-1);
   const [mode, setMode] = useState<ReaderMode>("document");
   const [preferences, setPreferences] = useState(initialPreferences);
   const [currentResponseIndex, setCurrentResponseIndex] = useState(initialResponseIndex);
-  const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "");
+  const [activeSectionId, setActiveSectionId] = useState(initialDocumentSection?.id ?? "");
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
@@ -108,6 +112,7 @@ export function ReaderView({
   const actionsTriggerRef = useRef<HTMLButtonElement>(null);
   const headerPanelRef = useRef<HTMLDivElement>(null);
   const documentScrollTopRef = useRef(0);
+  const initialDocumentPositionAppliedRef = useRef(false);
   const [tableSessionStates] = useState(() => new Map<string, TableDisplayState>());
   const [fullscreenCoordinator] = useState<TableFullscreenCoordinator>(() => ({
     activeClose: null,
@@ -269,6 +274,29 @@ export function ReaderView({
     }
   }, [mode]);
 
+  useLayoutEffect(() => {
+    if (initialDocumentPositionAppliedRef.current || mode !== "document") {
+      return;
+    }
+    const scrollArea = scrollAreaRef.current;
+    const targetId = initialDocumentSection?.id;
+    if (!scrollArea || !targetId) {
+      return;
+    }
+    const target = Array.from(
+      scrollArea.querySelectorAll<HTMLElement>("[data-rb-section-id]"),
+    ).find((section) => section.id === targetId);
+    if (!target) {
+      return;
+    }
+    const top = Math.max(0, target.offsetTop - 16);
+    scrollArea.scrollTop = top;
+    documentScrollTopRef.current = top;
+    setActiveSectionId(targetId);
+    setActiveHeadingId(null);
+    initialDocumentPositionAppliedRef.current = true;
+  }, [initialDocumentSection?.id, mode]);
+
   const readerStyle = useMemo(
     () =>
       ({
@@ -288,7 +316,12 @@ export function ReaderView({
       updatePreferences({ ...preferences, preset });
       return;
     }
-    updatePreferences(preferencesForPreset(preset, preferences.appearance));
+    updatePreferences(
+      preferencesForPreset(preset, preferences.appearance, {
+        codeAppearance: preferences.codeAppearance,
+        documentOpenAt: preferences.documentOpenAt,
+      }),
+    );
   };
 
   const handleActiveDocumentChange = useCallback(
@@ -391,6 +424,7 @@ export function ReaderView({
       data-appearance={preferences.appearance}
       data-preset={preferences.preset}
       data-mode={mode}
+      data-code-appearance={preferences.codeAppearance}
       role="dialog"
       aria-modal="true"
       aria-labelledby="rb-reader-title"
@@ -520,6 +554,38 @@ export function ReaderView({
                       <option value="comfortable">Comfortable</option>
                       <option value="dyslexia-friendly">Dyslexia-friendly</option>
                       <option value="custom">Custom</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Code appearance</span>
+                    <select
+                      aria-label="Code appearance"
+                      value={preferences.codeAppearance}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          codeAppearance: event.target.value as CodeAppearance,
+                        })
+                      }
+                    >
+                      <option value="color">Color</option>
+                      <option value="plain">Plain</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Open document at</span>
+                    <select
+                      aria-label="Open document at"
+                      value={preferences.documentOpenAt}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          documentOpenAt: event.target.value as DocumentOpenAt,
+                        })
+                      }
+                    >
+                      <option value="latest">Latest section</option>
+                      <option value="beginning">Beginning</option>
                     </select>
                   </label>
                   <label>
@@ -680,6 +746,7 @@ export function ReaderView({
               tableSessionStates={tableSessionStates}
               fullscreenCoordinator={fullscreenCoordinator}
               onActiveChange={handleActiveDocumentChange}
+              codeAppearance={preferences.codeAppearance}
             />
           </>
         ) : (
@@ -689,6 +756,7 @@ export function ReaderView({
             outlineOpen={outlineOpen}
             tableSessionStates={tableSessionStates}
             fullscreenCoordinator={fullscreenCoordinator}
+            codeAppearance={preferences.codeAppearance}
           />
         )}
       </div>
