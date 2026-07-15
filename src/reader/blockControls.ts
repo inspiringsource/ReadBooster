@@ -6,9 +6,14 @@ export interface TableDisplayState {
   density: Extract<BlockDisplayDensity, "compact" | "normal">;
 }
 
+export interface TableFullscreenCoordinator {
+  activeClose: (() => void) | null;
+}
+
 export interface EnhanceTablesOptions {
   responseKey: string;
   sessionStates: Map<string, TableDisplayState>;
+  fullscreenCoordinator?: TableFullscreenCoordinator;
 }
 
 interface EnhancedTable {
@@ -332,6 +337,7 @@ export function enhanceTables(root: HTMLElement, options: EnhanceTablesOptions):
       if (fullscreen) {
         return;
       }
+      options.fullscreenCoordinator?.activeClose?.();
       fullscreen = true;
       fullscreenTrigger = fullscreenButton;
       block.dataset.rbTableFullscreen = "true";
@@ -342,6 +348,9 @@ export function enhanceTables(root: HTMLElement, options: EnhanceTablesOptions):
       closeButton.hidden = false;
       view?.addEventListener("keydown", handleFullscreenKeyDown, true);
       closeButton.focus();
+      if (options.fullscreenCoordinator) {
+        options.fullscreenCoordinator.activeClose = () => closeFullscreen(false);
+      }
       scheduleLayoutUpdate();
     };
 
@@ -361,6 +370,9 @@ export function enhanceTables(root: HTMLElement, options: EnhanceTablesOptions):
         fullscreenTrigger.focus();
       }
       fullscreenTrigger = null;
+      if (options.fullscreenCoordinator?.activeClose) {
+        options.fullscreenCoordinator.activeClose = null;
+      }
       scheduleLayoutUpdate();
     }
 

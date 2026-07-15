@@ -47,6 +47,12 @@ function shadowRoot(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
 
+function openFocusMode(shadow: ShadowRoot): void {
+  fireEvent.click(
+    Array.from(shadow.querySelectorAll("button")).find((button) => button.textContent === "Focus")!,
+  );
+}
+
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
   readonly observe = vi.fn();
@@ -70,6 +76,7 @@ describe("active response outline", () => {
     );
     await act(async () => mountReader(conversation(response), response));
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const outline = shadow.querySelector<HTMLElement>(".rb-outline")!;
     const scrollArea = shadow.querySelector<HTMLElement>(".rb-scroll-area")!;
     const detailsHeading = Array.from(shadow.querySelectorAll<HTMLElement>(".rb-content h3"))[0];
@@ -105,7 +112,10 @@ describe("active response outline", () => {
     const second = block("second", "<h2>Second heading</h2><h3>Second detail</h3>");
     await act(async () => mountReader(conversation(first, second), second));
     const shadow = shadowRoot();
-    const observer = FakeIntersectionObserver.instances[0];
+    FakeIntersectionObserver.instances = [];
+    openFocusMode(shadow);
+    fireEvent.click(shadow.querySelector('[aria-label="Show next assistant response"]')!);
+    const observer = FakeIntersectionObserver.instances.at(-1)!;
     const detail = shadow.querySelector<HTMLElement>(".rb-content h3")!;
 
     act(() => {
@@ -126,13 +136,13 @@ describe("active response outline", () => {
     fireEvent.click(shadow.querySelector('[aria-label="Open response outline"]')!);
     expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("Second heading");
     expect(observer.disconnect).toHaveBeenCalledOnce();
-    expect(FakeIntersectionObserver.instances).toHaveLength(2);
+    expect(FakeIntersectionObserver.instances).toHaveLength(3);
 
     fireEvent.click(shadow.querySelector('[aria-label="Show previous assistant response"]')!);
     await vi.waitFor(() => expect(shadow.querySelectorAll(".rb-outline-link")).toHaveLength(2));
     expect(shadow.querySelector('[aria-current="location"]')?.textContent).toBe("First heading");
-    expect(FakeIntersectionObserver.instances[1].disconnect).toHaveBeenCalledOnce();
-    expect(FakeIntersectionObserver.instances).toHaveLength(3);
+    expect(FakeIntersectionObserver.instances[2].disconnect).toHaveBeenCalledOnce();
+    expect(FakeIntersectionObserver.instances).toHaveLength(4);
   });
 
   it("resets the active heading when the heading collection changes", () => {
@@ -163,6 +173,7 @@ describe("active response outline", () => {
     const response = block("plain", "<p>No semantic headings here.</p>");
     await act(async () => mountReader(conversation(response), response));
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const toggle = shadow.querySelector<HTMLButtonElement>(
       '[aria-label="Close response outline"]',
     )!;
@@ -197,6 +208,7 @@ describe("active response outline", () => {
     const response = block("narrow", "<h2>Narrow heading</h2>");
     await act(async () => mountReader(conversation(response), response));
     const shadow = shadowRoot();
+    openFocusMode(shadow);
 
     expect(shadow.querySelector(".rb-reader-body")?.getAttribute("data-narrow")).toBe("true");
     expect(
@@ -212,6 +224,7 @@ describe("active response outline", () => {
     );
     await act(async () => mountReader(conversation(response), response));
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const tableBlock = shadow.querySelector<HTMLElement>(".rb-table-block")!;
     const toolbar = shadow.querySelector<HTMLElement>(".rb-block-toolbar")!;
     fireEvent.click(shadow.querySelector('[aria-label="Toggle compact text for table 1"]')!);

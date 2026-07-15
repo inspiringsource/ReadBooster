@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { preferencesForPreset } from "../shared/preferences";
 import { saveReaderPreferences } from "../shared/storage";
@@ -10,10 +10,18 @@ import type {
   SpacingLevel,
   TextSize,
 } from "../shared/types";
-import { assistantBlocks } from "../shared/types";
-import type { TableDisplayState } from "./blockControls";
-import { ResponseContent } from "./ResponseContent";
-import { ResponseOutline } from "./ResponseOutline";
+import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
+import { ContinuousDocumentView } from "./ContinuousDocumentView";
+import { ConversationOutline } from "./ConversationOutline";
+import { FocusResponseView } from "./FocusResponseView";
+import type { OutlineItem } from "./outline";
+import {
+  conversationCopyText,
+  deriveConversationOutline,
+  deriveConversationSections,
+  type ConversationOutlineGroup,
+  type ReaderMode,
+} from "./presentation";
 
 interface ReaderViewProps {
   conversation: ConversationDocument;
@@ -66,13 +74,19 @@ export function ReaderView({
   initialPreferences,
   onClose,
 }: ReaderViewProps) {
-  const responses = useMemo(() => assistantBlocks(conversation), [conversation]);
-  const initialResponseIndex = Math.max(
-    0,
-    responses.findIndex((response) => response.id === initialResponseId),
+  const sections = useMemo(() => deriveConversationSections(conversation), [conversation]);
+  const outlineGroups = useMemo(() => deriveConversationOutline(sections), [sections]);
+  const responses = useMemo(() => sections.map((section) => section.response), [sections]);
+  const requestedInitialIndex = responses.findIndex(
+    (response) => response.id === initialResponseId,
   );
+  const initialResponseIndex =
+    requestedInitialIndex >= 0 ? requestedInitialIndex : responses.length - 1;
+  const [mode, setMode] = useState<ReaderMode>("document");
   const [preferences, setPreferences] = useState(initialPreferences);
   const [currentResponseIndex, setCurrentResponseIndex] = useState(initialResponseIndex);
+  const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "");
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [isNarrow, setIsNarrow] = useState(
     () =>
@@ -82,8 +96,14 @@ export function ReaderView({
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const outlineToggleRef = useRef<HTMLButtonElement>(null);
+  const documentScrollTopRef = useRef(0);
   const [tableSessionStates] = useState(() => new Map<string, TableDisplayState>());
+  const [fullscreenCoordinator] = useState<TableFullscreenCoordinator>(() => ({
+    activeClose: null,
+  }));
   const response = responses[currentResponseIndex];
+  const documentTitle = conversation.title?.trim() || "Conversation document.";
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") {
@@ -144,7 +164,7 @@ export function ReaderView({
 
       const focusable = Array.from(
         dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), a[href], [tabindex]:not([tabindex="-1"]):not([hidden])',
+          'button:not([disabled]):not([hidden]), select:not([disabled]):not([hidden]), summary, a[href], [tabindex]:not([tabindex="-1"]):not([hidden])',
         ),
       );
       if (focusable.length === 0) {
@@ -168,6 +188,18 @@ export function ReaderView({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [onClose]);
 
+  useLayoutEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) {
+      return;
+    }
+    if (mode === "document") {
+      scrollArea.scrollTop = documentScrollTopRef.current;
+    } else {
+      scrollArea.scrollTop = 0;
+    }
+  }, [mode]);
+
   const readerStyle = useMemo(
     () =>
       ({
@@ -182,18 +214,6 @@ export function ReaderView({
     void saveReaderPreferences(next).catch(() => undefined);
   };
 
-  const updateAppearance = (appearance: AppearanceMode): void => {
-    updatePreferences({ ...preferences, appearance });
-  };
-
-  const updateTextSize = (textSize: TextSize): void => {
-    updatePreferences({ ...preferences, textSize, preset: "custom" });
-  };
-
-  const updateSpacing = (spacing: SpacingLevel): void => {
-    updatePreferences({ ...preferences, spacing, preset: "custom" });
-  };
-
   const updatePreset = (preset: ReaderPreset): void => {
     if (preset === "custom") {
       updatePreferences({ ...preferences, preset });
@@ -202,9 +222,34 @@ export function ReaderView({
     updatePreferences(preferencesForPreset(preset, preferences.appearance));
   };
 
+  const handleActiveDocumentChange = useCallback(
+    (sectionId: string, headingId: string | null): void => {
+      setActiveSectionId(sectionId);
+      setActiveHeadingId(headingId);
+    },
+    [],
+  );
+
+  const changeMode = (nextMode: ReaderMode): void => {
+    if (nextMode === mode) {
+      return;
+    }
+    fullscreenCoordinator.activeClose?.();
+    setCopyStatus("idle");
+    if (nextMode === "focus") {
+      documentScrollTopRef.current = scrollAreaRef.current?.scrollTop ?? 0;
+      const activeIndex = sections.findIndex((section) => section.id === activeSectionId);
+      if (activeIndex >= 0) {
+        setCurrentResponseIndex(activeIndex);
+      }
+    }
+    setMode(nextMode);
+  };
+
   const handleCopy = async (): Promise<void> => {
+    const value = mode === "document" ? conversationCopyText(sections) : response.text;
     try {
-      await copyText(response.text);
+      await copyText(value);
       setCopyStatus("copied");
     } catch {
       setCopyStatus("failed");
@@ -227,45 +272,109 @@ export function ReaderView({
     setCurrentResponseIndex((index) => Math.min(responses.length - 1, index + 1));
   };
 
+  const scrollToTarget = (targetId: string): HTMLElement | null => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) {
+      return null;
+    }
+    const target = Array.from(scrollArea.querySelectorAll<HTMLElement>("[id]")).find(
+      (element) => element.id === targetId,
+    );
+    if (!target) {
+      return null;
+    }
+    const top =
+      scrollArea.scrollTop +
+      target.getBoundingClientRect().top -
+      scrollArea.getBoundingClientRect().top -
+      16;
+    if (typeof scrollArea.scrollTo === "function") {
+      scrollArea.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    } else {
+      target.scrollIntoView({ block: "start" });
+    }
+    if (!target.hasAttribute("tabindex")) {
+      target.tabIndex = -1;
+    }
+    target.focus({ preventScroll: true });
+    if (isNarrow) {
+      setOutlineOpen(false);
+    }
+    return target;
+  };
+
+  const selectGroup = (group: ConversationOutlineGroup): void => {
+    setActiveSectionId(group.targetSectionId);
+    setActiveHeadingId(null);
+    scrollToTarget(group.targetSectionId);
+  };
+
+  const selectHeading = (group: ConversationOutlineGroup, item: OutlineItem): void => {
+    setActiveSectionId(group.targetSectionId);
+    setActiveHeadingId(item.targetHeadingId);
+    scrollToTarget(item.targetHeadingId);
+  };
+
   return (
     <div
       ref={dialogRef}
       className="rb-reader"
       data-appearance={preferences.appearance}
       data-preset={preferences.preset}
+      data-mode={mode}
       role="dialog"
       aria-modal="true"
       aria-labelledby="rb-reader-title"
       style={readerStyle}
     >
       <header className="rb-toolbar rb-print-hidden">
-        <div className="rb-brand">
-          <span className="rb-eyebrow">ReadBooster</span>
-          <h1 id="rb-reader-title">Optimized response</h1>
-        </div>
-
-        <div className="rb-controls" aria-label="Reader preferences">
-          <div className="rb-response-navigation" aria-label="Assistant response navigation">
+        <div className="rb-identity">
+          <div className="rb-brand">
+            <span className="rb-eyebrow">ReadBooster</span>
+            <h1 id="rb-reader-title">{mode === "document" ? documentTitle : "Focused response"}</h1>
+          </div>
+          <div className="rb-mode-switch" role="group" aria-label="Reader mode">
             <button
               type="button"
-              onClick={showPreviousResponse}
-              disabled={currentResponseIndex === 0}
-              aria-label="Show previous assistant response"
+              aria-pressed={mode === "document"}
+              onClick={() => changeMode("document")}
             >
-              Previous
+              Document
             </button>
-            <output className="rb-response-position" aria-live="polite">
-              Response {currentResponseIndex + 1} of {responses.length}
-            </output>
             <button
               type="button"
-              onClick={showNextResponse}
-              disabled={currentResponseIndex === responses.length - 1}
-              aria-label="Show next assistant response"
+              aria-pressed={mode === "focus"}
+              onClick={() => changeMode("focus")}
             >
-              Next
+              Focus
             </button>
           </div>
+        </div>
+
+        <div className="rb-controls" aria-label="Reader preferences and actions">
+          {mode === "focus" ? (
+            <div className="rb-response-navigation" aria-label="Assistant response navigation">
+              <button
+                type="button"
+                onClick={showPreviousResponse}
+                disabled={currentResponseIndex === 0}
+                aria-label="Show previous assistant response"
+              >
+                Previous
+              </button>
+              <output className="rb-response-position" aria-live="polite">
+                Response {currentResponseIndex + 1} of {responses.length}
+              </output>
+              <button
+                type="button"
+                onClick={showNextResponse}
+                disabled={currentResponseIndex === responses.length - 1}
+                aria-label="Show next assistant response"
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
 
           <label>
             <span>Preset</span>
@@ -279,26 +388,35 @@ export function ReaderView({
               <option value="custom">Custom</option>
             </select>
           </label>
-
           <label>
             <span>Appearance</span>
             <select
               aria-label="Reader appearance"
               value={preferences.appearance}
-              onChange={(event) => updateAppearance(event.target.value as AppearanceMode)}
+              onChange={(event) =>
+                updatePreferences({
+                  ...preferences,
+                  appearance: event.target.value as AppearanceMode,
+                })
+              }
             >
               <option value="system">System</option>
               <option value="light">Light</option>
               <option value="dark">Dark</option>
             </select>
           </label>
-
           <label>
             <span>Text size</span>
             <select
               aria-label="Reader text size"
               value={preferences.textSize}
-              onChange={(event) => updateTextSize(event.target.value as TextSize)}
+              onChange={(event) =>
+                updatePreferences({
+                  ...preferences,
+                  textSize: event.target.value as TextSize,
+                  preset: "custom",
+                })
+              }
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -306,43 +424,58 @@ export function ReaderView({
               <option value="x-large">Extra large</option>
             </select>
           </label>
-
           <label>
             <span>Spacing</span>
             <select
               aria-label="Reader spacing"
               value={preferences.spacing}
-              onChange={(event) => updateSpacing(event.target.value as SpacingLevel)}
+              onChange={(event) =>
+                updatePreferences({
+                  ...preferences,
+                  spacing: event.target.value as SpacingLevel,
+                  preset: "custom",
+                })
+              }
             >
               <option value="compact">Compact</option>
               <option value="comfortable">Comfortable</option>
               <option value="roomy">Roomy</option>
             </select>
           </label>
-
           <button
             type="button"
             onClick={() => void handleCopy()}
-            aria-label="Copy response text"
+            aria-label={
+              mode === "document" ? "Copy conversation document" : "Copy focused response"
+            }
             aria-describedby="rb-copy-status"
           >
             {copyStatus === "copied" ? "Copied" : copyStatus === "failed" ? "Copy failed" : "Copy"}
           </button>
           <span id="rb-copy-status" className="rb-visually-hidden" role="status" aria-live="polite">
             {copyStatus === "copied"
-              ? "Response copied."
+              ? mode === "document"
+                ? "Conversation document copied."
+                : "Focused response copied."
               : copyStatus === "failed"
                 ? "Copy failed."
                 : ""}
           </span>
-          <button type="button" onClick={() => window.print()} aria-label="Print response">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            aria-label={
+              mode === "document" ? "Print conversation document" : "Print focused response"
+            }
+          >
             Print
           </button>
           <button
+            ref={outlineToggleRef}
             type="button"
             aria-controls="rb-response-outline"
             aria-expanded={outlineOpen}
-            aria-label={outlineOpen ? "Close response outline" : "Open response outline"}
+            aria-label={`${outlineOpen ? "Close" : "Open"} ${mode === "document" ? "conversation" : "response"} outline`}
             onClick={() => setOutlineOpen((open) => !open)}
           >
             {outlineOpen ? "Hide outline" : "Outline"}
@@ -360,10 +493,12 @@ export function ReaderView({
       </header>
 
       <header className="rb-print-metadata">
-        <h1>ReadBooster — Optimized response</h1>
+        <h1>{mode === "document" ? documentTitle : "ReadBooster — Focused response"}</h1>
         <p>
-          {SOURCE_LABELS[conversation.source]} · Response {currentResponseIndex + 1} of{" "}
-          {responses.length}
+          {SOURCE_LABELS[conversation.source]} ·{" "}
+          {mode === "document"
+            ? `${sections.length} assistant responses`
+            : `Response ${currentResponseIndex + 1} of ${responses.length}`}
         </p>
       </header>
 
@@ -372,20 +507,33 @@ export function ReaderView({
         data-outline-open={outlineOpen ? "true" : "false"}
         data-narrow={isNarrow ? "true" : "false"}
       >
-        <ResponseOutline
-          key={`${response.id}:${outlineOpen ? "open" : "closed"}`}
-          response={response}
-          scrollAreaRef={scrollAreaRef}
-          open={outlineOpen}
-        />
-        <main
-          ref={scrollAreaRef}
-          className="rb-scroll-area"
-          data-rb-scroll-container="vertical"
-          aria-label="Reader content"
-        >
-          <ResponseContent response={response} tableSessionStates={tableSessionStates} />
-        </main>
+        {mode === "document" ? (
+          <>
+            <ConversationOutline
+              groups={outlineGroups}
+              activeSectionId={activeSectionId}
+              activeHeadingId={activeHeadingId}
+              open={outlineOpen}
+              onSelectGroup={selectGroup}
+              onSelectHeading={selectHeading}
+            />
+            <ContinuousDocumentView
+              sections={sections}
+              scrollAreaRef={scrollAreaRef}
+              tableSessionStates={tableSessionStates}
+              fullscreenCoordinator={fullscreenCoordinator}
+              onActiveChange={handleActiveDocumentChange}
+            />
+          </>
+        ) : (
+          <FocusResponseView
+            response={response}
+            scrollAreaRef={scrollAreaRef}
+            outlineOpen={outlineOpen}
+            tableSessionStates={tableSessionStates}
+            fullscreenCoordinator={fullscreenCoordinator}
+          />
+        )}
       </div>
     </div>
   );

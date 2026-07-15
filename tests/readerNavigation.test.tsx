@@ -18,6 +18,12 @@ function getReaderShadow(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
 
+function openFocusMode(shadow: ShadowRoot): void {
+  fireEvent.click(
+    Array.from(shadow.querySelectorAll("button")).find((button) => button.textContent === "Focus")!,
+  );
+}
+
 describe("assistant response navigation", () => {
   it("opens the latest response and navigates without remounting the reader", async () => {
     const responses = [
@@ -32,6 +38,9 @@ describe("assistant response navigation", () => {
 
     const originalHost = document.getElementById(READER_HOST_ID);
     const shadow = getReaderShadow();
+    openFocusMode(shadow);
+    fireEvent.click(shadow.querySelector('[aria-label="Show next assistant response"]')!);
+    fireEvent.click(shadow.querySelector('[aria-label="Show next assistant response"]')!);
     const previous = shadow.querySelector<HTMLButtonElement>(
       '[aria-label="Show previous assistant response"]',
     )!;
@@ -84,6 +93,8 @@ describe("assistant response navigation", () => {
       await mountReader(responses);
     });
     const shadow = getReaderShadow();
+    openFocusMode(shadow);
+    fireEvent.click(shadow.querySelector('[aria-label="Show next assistant response"]')!);
     const previous = shadow.querySelector<HTMLButtonElement>(
       '[aria-label="Show previous assistant response"]',
     )!;
@@ -121,6 +132,7 @@ describe("assistant response navigation", () => {
       ]);
     });
     const shadow = getReaderShadow();
+    openFocusMode(shadow);
     const fullscreen = shadow.querySelector<HTMLButtonElement>(
       '[aria-label="Open table 1 fullscreen"]',
     )!;

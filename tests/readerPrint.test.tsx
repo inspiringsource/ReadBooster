@@ -27,12 +27,19 @@ function shadowRoot(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
 
+function openFocusMode(shadow: ShadowRoot): void {
+  fireEvent.click(
+    Array.from(shadow.querySelectorAll("button")).find((button) => button.textContent === "Focus")!,
+  );
+}
+
 describe("print layout", () => {
   it("marks interactive controls as print-hidden and adds active-response metadata", async () => {
     await act(async () => {
       await mountReader([WIDE_TABLE_RESPONSE]);
     });
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const readerToolbar = shadow.querySelector<HTMLElement>(".rb-toolbar")!;
     const tableToolbar = shadow.querySelector<HTMLElement>(".rb-block-toolbar")!;
     const metadata = shadow.querySelector<HTMLElement>(".rb-print-metadata")!;
@@ -42,7 +49,7 @@ describe("print layout", () => {
     expect(readerToolbar.classList.contains("rb-print-hidden")).toBe(true);
     expect(tableToolbar.classList.contains("rb-print-hidden")).toBe(true);
     expect(outline.classList.contains("rb-print-hidden")).toBe(true);
-    expect(metadata.textContent).toContain("ReadBooster — Optimized response");
+    expect(metadata.textContent).toContain("ReadBooster — Focused response");
     expect(metadata.textContent).toContain("ChatGPT · Response 1 of 1");
     expect(block.dataset.printWidthPressure).toBe("high");
     expect(block.classList.contains("rb-table-print-wide")).toBe(true);
@@ -62,6 +69,10 @@ describe("print layout", () => {
       /\.rb-table-block\[data-mode="wide"\] table[\s\S]+min-width: 0 !important[\s\S]+table-layout: fixed !important[\s\S]+width: 100% !important/,
     );
     expect(PRINT_CSS).toMatch(/\.rb-table-scroll[\s\S]+overflow: visible !important/);
+    expect(PRINT_CSS).toMatch(/\.rb-prompt-disclosure[\s\S]+display: none !important/);
+    expect(PRINT_CSS).toMatch(
+      /\.rb-document-section-header[\s\S]+break-after: avoid-page[\s\S]+page-break-after: avoid/,
+    );
     expect(PRINT_CSS).not.toMatch(/100d?v[wh]|max-content|translate[XY]?\(/);
   });
 
@@ -87,6 +98,7 @@ describe("print layout", () => {
       await mountReader([WIDE_TABLE_RESPONSE]);
     });
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const block = shadow.querySelector<HTMLElement>(".rb-table-block")!;
     const tableScroller = shadow.querySelector<HTMLElement>(".rb-table-scroll")!;
     const logicalTable = shadow.querySelector<HTMLTableElement>("table")!;
@@ -97,10 +109,10 @@ describe("print layout", () => {
     tableScroller.scrollLeft = 160;
     const originalBlock = block;
 
-    fireEvent.click(shadow.querySelector('[aria-label="Print response"]')!);
+    fireEvent.click(shadow.querySelector('[aria-label="Print focused response"]')!);
     window.dispatchEvent(new Event("beforeprint"));
     window.dispatchEvent(new Event("afterprint"));
-    fireEvent.click(shadow.querySelector('[aria-label="Print response"]')!);
+    fireEvent.click(shadow.querySelector('[aria-label="Print focused response"]')!);
 
     expect(print).toHaveBeenCalledTimes(2);
     expect(shadow.querySelector(".rb-table-block")).toBe(originalBlock);
@@ -114,7 +126,7 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.3.1 as the manifest source of truth", () => {
-    expect(packageJson.version).toBe("0.3.1");
+  it("uses package version 0.4.0 as the manifest source of truth", () => {
+    expect(packageJson.version).toBe("0.4.0");
   });
 });

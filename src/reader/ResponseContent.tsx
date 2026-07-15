@@ -1,11 +1,17 @@
 import { memo, useLayoutEffect, useRef } from "react";
 
 import type { DocumentContentBlock } from "../shared/types";
-import { enhanceTables, type TableDisplayState } from "./blockControls";
+import {
+  enhanceTables,
+  type TableDisplayState,
+  type TableFullscreenCoordinator,
+} from "./blockControls";
 
 interface ResponseContentProps {
   response: DocumentContentBlock;
   tableSessionStates: Map<string, TableDisplayState>;
+  variant?: "document" | "focus";
+  fullscreenCoordinator?: TableFullscreenCoordinator;
 }
 
 /**
@@ -15,6 +21,8 @@ interface ResponseContentProps {
 export const ResponseContent = memo(function ResponseContent({
   response,
   tableSessionStates,
+  variant = "focus",
+  fullscreenCoordinator,
 }: ResponseContentProps) {
   const contentRef = useRef<HTMLElement>(null);
 
@@ -25,14 +33,15 @@ export const ResponseContent = memo(function ResponseContent({
     return enhanceTables(contentRef.current, {
       responseKey: response.id,
       sessionStates: tableSessionStates,
+      fullscreenCoordinator,
     });
-  }, [response.html, response.id, tableSessionStates]);
+  }, [fullscreenCoordinator, response.html, response.id, tableSessionStates]);
 
   return (
     <article
       ref={contentRef}
-      className="rb-content"
-      aria-label="Current assistant response"
+      className={`rb-content rb-content--${variant}`}
+      aria-label={variant === "document" ? "Assistant response" : "Current assistant response"}
       dangerouslySetInnerHTML={{ __html: response.html }}
     />
   );

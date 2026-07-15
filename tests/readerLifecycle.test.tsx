@@ -98,11 +98,12 @@ describe("reader lifecycle", () => {
     );
     const first = focusable[0];
     const last = focusable.at(-1)!;
+    const close = shadow.querySelector<HTMLButtonElement>('[aria-label="Close reader"]')!;
 
-    expect(last.getAttribute("aria-label")).toBe("Close reader");
-    expect(shadow.activeElement).toBe(last);
+    expect(shadow.activeElement).toBe(close);
     expect(backgroundLink.inert).toBe(true);
 
+    last.focus();
     fireEvent.keyDown(window, { key: "Tab" });
     expect(shadow.activeElement).toBe(first);
 

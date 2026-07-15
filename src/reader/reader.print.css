@@ -29,6 +29,8 @@
 
   .rb-print-hidden,
   .rb-toolbar,
+  .rb-outline,
+  .rb-prompt-disclosure,
   .rb-block-toolbar,
   .rb-table-fullscreen-close,
   .rb-visually-hidden {
@@ -89,6 +91,46 @@
     overflow: visible !important;
     padding: 0 !important;
     width: 100% !important;
+  }
+
+  .rb-document-surface {
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .rb-document-section {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .rb-document-section + .rb-document-section {
+    border-top: 0.5pt solid #aaa;
+    margin-top: 9mm;
+    padding-top: 7mm;
+  }
+
+  .rb-document-section-header {
+    break-after: avoid-page;
+    margin: 0 0 4mm;
+    max-width: none;
+    page-break-after: avoid;
+  }
+
+  .rb-turn-indicator {
+    color: #555 !important;
+    font-size: 7.5pt;
+    margin-bottom: 1.5mm;
+  }
+
+  .rb-document-section-header h2 {
+    color: #111 !important;
+    font-size: 13pt;
+    margin: 0;
   }
 
   .rb-content h1,

@@ -18,6 +18,12 @@ function shadowRoot(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
 
+function openFocusMode(shadow: ShadowRoot): void {
+  fireEvent.click(
+    Array.from(shadow.querySelectorAll("button")).find((button) => button.textContent === "Focus")!,
+  );
+}
+
 describe("reader scrolling structure", () => {
   it("bounds the Shadow DOM hierarchy and keeps a table-free response in the vertical scroller", async () => {
     await act(async () => {
@@ -28,6 +34,7 @@ describe("reader scrolling structure", () => {
 
     const host = document.getElementById(READER_HOST_ID)!;
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const mountPoint = shadow.querySelector<HTMLElement>(".rb-reader-mount")!;
     const reader = shadow.querySelector<HTMLElement>(".rb-reader")!;
     const toolbar = shadow.querySelector<HTMLElement>(".rb-toolbar")!;
@@ -113,6 +120,8 @@ describe("reader scrolling structure", () => {
       await mountReader(responses);
     });
     const shadow = shadowRoot();
+    openFocusMode(shadow);
+    fireEvent.click(shadow.querySelector('[aria-label="Show next assistant response"]')!);
     const scrollArea = shadow.querySelector<HTMLElement>(".rb-scroll-area")!;
     scrollArea.scrollTop = 180;
     const fullscreen = shadow.querySelector<HTMLButtonElement>(

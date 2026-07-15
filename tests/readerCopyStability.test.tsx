@@ -20,6 +20,12 @@ function shadowRoot(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
 
+function openFocusMode(shadow: ShadowRoot): void {
+  fireEvent.click(
+    Array.from(shadow.querySelectorAll("button")).find((button) => button.textContent === "Focus")!,
+  );
+}
+
 describe("copy stability", () => {
   it("updates only Copy status while preserving the enhanced table subtree and state", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -28,6 +34,7 @@ describe("copy stability", () => {
       await mountReader([TABLE_RESPONSE]);
     });
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const content = shadow.querySelector<HTMLElement>(".rb-content")!;
     const block = shadow.querySelector<HTMLElement>(".rb-table-block")!;
     const toolbar = shadow.querySelector<HTMLElement>(".rb-block-toolbar")!;
@@ -38,13 +45,15 @@ describe("copy stability", () => {
     tableScroller.scrollLeft = 140;
 
     await act(async () => {
-      fireEvent.click(shadow.querySelector('[aria-label="Copy response text"]')!);
+      fireEvent.click(shadow.querySelector('[aria-label="Copy focused response"]')!);
       await Promise.resolve();
     });
 
     expect(writeText).toHaveBeenCalledWith(TABLE_RESPONSE.text);
-    expect(shadow.querySelector('[aria-label="Copy response text"]')?.textContent).toBe("Copied");
-    expect(shadow.querySelector('[role="status"]')?.textContent).toBe("Response copied.");
+    expect(shadow.querySelector('[aria-label="Copy focused response"]')?.textContent).toBe(
+      "Copied",
+    );
+    expect(shadow.querySelector('[role="status"]')?.textContent).toBe("Focused response copied.");
     expect(shadow.querySelector(".rb-content")).toBe(content);
     expect(shadow.querySelector(".rb-table-block")).toBe(block);
     expect(shadow.querySelector(".rb-block-toolbar")).toBe(toolbar);
@@ -77,15 +86,16 @@ describe("copy stability", () => {
       await mountReader([TABLE_RESPONSE]);
     });
     const shadow = shadowRoot();
+    openFocusMode(shadow);
     const content = shadow.querySelector<HTMLElement>(".rb-content")!;
     const block = shadow.querySelector<HTMLElement>(".rb-table-block")!;
 
     await act(async () => {
-      fireEvent.click(shadow.querySelector('[aria-label="Copy response text"]')!);
+      fireEvent.click(shadow.querySelector('[aria-label="Copy focused response"]')!);
       await Promise.resolve();
     });
 
-    expect(shadow.querySelector('[aria-label="Copy response text"]')?.textContent).toBe(
+    expect(shadow.querySelector('[aria-label="Copy focused response"]')?.textContent).toBe(
       "Copy failed",
     );
     expect(shadow.querySelector('[role="status"]')?.textContent).toBe("Copy failed.");
