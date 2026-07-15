@@ -26,6 +26,8 @@ export interface ConversationOutlineGroup {
 }
 
 const TITLE_LIMIT = 80;
+const LEADING_ENUMERATION = /^(?:\(\d{1,3}\)|\d{1,3}[.)])(?:\s+|$)/;
+const LEADING_BULLET = /^[*\-–—•‣▪◦](?:\s+|$)/;
 
 function safeIdPart(value: string): string {
   return (
@@ -50,17 +52,24 @@ export function conciseTitle(value: string, limit = TITLE_LIMIT): string {
   return `${normalized.slice(0, cutAt).trimEnd()}…`;
 }
 
+/** Normalizes only ReadBooster's derived title, never the original response heading. */
+export function normalizeSectionTitle(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.replace(LEADING_ENUMERATION, "").replace(LEADING_BULLET, "").trim();
+}
+
 function sectionTitle(
   responseOutline: readonly OutlineItem[],
   prompt: DocumentContentBlock | null,
   sectionIndex: number,
 ): { title: string; titleSource: SectionTitleSource } {
   const firstHeading = flattenOutline(responseOutline)[0];
-  if (firstHeading?.text.trim()) {
-    return { title: conciseTitle(firstHeading.text), titleSource: "heading" };
+  const headingTitle = conciseTitle(normalizeSectionTitle(firstHeading?.text ?? ""));
+  if (headingTitle) {
+    return { title: headingTitle, titleSource: "heading" };
   }
 
-  const promptTitle = conciseTitle(prompt?.text ?? "");
+  const promptTitle = conciseTitle(normalizeSectionTitle(prompt?.text ?? ""));
   if (promptTitle) {
     return { title: promptTitle, titleSource: "prompt" };
   }

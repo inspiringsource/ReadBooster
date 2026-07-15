@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.4.0 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.4.1 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser.
 
@@ -20,7 +20,8 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Open a Shadow DOM-isolated full-screen reader overlay.
 - Preserve paragraphs, headings, lists, links, blockquotes, code, tables, emphasis, and preformatted text.
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
-- Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; copy; print; visible focus; and Escape-key closing.
+- Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
+- Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
 - Store only validated reader preferences in `chrome.storage.local`.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
@@ -48,13 +49,19 @@ The reader derives a platform-neutral presentation model from this document once
 
 ## Document and Focus modes
 
-Document mode is the 0.4.0 default. It renders all assistant responses as restrained chapters within one paper-like reading surface. Section titles use the first meaningful response heading, then a shortened user prompt, then `Response 1`, `Response 2`, and so on. Titles are local, deterministic, and limited to approximately 80 characters. The grouped conversation outline contains one top-level destination per response, including responses without headings. Response headings remain nested within their own group and never inherit hierarchy from another response.
+Document mode remains the default. It renders all assistant responses as restrained chapters within one paper-like reading surface labelled `Section 1`, `Section 2`, and so on. Section titles use the first meaningful response heading, then a shortened user prompt, then `Response 1`, `Response 2`, and so on. ReadBooster normalizes repeated whitespace and conservative leading numbering or bullets in its derived titles while leaving the original response heading unchanged. Titles are local, deterministic, and limited to approximately 80 characters. The grouped conversation outline contains one top-level destination per response, including responses without headings. Response headings remain nested within their own group and never inherit hierarchy from another response.
 
 Associated prompts are collapsed under **View prompt** and are visually subordinate to the assistant document. They remain local and use the already-sanitized normalized prompt block. Prompt state, the selected reader mode, outline groups, and document scroll position are not persisted across reader sessions.
 
 Focus mode preserves the 0.3.1 reader: one assistant response, Previous and Next, response position, active-response outline, responsive drawer, Copy, Print, preferences, and table controls. Switching to Focus uses the active document section where possible. Returning to Document restores its prior scroll position when practical. Reading preferences and response-specific table session state are shared across both modes.
 
-Copy and Print follow the active mode. Document Copy creates a simple assistant-only text document containing each derived section title and response text; prompt bodies are excluded. Document Print includes all assistant sections and turn labels while excluding prompts, outlines, and application/table controls. Focus Copy and Print remain scoped to the focused response.
+Copy and Print follow the active mode. Document Copy creates a simple assistant-only text document containing each derived section title and response text; prompt bodies are excluded. Document Print includes all assistant sections and section labels while excluding prompts, outlines, header panels, and application/table controls. Focus Copy and Print remain scoped to the focused response.
+
+## Reader header and About
+
+ReadBooster 0.4.1 separates the reader header into product identity, the always-visible Document/Focus switch, direct Outline and Close controls, and two small popover panels. **Reading settings** contains Preset, Appearance, Text size, and Spacing without changing their existing local persistence. **Actions** contains mode-specific Copy and Print plus concise About information. The identity line displays `Beta` and the version derived from `package.json`, the same source used by the Chrome manifest.
+
+Only one header panel can be open. Escape closes it before closing the reader, outside clicks dismiss it, and focus returns to its trigger. Focus navigation occupies an intentional secondary toolbar row so Previous, response position, and Next remain aligned at laptop widths. Opening these panels does not remount response content or reset prompts, tables, outlines, or document scroll state.
 
 ## Website and adapter status
 
@@ -171,7 +178,7 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 10. Print or save as PDF and confirm the outline and its controls are absent while the active response and tables retain the verified 0.2.3 layout.
 11. Exercise a streaming response and a conversation with an incomplete turn; confirm extraction fails safely and no stale duplicate outline items appear.
 
-### 0.4.0 continuous document acceptance checklist
+### 0.4.0 continuous document regression checklist
 
 1. Open a two-response conversation and confirm Document mode renders both responses once in chronological order.
 2. Open a conversation with at least ten responses and check scrolling, outline calmness, and responsiveness.
@@ -192,7 +199,24 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 17. Close and reopen the reader; confirm transient mode, prompt, outline, and table session state resets safely.
 18. After closing, confirm normal ChatGPT scrolling and focus are restored.
 19. Repeat representative Document, outline, table, and Focus checks at several Chrome zoom levels.
-20. Inspect `dist/manifest.json` and the loaded extension card and confirm version `0.4.0`.
+20. Confirm the continuous-document behavior remains intact after the current patch.
+
+### 0.4.1 header refinement acceptance checklist
+
+1. Test Document mode in a 13-inch MacBook Air-sized Chrome window and confirm the header groups remain aligned.
+2. Test Focus mode at the same width and confirm its navigation occupies one intentional secondary row.
+3. Test a wider desktop layout and confirm identity, mode, settings, actions, outline, and close remain distinct.
+4. Test the narrow layout and confirm the outline still opens as a drawer without blocking document scrolling.
+5. Open Reading settings, change every preference, close it, and confirm persistence still works.
+6. Open Actions and exercise Copy, Print, and About in both reader modes where applicable.
+7. Press Escape with each panel open and confirm the panel closes before the reader.
+8. Close each panel from its trigger and by clicking outside; confirm focus restoration remains understandable.
+9. In Focus mode, navigate Previous and Next through all response boundaries.
+10. Switch repeatedly between Document and Focus and confirm active response and document scroll restoration.
+11. Open responses headed `1. Title`, `1) Title`, `(1) Title`, and a bullet; confirm only the derived title loses the enumeration.
+12. Change table modes, then open and close both header panels and confirm table state and controls remain unchanged.
+13. Inspect print preview in both modes and confirm all header controls, panels, version labels, About content, prompts, outlines, and table controls are excluded.
+14. Repeat the header, panel, navigation, drawer, table, and print checks at 80%, 100%, 125%, and 150% Chrome zoom.
 
 ## Security and content handling
 
@@ -259,7 +283,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
-- ReadBooster 0.4.0 does not provide search, bookmarks, annotations, editing, AI revisions, selective print/export, additional extracting platform adapters, or persistence of document-mode state.
+- ReadBooster 0.4.1 does not provide search, bookmarks, annotations, editing, AI revisions, selective print/export, additional extracting platform adapters, or persistence of document-mode state. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -267,4 +291,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, and separately verified platform adapters. These features are not implemented in 0.4.0.
+Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, and separately verified platform adapters. These features are not implemented in 0.4.1.

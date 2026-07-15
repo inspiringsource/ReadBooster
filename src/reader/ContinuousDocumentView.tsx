@@ -100,7 +100,7 @@ export function ContinuousDocumentView({
             aria-labelledby={`${section.id}-title`}
           >
             <header className="rb-document-section-header">
-              <span className="rb-turn-indicator">Turn {section.index + 1}</span>
+              <span className="rb-section-indicator">Section {section.index + 1}</span>
               <h2 id={`${section.id}-title`}>{section.title}</h2>
             </header>
             {section.prompt ? <PromptDisclosure prompt={section.prompt} /> : null}

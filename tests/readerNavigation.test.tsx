@@ -47,6 +47,11 @@ describe("assistant response navigation", () => {
     const next = shadow.querySelector<HTMLButtonElement>(
       '[aria-label="Show next assistant response"]',
     )!;
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll("button")).find(
+        (button) => button.textContent === "Reading settings",
+      )!,
+    );
     const textSize = shadow.querySelector<HTMLSelectElement>('[aria-label="Reader text size"]')!;
 
     expect(shadow.querySelector(".rb-response-position")?.textContent).toContain("Response 3 of 3");
@@ -62,7 +67,14 @@ describe("assistant response navigation", () => {
       ),
     );
     expect(shadow.querySelector(".rb-content")?.textContent).toContain("Second response");
-    expect(textSize.value).toBe("large");
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll("button")).find(
+        (button) => button.textContent === "Reading settings",
+      )!,
+    );
+    expect(shadow.querySelector<HTMLSelectElement>('[aria-label="Reader text size"]')?.value).toBe(
+      "large",
+    );
     expect(document.getElementById(READER_HOST_ID)).toBe(originalHost);
     expect(document.querySelectorAll(`#${READER_HOST_ID}`)).toHaveLength(1);
 

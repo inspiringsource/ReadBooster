@@ -26,6 +26,12 @@ function openFocusMode(shadow: ShadowRoot): void {
   );
 }
 
+function openPanel(shadow: ShadowRoot, label: "Actions" | "Reading settings"): void {
+  fireEvent.click(
+    Array.from(shadow.querySelectorAll("button")).find((button) => button.textContent === label)!,
+  );
+}
+
 describe("copy stability", () => {
   it("updates only Copy status while preserving the enhanced table subtree and state", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -43,6 +49,7 @@ describe("copy stability", () => {
     fireEvent.click(shadow.querySelector('[aria-label="Use wide mode for table 1"]')!);
     fireEvent.click(shadow.querySelector('[aria-label="Toggle compact text for table 1"]')!);
     tableScroller.scrollLeft = 140;
+    openPanel(shadow, "Actions");
 
     await act(async () => {
       fireEvent.click(shadow.querySelector('[aria-label="Copy focused response"]')!);
@@ -62,6 +69,7 @@ describe("copy stability", () => {
     expect(block.dataset.density).toBe("compact");
     expect(tableScroller.scrollLeft).toBe(140);
 
+    openPanel(shadow, "Reading settings");
     fireEvent.change(shadow.querySelector('[aria-label="Reader appearance"]')!, {
       target: { value: "dark" },
     });
@@ -87,6 +95,7 @@ describe("copy stability", () => {
     });
     const shadow = shadowRoot();
     openFocusMode(shadow);
+    openPanel(shadow, "Actions");
     const content = shadow.querySelector<HTMLElement>(".rb-content")!;
     const block = shadow.querySelector<HTMLElement>(".rb-table-block")!;
 

@@ -40,6 +40,11 @@ describe("print layout", () => {
     });
     const shadow = shadowRoot();
     openFocusMode(shadow);
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll("button")).find(
+        (button) => button.textContent === "Actions",
+      )!,
+    );
     const readerToolbar = shadow.querySelector<HTMLElement>(".rb-toolbar")!;
     const tableToolbar = shadow.querySelector<HTMLElement>(".rb-block-toolbar")!;
     const metadata = shadow.querySelector<HTMLElement>(".rb-print-metadata")!;
@@ -70,6 +75,9 @@ describe("print layout", () => {
     );
     expect(PRINT_CSS).toMatch(/\.rb-table-scroll[\s\S]+overflow: visible !important/);
     expect(PRINT_CSS).toMatch(/\.rb-prompt-disclosure[\s\S]+display: none !important/);
+    expect(PRINT_CSS).toMatch(/\.rb-header-panel[\s\S]+display: none !important/);
+    expect(PRINT_CSS).toMatch(/\.rb-version-label[\s\S]+display: none !important/);
+    expect(PRINT_CSS).not.toContain("rb-turn-indicator");
     expect(PRINT_CSS).toMatch(
       /\.rb-document-section-header[\s\S]+break-after: avoid-page[\s\S]+page-break-after: avoid/,
     );
@@ -108,6 +116,11 @@ describe("print layout", () => {
     fireEvent.click(shadow.querySelector('[aria-label="Open table 1 fullscreen"]')!);
     tableScroller.scrollLeft = 160;
     const originalBlock = block;
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll("button")).find(
+        (button) => button.textContent === "Actions",
+      )!,
+    );
 
     fireEvent.click(shadow.querySelector('[aria-label="Print focused response"]')!);
     window.dispatchEvent(new Event("beforeprint"));
@@ -126,7 +139,9 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.4.0 as the manifest source of truth", () => {
-    expect(packageJson.version).toBe("0.4.0");
+  it("uses package version 0.4.1 as the manifest source of truth", () => {
+    const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
+    expect(packageJson.version).toBe("0.4.1");
+    expect(manifestSource).toContain("version: packageJson.version");
   });
 });

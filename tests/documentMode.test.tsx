@@ -99,6 +99,10 @@ describe("minimal continuous document mode", () => {
     ).toBe(false);
     expect(shadow.querySelectorAll(".rb-response-navigation")).toHaveLength(0);
     expect(shadow.querySelectorAll(".rb-outline-group")).toHaveLength(3);
+    expect(
+      Array.from(shadow.querySelectorAll(".rb-section-indicator"), (item) => item.textContent),
+    ).toEqual(["Section 1", "Section 2", "Section 3"]);
+    expect(shadow.textContent).not.toMatch(/Turn \d/);
   });
 
   it("keeps prompts collapsed and lets disclosures expand independently", async () => {
@@ -184,6 +188,11 @@ describe("minimal continuous document mode", () => {
     const shadow = shadowRoot();
     const firstPrompt = shadow.querySelector<HTMLDetailsElement>(".rb-prompt-disclosure")!;
     fireEvent.click(firstPrompt.querySelector("summary")!);
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll("button")).find(
+        (button) => button.textContent === "Actions",
+      )!,
+    );
 
     await act(async () => {
       fireEvent.click(shadow.querySelector('[aria-label="Copy conversation document"]')!);
@@ -193,12 +202,18 @@ describe("minimal continuous document mode", () => {
     expect(documentCopy).toContain("First section\n\nFirst section\n\nFirst answer");
     expect(documentCopy).toContain("Second private prompt\n\nSecond answer without heading");
     expect(documentCopy).not.toContain("First private prompt");
+    expect(documentCopy).not.toMatch(/\bTurn \d/);
     fireEvent.click(shadow.querySelector('[aria-label="Print conversation document"]')!);
     expect(print).toHaveBeenCalledOnce();
     expect(firstPrompt.open).toBe(true);
     expect(shadow.querySelectorAll(".rb-document-section")).toHaveLength(3);
 
     fireEvent.click(modeButton(shadow, "Focus"));
+    fireEvent.click(
+      Array.from(shadow.querySelectorAll("button")).find(
+        (button) => button.textContent === "Actions",
+      )!,
+    );
     await act(async () => {
       fireEvent.click(shadow.querySelector('[aria-label="Copy focused response"]')!);
       await Promise.resolve();

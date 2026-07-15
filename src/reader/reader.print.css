@@ -29,6 +29,9 @@
 
   .rb-print-hidden,
   .rb-toolbar,
+  .rb-header-panel,
+  .rb-version-label,
+  .rb-about-readbooster,
   .rb-outline,
   .rb-prompt-disclosure,
   .rb-block-toolbar,
@@ -121,7 +124,7 @@
     page-break-after: avoid;
   }
 
-  .rb-turn-indicator {
+  .rb-section-indicator {
     color: #555 !important;
     font-size: 7.5pt;
     margin-bottom: 1.5mm;

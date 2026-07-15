@@ -4,6 +4,7 @@ import {
   conciseTitle,
   deriveConversationOutline,
   deriveConversationSections,
+  normalizeSectionTitle,
 } from "../src/reader/presentation";
 import type {
   ConversationDocument,
@@ -114,6 +115,41 @@ describe("continuous document sections", () => {
     expect(sections[1].title.endsWith("…")).toBe(true);
     expect(sections[2].title).toBe("Response 3");
     expect(conciseTitle(longPrompt)).toBe(conciseTitle(longPrompt));
+  });
+
+  it("normalizes conservative enumeration and falls back when a heading becomes unusable", () => {
+    expect(normalizeSectionTitle("  1.   He expanded too far ")).toBe("He expanded too far");
+    expect(normalizeSectionTitle("1) Title")).toBe("Title");
+    expect(normalizeSectionTitle("(1) Title")).toBe("Title");
+    expect(normalizeSectionTitle("• Title")).toBe("Title");
+    expect(normalizeSectionTitle("2024. Results")).toBe("2024. Results");
+    expect(normalizeSectionTitle("v0.4.1 release")).toBe("v0.4.1 release");
+
+    const response = block(
+      "enumerated-response",
+      "assistant",
+      '<h2 id="enumeration-only">1.</h2><p>Original content remains.</p>',
+      "1. Original content remains.",
+    );
+    const sections = deriveConversationSections(
+      conversation([
+        {
+          id: "enumerated-turn",
+          index: 0,
+          prompt: block(
+            "useful-prompt",
+            "user",
+            "<p>• Useful prompt title</p>",
+            "• Useful prompt title",
+          ),
+          response,
+        },
+      ]),
+    );
+
+    expect(sections[0].title).toBe("Useful prompt title");
+    expect(sections[0].titleSource).toBe("prompt");
+    expect(sections[0].response.html).toContain(">1.</h2>");
   });
 
   it("attaches response-local outlines and deduplicates only a heading-derived group title", () => {

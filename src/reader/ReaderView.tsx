@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import packageJson from "../../package.json";
 import { preferencesForPreset } from "../shared/preferences";
 import { saveReaderPreferences } from "../shared/storage";
 import type {
@@ -29,6 +30,10 @@ interface ReaderViewProps {
   initialPreferences: ReaderPreferences;
   onClose: () => void;
 }
+
+type HeaderPanel = "actions" | "reading-settings";
+
+const READER_VERSION = packageJson.version;
 
 const TEXT_SIZE_VALUES: Record<TextSize, string> = {
   small: "17px",
@@ -88,6 +93,8 @@ export function ReaderView({
   const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "");
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(
     () =>
       typeof window.matchMedia === "function" && window.matchMedia("(max-width: 900px)").matches,
@@ -97,6 +104,9 @@ export function ReaderView({
   const scrollAreaRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const outlineToggleRef = useRef<HTMLButtonElement>(null);
+  const readingSettingsTriggerRef = useRef<HTMLButtonElement>(null);
+  const actionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const headerPanelRef = useRef<HTMLDivElement>(null);
   const documentScrollTopRef = useRef(0);
   const [tableSessionStates] = useState(() => new Map<string, TableDisplayState>());
   const [fullscreenCoordinator] = useState<TableFullscreenCoordinator>(() => ({
@@ -104,6 +114,30 @@ export function ReaderView({
   }));
   const response = responses[currentResponseIndex];
   const documentTitle = conversation.title?.trim() || "Conversation document.";
+
+  const closeHeaderPanel = useCallback(
+    (restoreFocus = true): void => {
+      const trigger =
+        headerPanel === "reading-settings"
+          ? readingSettingsTriggerRef.current
+          : actionsTriggerRef.current;
+      setHeaderPanel(null);
+      setAboutOpen(false);
+      if (restoreFocus) {
+        queueMicrotask(() => trigger?.focus());
+      }
+    },
+    [headerPanel],
+  );
+
+  const toggleHeaderPanel = (panel: HeaderPanel): void => {
+    if (headerPanel === panel) {
+      closeHeaderPanel();
+      return;
+    }
+    setAboutOpen(false);
+    setHeaderPanel(panel);
+  };
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") {
@@ -118,9 +152,40 @@ export function ReaderView({
     return () => media.removeEventListener?.("change", handleChange);
   }, []);
 
+  useLayoutEffect(() => {
+    if (!headerPanel) {
+      return;
+    }
+    headerPanelRef.current?.querySelector<HTMLElement>("select, button")?.focus();
+  }, [headerPanel]);
+
+  useEffect(() => {
+    if (!headerPanel) {
+      return;
+    }
+    const handleOutsideClick = (event: MouseEvent): void => {
+      if (!dialogRef.current?.isConnected) {
+        return;
+      }
+      const path = event.composedPath();
+      if (
+        path.includes(headerPanelRef.current as EventTarget) ||
+        path.includes(readingSettingsTriggerRef.current as EventTarget) ||
+        path.includes(actionsTriggerRef.current as EventTarget)
+      ) {
+        return;
+      }
+      closeHeaderPanel();
+    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [closeHeaderPanel, headerPanel]);
+
   useEffect(() => {
     closeButtonRef.current?.focus();
+  }, []);
 
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       const fullscreenTable = dialogRef.current?.querySelector('[data-rb-table-fullscreen="true"]');
       if (fullscreenTable) {
@@ -130,6 +195,10 @@ export function ReaderView({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
+        if (headerPanel) {
+          closeHeaderPanel();
+          return;
+        }
         onClose();
         return;
       }
@@ -186,7 +255,7 @@ export function ReaderView({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onClose]);
+  }, [closeHeaderPanel, headerPanel, onClose]);
 
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
@@ -328,31 +397,80 @@ export function ReaderView({
       style={readerStyle}
     >
       <header className="rb-toolbar rb-print-hidden">
-        <div className="rb-identity">
-          <div className="rb-brand">
-            <span className="rb-eyebrow">ReadBooster</span>
-            <h1 id="rb-reader-title">{mode === "document" ? documentTitle : "Focused response"}</h1>
+        <div className="rb-toolbar-primary">
+          <div className="rb-identity">
+            <div className="rb-brand">
+              <div className="rb-product-label">
+                <span className="rb-eyebrow">ReadBooster</span>
+                <span className="rb-version-label">Beta · v{READER_VERSION}</span>
+              </div>
+              <h1 id="rb-reader-title">
+                {mode === "document" ? documentTitle : "Focused response"}
+              </h1>
+            </div>
+            <div className="rb-mode-switch" role="group" aria-label="Reader mode">
+              <button
+                type="button"
+                aria-pressed={mode === "document"}
+                onClick={() => changeMode("document")}
+              >
+                Document
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === "focus"}
+                onClick={() => changeMode("focus")}
+              >
+                Focus
+              </button>
+            </div>
           </div>
-          <div className="rb-mode-switch" role="group" aria-label="Reader mode">
+
+          <div className="rb-header-controls" aria-label="Reader controls">
             <button
+              ref={readingSettingsTriggerRef}
               type="button"
-              aria-pressed={mode === "document"}
-              onClick={() => changeMode("document")}
+              aria-controls="rb-reading-settings-panel"
+              aria-expanded={headerPanel === "reading-settings"}
+              aria-haspopup="dialog"
+              onClick={() => toggleHeaderPanel("reading-settings")}
             >
-              Document
+              Reading settings
             </button>
             <button
+              ref={actionsTriggerRef}
               type="button"
-              aria-pressed={mode === "focus"}
-              onClick={() => changeMode("focus")}
+              aria-controls="rb-actions-panel"
+              aria-expanded={headerPanel === "actions"}
+              aria-haspopup="dialog"
+              onClick={() => toggleHeaderPanel("actions")}
             >
-              Focus
+              Actions
+            </button>
+            <button
+              ref={outlineToggleRef}
+              type="button"
+              aria-controls="rb-response-outline"
+              aria-expanded={outlineOpen}
+              aria-label={`${outlineOpen ? "Close" : "Open"} ${mode === "document" ? "conversation" : "response"} outline`}
+              onClick={() => setOutlineOpen((open) => !open)}
+            >
+              {outlineOpen ? "Hide outline" : "Outline"}
+            </button>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="rb-close"
+              onClick={onClose}
+              aria-label="Close reader"
+            >
+              Close
             </button>
           </div>
         </div>
 
-        <div className="rb-controls" aria-label="Reader preferences and actions">
-          {mode === "focus" ? (
+        {mode === "focus" ? (
+          <div className="rb-toolbar-secondary">
             <div className="rb-response-navigation" aria-label="Assistant response navigation">
               <button
                 type="button"
@@ -374,122 +492,161 @@ export function ReaderView({
                 Next
               </button>
             </div>
-          ) : null}
+          </div>
+        ) : null}
 
-          <label>
-            <span>Preset</span>
-            <select
-              aria-label="Reading preset"
-              value={preferences.preset}
-              onChange={(event) => updatePreset(event.target.value as ReaderPreset)}
-            >
-              <option value="comfortable">Comfortable</option>
-              <option value="dyslexia-friendly">Dyslexia-friendly</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
-          <label>
-            <span>Appearance</span>
-            <select
-              aria-label="Reader appearance"
-              value={preferences.appearance}
-              onChange={(event) =>
-                updatePreferences({
-                  ...preferences,
-                  appearance: event.target.value as AppearanceMode,
-                })
-              }
-            >
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <label>
-            <span>Text size</span>
-            <select
-              aria-label="Reader text size"
-              value={preferences.textSize}
-              onChange={(event) =>
-                updatePreferences({
-                  ...preferences,
-                  textSize: event.target.value as TextSize,
-                  preset: "custom",
-                })
-              }
-            >
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-              <option value="x-large">Extra large</option>
-            </select>
-          </label>
-          <label>
-            <span>Spacing</span>
-            <select
-              aria-label="Reader spacing"
-              value={preferences.spacing}
-              onChange={(event) =>
-                updatePreferences({
-                  ...preferences,
-                  spacing: event.target.value as SpacingLevel,
-                  preset: "custom",
-                })
-              }
-            >
-              <option value="compact">Compact</option>
-              <option value="comfortable">Comfortable</option>
-              <option value="roomy">Roomy</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={() => void handleCopy()}
-            aria-label={
-              mode === "document" ? "Copy conversation document" : "Copy focused response"
+        {headerPanel ? (
+          <div
+            ref={headerPanelRef}
+            id={
+              headerPanel === "reading-settings" ? "rb-reading-settings-panel" : "rb-actions-panel"
             }
-            aria-describedby="rb-copy-status"
+            className="rb-header-panel"
+            data-panel={headerPanel}
+            role="dialog"
+            aria-labelledby={`${headerPanel}-title`}
           >
-            {copyStatus === "copied" ? "Copied" : copyStatus === "failed" ? "Copy failed" : "Copy"}
-          </button>
-          <span id="rb-copy-status" className="rb-visually-hidden" role="status" aria-live="polite">
-            {copyStatus === "copied"
-              ? mode === "document"
-                ? "Conversation document copied."
-                : "Focused response copied."
-              : copyStatus === "failed"
-                ? "Copy failed."
-                : ""}
-          </span>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            aria-label={
-              mode === "document" ? "Print conversation document" : "Print focused response"
-            }
-          >
-            Print
-          </button>
-          <button
-            ref={outlineToggleRef}
-            type="button"
-            aria-controls="rb-response-outline"
-            aria-expanded={outlineOpen}
-            aria-label={`${outlineOpen ? "Close" : "Open"} ${mode === "document" ? "conversation" : "response"} outline`}
-            onClick={() => setOutlineOpen((open) => !open)}
-          >
-            {outlineOpen ? "Hide outline" : "Outline"}
-          </button>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="rb-close"
-            onClick={onClose}
-            aria-label="Close reader"
-          >
-            Close
-          </button>
-        </div>
+            {headerPanel === "reading-settings" ? (
+              <>
+                <h2 id="reading-settings-title">Reading settings</h2>
+                <div className="rb-settings-grid">
+                  <label>
+                    <span>Preset</span>
+                    <select
+                      aria-label="Reading preset"
+                      value={preferences.preset}
+                      onChange={(event) => updatePreset(event.target.value as ReaderPreset)}
+                    >
+                      <option value="comfortable">Comfortable</option>
+                      <option value="dyslexia-friendly">Dyslexia-friendly</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Appearance</span>
+                    <select
+                      aria-label="Reader appearance"
+                      value={preferences.appearance}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          appearance: event.target.value as AppearanceMode,
+                        })
+                      }
+                    >
+                      <option value="system">System</option>
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Text size</span>
+                    <select
+                      aria-label="Reader text size"
+                      value={preferences.textSize}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          textSize: event.target.value as TextSize,
+                          preset: "custom",
+                        })
+                      }
+                    >
+                      <option value="small">Small</option>
+                      <option value="medium">Medium</option>
+                      <option value="large">Large</option>
+                      <option value="x-large">Extra large</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Spacing</span>
+                    <select
+                      aria-label="Reader spacing"
+                      value={preferences.spacing}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          spacing: event.target.value as SpacingLevel,
+                          preset: "custom",
+                        })
+                      }
+                    >
+                      <option value="compact">Compact</option>
+                      <option value="comfortable">Comfortable</option>
+                      <option value="roomy">Roomy</option>
+                    </select>
+                  </label>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 id="actions-title">Actions</h2>
+                <div className="rb-actions-list">
+                  <button
+                    type="button"
+                    onClick={() => void handleCopy()}
+                    aria-label={
+                      mode === "document" ? "Copy conversation document" : "Copy focused response"
+                    }
+                    aria-describedby="rb-copy-status"
+                  >
+                    {copyStatus === "copied"
+                      ? "Copied"
+                      : copyStatus === "failed"
+                        ? "Copy failed"
+                        : "Copy"}
+                  </button>
+                  <span
+                    id="rb-copy-status"
+                    className="rb-visually-hidden"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {copyStatus === "copied"
+                      ? mode === "document"
+                        ? "Conversation document copied."
+                        : "Focused response copied."
+                      : copyStatus === "failed"
+                        ? "Copy failed."
+                        : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    aria-label={
+                      mode === "document" ? "Print conversation document" : "Print focused response"
+                    }
+                  >
+                    Print
+                  </button>
+                  <button
+                    type="button"
+                    aria-controls="rb-about-readbooster"
+                    aria-expanded={aboutOpen}
+                    onClick={() => setAboutOpen((open) => !open)}
+                  >
+                    About ReadBooster
+                  </button>
+                </div>
+                {aboutOpen ? (
+                  <section
+                    id="rb-about-readbooster"
+                    className="rb-about-readbooster"
+                    aria-label="About ReadBooster"
+                  >
+                    <h3>ReadBooster</h3>
+                    <p>Version {READER_VERSION} Beta</p>
+                    <p>ReadBooster processes content locally in your browser.</p>
+                    <p>
+                      ChatGPT conversation extraction is implemented. Claude and Gemini extraction
+                      are not implemented.
+                    </p>
+                  </section>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
       </header>
 
       <header className="rb-print-metadata">
