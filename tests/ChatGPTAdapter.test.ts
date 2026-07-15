@@ -1,8 +1,103 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { ChatGPTAdapter } from "../src/content/adapters/ChatGPTAdapter";
 
 describe("ChatGPTAdapter", () => {
+  it("assembles live-derived sibling chart cards with their matching assistant responses", () => {
+    document.body.innerHTML = readFileSync("tests/fixtures/chatgpt-live-chart.html", "utf8");
+
+    const responses = new ChatGPTAdapter(
+      document,
+      "chatgpt.com",
+      "https://chatgpt.com/c/FIXTURE_CONVERSATION",
+    ).getAllAssistantResponses();
+    expect(responses).toHaveLength(5);
+
+    const napoleon = document.createElement("div");
+    napoleon.innerHTML = responses[0].html;
+    const napoleonFigure = napoleon.querySelector("figure")!;
+    const napoleonImage = napoleonFigure.querySelector("img")!;
+    const napoleonCode = napoleon.querySelector("code")!;
+    expect(napoleon.querySelectorAll("figure")).toHaveLength(1);
+    expect(napoleonFigure.querySelectorAll("img")).toHaveLength(1);
+    expect(napoleonImage.alt).toBe("Napoleon's Grande Armée during the 1812 Russian Campaign");
+    expect(napoleonImage.width).toBe(1189);
+    expect(napoleonImage.height).toBe(590);
+    expect(napoleonFigure.querySelector("figcaption")?.textContent).toBe(napoleonImage.alt);
+    expect(responses[0].html.indexOf("<figure")).toBeLessThan(
+      responses[0].html.indexOf("The chart uses simplified estimates"),
+    );
+    expect(responses[0].html.match(/The chart uses simplified estimates/g)).toHaveLength(1);
+    expect(napoleonCode.textContent?.match(/import matplotlib\.pyplot as plt/g)).toHaveLength(1);
+    expect(napoleon.querySelectorAll("button, svg")).toHaveLength(0);
+    expect(napoleon.textContent).not.toContain("Interactive");
+    expect(napoleon.textContent).not.toContain("Download");
+    expect(napoleon.textContent).not.toContain("Expand");
+    expect(napoleon.querySelectorAll("cite")).toHaveLength(2);
+    expect(napoleon.querySelectorAll("cite img")).toHaveLength(0);
+    expect(napoleon.textContent).toContain("Source: mass:werk – media environments");
+    expect(napoleon.textContent).toContain("Source: datavizblog.com");
+    expect(napoleon.textContent).not.toContain("+1");
+    expect(napoleonCode.lang).toBe("python");
+    expect(napoleonCode.textContent?.startsWith("import matplotlib.pyplot as plt")).toBe(true);
+    expect(napoleonCode.textContent).not.toContain("Python");
+
+    const textOnly = document.createElement("div");
+    textOnly.innerHTML = responses[1].html;
+    expect(textOnly.querySelector("figure")).toBeNull();
+
+    const secondChart = document.createElement("div");
+    secondChart.innerHTML = responses[2].html;
+    expect(secondChart.querySelectorAll("figure")).toHaveLength(1);
+    expect(secondChart.querySelector("figcaption")?.textContent).toBe(
+      "Supply levels during the return journey",
+    );
+    expect(secondChart.textContent).not.toContain("Grande Armée");
+
+    const unrelated = document.createElement("div");
+    unrelated.innerHTML = responses[3].html;
+    expect(unrelated.querySelector("figure, img")).toBeNull();
+    expect(unrelated.textContent).not.toContain("Supply levels");
+
+    const unlabelled = document.createElement("div");
+    unlabelled.innerHTML = responses[4].html;
+    expect(unlabelled.querySelector("figure, img")).toBeNull();
+    expect(unlabelled.textContent).toContain("not sufficient chart evidence");
+  });
+
+  it("captures loaded Estuary pixels locally before falling back to the session URL", () => {
+    document.body.innerHTML = readFileSync("tests/fixtures/chatgpt-live-chart.html", "utf8");
+    const outputImage = document.querySelector<HTMLImageElement>(
+      '[data-fixture-response-wrapper="napoleon"] img[src*="/backend-api/estuary/content"]',
+    )!;
+    Object.defineProperties(outputImage, {
+      complete: { configurable: true, value: true },
+      naturalWidth: { configurable: true, value: 1189 },
+      naturalHeight: { configurable: true, value: 590 },
+    });
+    const drawImage = vi.fn();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage,
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
+      "data:image/png;base64,AAAA",
+    );
+
+    const response = new ChatGPTAdapter(
+      document,
+      "chatgpt.com",
+      "https://chatgpt.com/c/FIXTURE_CONVERSATION",
+    ).getAllAssistantResponses()[0];
+    const output = document.createElement("div");
+    output.innerHTML = response.html;
+    expect(output.querySelector("figure img")?.getAttribute("src")).toBe(
+      "data:image/png;base64,AAAA",
+    );
+    expect(drawImage).toHaveBeenCalledWith(outputImage, 0, 0);
+  });
+
   it("checks assistant availability without extracting or cloning the conversation", () => {
     document.body.innerHTML = `
       <article data-turn="user"><p>First prompt</p></article>

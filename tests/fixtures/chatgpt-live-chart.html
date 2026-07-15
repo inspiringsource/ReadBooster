@@ -1,0 +1,141 @@
+<main id="fixture-conversation">
+  <div data-fixture-response-wrapper="napoleon">
+    <div data-fixture-reasoning>
+      <button type="button">Worked briefly</button>
+    </div>
+    <div data-fixture-generated-output-card>
+      <div>
+        <div>
+          <span>Napoleon's Grande Armée during the 1812 Russian Campaign</span>
+          <div>
+            <button type="button">Interactive</button>
+            <button type="button" aria-haspopup="menu">Menu</button>
+            <button type="button">Download</button>
+            <button type="button">Expand</button>
+          </div>
+        </div>
+        <div>
+          <img
+            alt="Output image"
+            width="1189"
+            height="590"
+            src="https://chatgpt.com/backend-api/estuary/content?id=FIXTURE_FILE&amp;ts=FIXTURE_TIME&amp;p=fs&amp;cid=FIXTURE_CLIENT&amp;sig=FIXTURE_SIGNATURE&amp;v=0"
+          />
+        </div>
+        <div></div>
+      </div>
+    </div>
+    <div
+      data-message-author-role="assistant"
+      data-message-id="fixture-napoleon-message"
+      data-turn-start-message="true"
+    >
+      <div>
+        <div class="markdown prose">
+          <p>
+            The chart uses simplified estimates.
+            <span data-testid="webpage-citation-pill">
+              <a href="https://www.masswerk.at/minard/?utm_source=chatgpt.com">
+                <img
+                  alt=""
+                  width="128"
+                  height="128"
+                  src="https://www.google.com/s2/favicons?domain=https://www.masswerk.at&amp;sz=128"
+                />
+                <span>mass:werk – media environments</span><span>+1</span>
+              </a>
+            </span>
+          </p>
+          <div data-fixture-code-block>
+            <div data-fixture-code-header>
+              <div><svg aria-hidden="true"></svg>Python</div>
+              <button aria-label="Copy"></button>
+              <button aria-label="Run code">Run</button>
+            </div>
+            <div id="code-block-viewer">
+              <pre><code><span>import</span><span> matplotlib.pyplot as plt</span>
+
+plt.plot([1, 2], [3, 4])</code></pre>
+            </div>
+          </div>
+          <p>
+            The most striking point is the decline.
+            <span data-testid="webpage-citation-pill">
+              <a href="https://datavizblog.com/fixture?utm_medium=chatgpt">
+                <img
+                  alt=""
+                  width="128"
+                  height="128"
+                  src="https://www.google.com/s2/favicons?domain=https://datavizblog.com&amp;sz=128"
+                />
+                <span>datavizblog.com</span><span>+1</span>
+              </a>
+            </span>
+          </p>
+          <p>
+            <button aria-label="napoleon_1812_army_decline.png">
+              napoleon_1812_army_decline.png
+            </button>
+            <button aria-label="Coding Citation"></button>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div data-fixture-response-wrapper="text-only">
+    <div data-message-author-role="assistant" data-message-id="fixture-text-message">
+      <div class="markdown prose"><p>A response without a generated chart.</p></div>
+    </div>
+  </div>
+
+  <div data-fixture-response-wrapper="second-chart">
+    <div data-fixture-generated-output-card>
+      <div>
+        <div><span>Supply levels during the return journey</span></div>
+        <div>
+          <img
+            alt="Output image"
+            width="900"
+            height="450"
+            src="https://chatgpt.com/backend-api/estuary/content?id=FIXTURE_SECOND_FILE&amp;ts=FIXTURE_TIME&amp;p=fs&amp;cid=FIXTURE_CLIENT&amp;sig=FIXTURE_SECOND_SIGNATURE&amp;v=0"
+          />
+        </div>
+      </div>
+    </div>
+    <div data-message-author-role="assistant" data-message-id="fixture-second-chart-message">
+      <div class="markdown prose"><p>The second chart belongs only to this response.</p></div>
+    </div>
+  </div>
+
+  <div data-fixture-response-wrapper="unsafe-image">
+    <div>
+      <div><span>Unrelated large image</span></div>
+      <img
+        alt="Unrelated"
+        width="1200"
+        height="600"
+        src="https://images.example.test/unrelated.png"
+      />
+    </div>
+    <div data-message-author-role="assistant" data-message-id="fixture-unsafe-message">
+      <div class="markdown prose"><p>This response must not inherit the unrelated image.</p></div>
+    </div>
+  </div>
+
+  <div data-fixture-response-wrapper="unlabelled-estuary-asset">
+    <div>
+      <img
+        alt="Output image"
+        width="1189"
+        height="590"
+        src="https://chatgpt.com/backend-api/estuary/content?id=FIXTURE_UNLABELLED&amp;ts=FIXTURE_TIME&amp;p=fs&amp;cid=FIXTURE_CLIENT&amp;sig=FIXTURE_SIGNATURE&amp;v=0"
+      />
+    </div>
+    <div data-message-author-role="assistant" data-message-id="fixture-unlabelled-message">
+      <div class="markdown prose">
+        <p>An unlabelled Estuary asset is not sufficient chart evidence.</p>
+      </div>
+    </div>
+  </div>
+</main>

@@ -98,6 +98,11 @@ interface MessageCandidate {
   role: ConversationRole;
 }
 
+interface VerifiedChartCard {
+  image: HTMLImageElement;
+  title: string;
+}
+
 function simpleHash(value: string): string {
   let hash = 5381;
   for (let index = 0; index < value.length; index += 1) {
@@ -339,17 +344,24 @@ export class ChatGPTAdapter implements ConversationAdapter {
     this.removeCitationCounters(clonedContentRoot);
     this.pruneHostOnlyContent(clone);
     const contentRoot = this.findContentRoot(clone);
+    const normalizedRoot = this.doc.createElement("div");
+    if (role === "assistant") {
+      this.getAssociatedChartCards(container).forEach((chart) => {
+        normalizedRoot.append(this.createChartFigure(chart));
+      });
+    }
+    normalizedRoot.append(contentRoot);
     const sourceMessageId = this.getStableHostId(container) || undefined;
     const fallbackSeed = [
-      (contentRoot.textContent ?? "").replace(/\s+/g, " ").trim(),
-      ...Array.from(contentRoot.querySelectorAll("img"), (image) =>
+      (normalizedRoot.textContent ?? "").replace(/\s+/g, " ").trim(),
+      ...Array.from(normalizedRoot.querySelectorAll("img"), (image) =>
         [image.getAttribute("alt"), image.getAttribute("width"), image.getAttribute("height")]
           .filter(Boolean)
           .join(":"),
       ),
     ].join("|");
     const id = sourceMessageId || `chatgpt-${role}-${index}-${simpleHash(fallbackSeed)}`;
-    const { html, text } = sanitizeResponseHtml(contentRoot, id);
+    const { html, text } = sanitizeResponseHtml(normalizedRoot, id);
     const sanitizedContainer = this.doc.createElement("div");
     sanitizedContainer.innerHTML = html;
     if (!text && !sanitizedContainer.querySelector("img, figure")) {
@@ -457,6 +469,109 @@ export class ChatGPTAdapter implements ConversationAdapter {
       // accessible failure notice; unrelated interface icons are simply pruned below.
       this.replaceWithCaptureNotice(clone);
     });
+  }
+
+  private getAssociatedChartCards(container: Element): VerifiedChartCard[] {
+    const assistantMessage = container.matches('[data-message-author-role="assistant"]')
+      ? container
+      : container.querySelector('[data-message-author-role="assistant"]');
+    const wrapper = assistantMessage?.parentElement;
+    if (!assistantMessage || !wrapper) {
+      return [];
+    }
+
+    const cards: VerifiedChartCard[] = [];
+    for (const sibling of Array.from(wrapper.children)) {
+      if (sibling === assistantMessage) {
+        break;
+      }
+      const images = Array.from(sibling.querySelectorAll<HTMLImageElement>("img")).filter((image) =>
+        this.isVerifiedEstuaryOutputImage(image),
+      );
+      if (images.length !== 1) {
+        continue;
+      }
+      const title = this.findChartCardTitle(sibling, images[0]);
+      if (title) {
+        cards.push({ image: images[0], title });
+      }
+    }
+    return cards;
+  }
+
+  private isVerifiedEstuaryOutputImage(image: HTMLImageElement): boolean {
+    if (image.closest(VISUAL_CONTROL_ANCESTOR_SELECTOR) || image.closest("a[href]")) {
+      return false;
+    }
+    try {
+      const pageUrl = new URL(this.currentUrl ?? this.doc.location?.href ?? window.location.href);
+      const imageUrl = new URL(image.getAttribute("src") ?? "", pageUrl);
+      const bounds = image.getBoundingClientRect();
+      const width = Math.max(image.naturalWidth, image.width, bounds.width);
+      const height = Math.max(image.naturalHeight, image.height, bounds.height);
+      return (
+        imageUrl.origin === pageUrl.origin &&
+        imageUrl.pathname === "/backend-api/estuary/content" &&
+        width >= 320 &&
+        height >= 160
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private findChartCardTitle(card: Element, image: HTMLImageElement): string | null {
+    const candidates = Array.from(
+      card.querySelectorAll<HTMLElement>("span, h1, h2, h3, h4, h5, h6, figcaption"),
+    );
+    for (const candidate of candidates) {
+      if (
+        candidate.contains(image) ||
+        candidate.closest(VISUAL_CONTROL_ANCESTOR_SELECTOR) ||
+        !(candidate.compareDocumentPosition(image) & Node.DOCUMENT_POSITION_FOLLOWING)
+      ) {
+        continue;
+      }
+      const title = (candidate.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (title && title.length <= 200) {
+        return title;
+      }
+    }
+    return null;
+  }
+
+  private createChartFigure(chart: VerifiedChartCard): HTMLElement {
+    const figure = this.doc.createElement("figure");
+    const image = this.doc.createElement("img");
+    image.alt = chart.title;
+    const width = chart.image.naturalWidth || chart.image.width;
+    const height = chart.image.naturalHeight || chart.image.height;
+    this.setIntrinsicDimensions(image, width, height);
+    image.src = this.captureLoadedImageSource(chart.image) ?? chart.image.src;
+    const caption = this.doc.createElement("figcaption");
+    caption.textContent = chart.title;
+    figure.append(image, caption);
+    return figure;
+  }
+
+  private captureLoadedImageSource(image: HTMLImageElement): string | null {
+    if (!image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+      return null;
+    }
+    try {
+      const canvas = this.doc.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return null;
+      }
+      context.drawImage(image, 0, 0);
+      const source = canvas.toDataURL("image/png");
+      return isSafeImageSource(source) ? source : null;
+    } catch {
+      return null;
+    }
   }
 
   private isMeaningfulVisual(element: Element): boolean {

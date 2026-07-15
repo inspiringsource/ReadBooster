@@ -56,7 +56,11 @@ export function enhanceCodeBlocks(
     if (pre.closest(".rb-code-block") || pre.closest(".rb-table-block")) {
       return;
     }
-    const code = pre.querySelector<HTMLElement>(":scope > code") ?? pre;
+    const firstChild = pre.firstElementChild;
+    const code =
+      firstChild instanceof HTMLElement && firstChild.tagName === "CODE"
+        ? firstChild
+        : (pre.querySelector<HTMLElement>("code") ?? pre);
     const source = code.textContent ?? "";
     const language = explicitLanguage(code);
     const label = readableLanguage(language);
