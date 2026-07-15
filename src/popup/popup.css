@@ -25,6 +25,17 @@ header {
   justify-content: space-between;
 }
 
+.popup-brand {
+  align-items: center;
+  display: inline-flex;
+  gap: 9px;
+}
+
+.popup-brand img {
+  display: block;
+  flex: 0 0 auto;
+}
+
 .wordmark {
   font-size: 20px;
   font-weight: 750;

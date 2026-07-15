@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.4.1 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.4.2 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser.
 
@@ -59,9 +59,17 @@ Copy and Print follow the active mode. Document Copy creates a simple assistant-
 
 ## Reader header and About
 
-ReadBooster 0.4.1 separates the reader header into product identity, the always-visible Document/Focus switch, direct Outline and Close controls, and two small popover panels. **Reading settings** contains Preset, Appearance, Text size, and Spacing without changing their existing local persistence. **Actions** contains mode-specific Copy and Print plus concise About information. The identity line displays `Beta` and the version derived from `package.json`, the same source used by the Chrome manifest.
+ReadBooster 0.4.1 introduced a reader header separated into product identity, the always-visible Document/Focus switch, direct Outline and Close controls, and two small popover panels. **Reading settings** contains Preset, Appearance, Text size, and Spacing without changing their existing local persistence. **Actions** contains mode-specific Copy and Print plus concise About information. The identity line displays `Beta` and the current version derived from `package.json`, the same source used by the Chrome manifest.
 
 Only one header panel can be open. Escape closes it before closing the reader, outside clicks dismiss it, and focus returns to its trigger. Focus navigation occupies an intentional secondary toolbar row so Previous, response position, and Next remain aligned at laptop widths. Opening these panels does not remount response content or reset prompts, tables, outlines, or document scroll state.
+
+## Branding and extension icons
+
+ReadBooster 0.4.2 declares dedicated PNG icons for the Chrome extension at 16×16, 32×32, 48×48, and 128×128. Runtime assets live in `public/icons/` and are copied to `dist/icons/`; the manifest uses them for both the extension identity and toolbar action. The compact popup uses the 32×32 icon beside its existing wordmark without changing popup behavior.
+
+The source artwork and original website favicon bundle live in `branding/website-favicon/`, outside Vite's runtime `public/` package. The 512×512 PNG is the extension source artwork. The small 16×16 and 32×32 icons deliberately simplify the artwork to the bookmark/arrow mark, while 48×48 and 128×128 retain the full document design. The corrected `site.webmanifest` is retained only for a possible future ReadBooster website and is not the Chrome extension manifest.
+
+To replace the icons later, begin with a square high-resolution source, preserve transparent safe padding, regenerate every PNG at its exact declared size, inspect the two smallest variants independently, run `npm run build`, and confirm every path and dimension in `dist/manifest.json`. SVG artwork may remain as a source, but Chrome manifest icon entries must continue referencing PNG files only.
 
 ## Website and adapter status
 
@@ -74,6 +82,7 @@ Only one header panel can be open. Escape closes it before closing the reader, o
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
 
 Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
+Gemini remains scaffold-only in 0.4.2; this branding release does not add an adapter.
 
 ## Install dependencies
 
@@ -218,6 +227,17 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 13. Inspect print preview in both modes and confirm all header controls, panels, version labels, About content, prompts, outlines, and table controls are excluded.
 14. Repeat the header, panel, navigation, drawer, table, and print checks at 80%, 100%, 125%, and 150% Chrome zoom.
 
+### 0.4.2 extension branding acceptance checklist
+
+1. Inspect the toolbar icon at normal and Retina display scaling.
+2. Check the toolbar icon against both light and dark Chrome toolbar themes.
+3. Inspect the branded 128×128 identity icon on `chrome://extensions`.
+4. Open the popup and confirm its compact icon, status, privacy message, and Optimize behavior remain correct.
+5. Repeat toolbar and popup checks at 80%, 100%, 125%, and 150% browser scaling.
+6. Inspect `dist/manifest.json` and confirm every declared extension and action icon path resolves.
+7. Confirm Chrome does not show a generic placeholder icon in the toolbar or extension-management page.
+8. Recheck existing Document and Focus reader behavior after loading the branded build.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -231,6 +251,10 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 ## Project structure
 
 ```text
+branding/
+└── website-favicon/       # Future website assets and 512×512 source artwork
+public/
+└── icons/                 # Runtime Chrome extension PNG icons
 src/
 ├── content/
 │   ├── adapters/
@@ -283,7 +307,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
-- ReadBooster 0.4.1 does not provide search, bookmarks, annotations, editing, AI revisions, selective print/export, additional extracting platform adapters, or persistence of document-mode state. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.4.2 does not provide search, bookmarks, annotations, editing, AI revisions, selective print/export, additional extracting platform adapters, or persistence of document-mode state. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -291,4 +315,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, and separately verified platform adapters. These features are not implemented in 0.4.1.
+Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, and separately verified platform adapters. These features are not implemented in 0.4.2.

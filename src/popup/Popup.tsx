@@ -112,7 +112,10 @@ export function Popup() {
   return (
     <main className="popup-shell">
       <header>
-        <span className="wordmark">ReadBooster</span>
+        <span className="popup-brand">
+          <img src="/icons/readbooster-32.png" alt="" width="32" height="32" />
+          <span className="wordmark">ReadBooster</span>
+        </span>
         <span className={`status-dot status-${state}`} aria-hidden="true" />
       </header>
       <p className="status" role="status">

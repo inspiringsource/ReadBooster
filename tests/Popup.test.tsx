@@ -24,6 +24,25 @@ function installChromeMock(url: string, getResponse: (type: string) => ContentRe
 }
 
 describe("Popup", () => {
+  it("shows compact branded artwork without changing unsupported-page behavior", async () => {
+    installChromeMock("https://example.com/", () => null);
+
+    const { container } = render(<Popup />);
+
+    expect(await screen.findByText("This page is not supported.")).toBeTruthy();
+    const icon = container.querySelector<HTMLImageElement>(".popup-brand img")!;
+    expect(icon.getAttribute("src")).toBe("/icons/readbooster-32.png");
+    expect(icon.getAttribute("alt")).toBe("");
+    expect(icon.width).toBe(32);
+    expect(icon.height).toBe(32);
+    expect(screen.getByText("ReadBooster")).toBeTruthy();
+    expect(screen.getByText("ReadBooster processes content locally in your browser.")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
   it.each([
     ["Claude", "https://claude.ai/chat/1", "claude" as const],
     ["Gemini", "https://gemini.google.com/app/1", "gemini" as const],
