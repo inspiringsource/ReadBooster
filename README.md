@@ -1,8 +1,8 @@
 # ReadBooster
 
-ReadBooster 0.4.8 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.4.10 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
-> **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies.
+> **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
 This repository contains the first MVP. ChatGPT extraction is implemented and covered by mock-DOM tests. Live Chrome verification is still required because ChatGPT's DOM is not a public or stable API.
 
@@ -22,12 +22,21 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Add response-local code toolbars with language labels, exact Copy code, and optional locally bundled syntax color.
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
+- Offer a discreet, user-initiated **Feedback** action that displays the published Tally form in an accessible modal without changing the reader.
 - Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
 - Store only validated reader preferences and minimal section-title override metadata in `chrome.storage.local`.
 - Open immediately from the current ChatGPT DOM window, then run one bounded source-page scan that accumulates virtualized turns without persisting conversation content.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
 ReadBooster has no backend, account system, analytics, remote assets, AI API, or conversation-body persistence. It does not send extracted content over the network.
+
+### Feedback in 0.4.10
+
+**Actions → Feedback** is available in both Document and Focus modes, including the narrow header layout. Direct activation opens an accessible ReadBooster modal containing a titled iframe for `https://tally.so/r/QKWqjp`; the reader stays mounted and inert behind a restrained overlay. The modal reports loading, closes with its visible Close control or Escape, traps focus, and restores focus to Feedback. If the frame reports an error or does not load within 15 seconds, a fallback can open the same plain URL in a new tab with `noopener,noreferrer`.
+
+ReadBooster does not load Tally's remote widget script, call `Tally.openPopup()`, inspect submitted iframe content, or persist form contents. The iframe URL contains no prompt, response, title, source URL, conversation ID, selected text, screenshot, or automatically added metadata, and the form is not contacted before explicit activation. The user decides what to enter or upload to Tally; avoid including private chat information in feedback text, screenshots, or other attachments.
+
+No manifest change was required for the iframe. The extension continues using Chrome's default Manifest V3 extension-page CSP, requests no Tally host permission, and retains only the existing `storage` permission. Tally's current response has no `X-Frame-Options` or `frame-ancestors` response restriction, but live Chrome acceptance remains necessary because external framing behavior can change independently of ReadBooster.
 
 ## Technology stack
 
@@ -110,7 +119,7 @@ Every block-level code section receives a local enhancement toolbar with its exp
 
 ## Reader header and About
 
-ReadBooster 0.4.1 introduced a reader header separated into product identity, the always-visible Document/Focus switch, direct Outline and Close controls, and two small popover panels. **Reading settings** contains Preset, Appearance, Text size, and Spacing without changing their existing local persistence. **Actions** contains mode-specific Copy and Print plus concise About information. The identity line displays `Beta` and the current version derived from `package.json`, the same source used by the Chrome manifest.
+ReadBooster 0.4.1 introduced a reader header separated into product identity, the always-visible Document/Focus switch, direct Outline and Close controls, and two small popover panels. **Reading settings** contains Preset, Appearance, Text size, and Spacing without changing their existing local persistence. **Actions** contains mode-specific Copy and Print, Feedback, and concise About information. The identity line displays `Beta` and the current version derived from `package.json`, the same source used by the Chrome manifest.
 
 Only one header panel can be open. Escape closes it before closing the reader, outside clicks dismiss it, and focus returns to its trigger. Focus navigation occupies an intentional secondary toolbar row so Previous, response position, and Next remain aligned at laptop widths. Opening these panels does not remount response content or reset prompts, tables, outlines, or document scroll state.
 
@@ -133,7 +142,7 @@ To replace the icons later, begin with a square high-resolution source, preserve
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
 
 Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
-Gemini remains scaffold-only in 0.4.8; this release does not add an adapter.
+Gemini remains scaffold-only in 0.4.10; this release does not add an adapter.
 
 ## Install dependencies
 
@@ -385,6 +394,25 @@ Automated storage and reader fixtures verify schema validation and UI behavior, 
 15. At a narrow or touch-sized layout, confirm Rename and Restore remain discoverable without hover.
 16. Inspect `chrome.storage.local` and confirm `sectionTitleOverrides:v1` contains only association keys and custom title text, never prompt or response bodies.
 
+### 0.4.10 feedback-modal acceptance checklist
+
+Automated tests simulate iframe load and failure events and mock the fallback new-tab opening. They do not load or submit the external form. Final acceptance requires the live extension and Tally.
+
+1. Reload the unpacked extension from `dist` and confirm `chrome://extensions` reports version 0.4.10.
+2. Open ReadBooster in Document mode and locate **Actions → Feedback**.
+3. Activate Feedback and confirm the Tally form appears inside the ReadBooster modal rather than opening a new tab.
+4. Confirm the reader remains visible, mounted, and non-interactive behind the overlay.
+5. Submit a clearly non-private test report and confirm it appears in Tally Submissions.
+6. If Tally notifications are enabled, confirm the test submission notification arrives.
+7. Close the modal with its Close button and confirm focus returns to Feedback.
+8. Reopen the modal, press Escape, and confirm the same focus restoration.
+9. Repeat from Focus mode and confirm the focused response remains unchanged.
+10. Reach and operate the modal using the keyboard, including cycling focus without reaching the reader behind it.
+11. Repeat at a narrow window width and confirm the modal fits within safe viewport margins.
+12. Temporarily simulate or block iframe loading and confirm the failure message and exact new-tab fallback work.
+13. Inspect the iframe and fallback URL; confirm no chat text, title, source URL, or conversation identifier was automatically included.
+14. Recheck Continuous Document mode, both outlines, tables, Copy, Print, section renaming, and Refresh conversation.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -394,7 +422,7 @@ Automated storage and reader fixtures verify schema validation and UI behavior, 
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
 - Extracted response HTML and text remain in memory for the active reader session and are not written to storage.
 - `chrome.storage.local` contains validated reader preferences and optional `sectionTitleOverrides:v1` entries with stable conversation/response association keys plus user-created title text only.
-- No remote code, JavaScript, fonts, telemetry, or network processing is used.
+- No remote executable code is loaded into the extension execution context, and no telemetry or automatic Tally request is used. After explicit activation, the Tally web application runs only inside its isolated iframe; ReadBooster does not load Tally's widget script or inspect the iframe's submitted content.
 
 ## Project structure
 
@@ -465,7 +493,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
-- ReadBooster 0.4.8 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.4.10 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -473,4 +501,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.8.
+Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.10.

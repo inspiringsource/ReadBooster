@@ -27,6 +27,7 @@ import { assistantBlocks } from "../shared/types";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { ContinuousDocumentView } from "./ContinuousDocumentView";
 import { ConversationOutline } from "./ConversationOutline";
+import { FeedbackModal } from "./FeedbackModal";
 import { FocusResponseView } from "./FocusResponseView";
 import type { OutlineItem } from "./outline";
 import {
@@ -133,6 +134,7 @@ export function ReaderView({
   const [activeSectionId, setActiveSectionId] = useState(initialDocumentSection?.id ?? "");
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>("idle");
   const [refreshMessage, setRefreshMessage] = useState("");
   const [sectionTitleStatus, setSectionTitleStatus] = useState("");
@@ -149,6 +151,7 @@ export function ReaderView({
   const outlineToggleRef = useRef<HTMLButtonElement>(null);
   const readingSettingsTriggerRef = useRef<HTMLButtonElement>(null);
   const actionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const feedbackTriggerRef = useRef<HTMLButtonElement>(null);
   const headerPanelRef = useRef<HTMLDivElement>(null);
   const documentScrollTopRef = useRef(0);
   const initialDocumentPositionAppliedRef = useRef(false);
@@ -235,6 +238,9 @@ export function ReaderView({
       return;
     }
     const handleOutsideClick = (event: MouseEvent): void => {
+      if (feedbackOpen) {
+        return;
+      }
       if (!dialogRef.current?.isConnected) {
         return;
       }
@@ -250,7 +256,7 @@ export function ReaderView({
     };
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
-  }, [closeHeaderPanel, headerPanel]);
+  }, [closeHeaderPanel, feedbackOpen, headerPanel]);
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -258,6 +264,9 @@ export function ReaderView({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
+      if (feedbackOpen) {
+        return;
+      }
       const fullscreenTable = dialogRef.current?.querySelector('[data-rb-table-fullscreen="true"]');
       if (fullscreenTable) {
         return;
@@ -335,7 +344,7 @@ export function ReaderView({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [closeHeaderPanel, headerPanel, onClose]);
+  }, [closeHeaderPanel, feedbackOpen, headerPanel, onClose]);
 
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
@@ -525,6 +534,16 @@ export function ReaderView({
       setCopyStatus("failed");
     }
   };
+
+  const openFeedback = (): void => {
+    setAboutOpen(false);
+    setFeedbackOpen(true);
+  };
+
+  const closeFeedback = useCallback((): void => {
+    setFeedbackOpen(false);
+    queueMicrotask(() => feedbackTriggerRef.current?.focus());
+  }, []);
 
   const setTransientRefreshStatus = useCallback(
     (status: Exclude<RefreshStatus, "checking">, message: string): void => {
@@ -734,7 +753,11 @@ export function ReaderView({
       aria-labelledby="rb-reader-title"
       style={readerStyle}
     >
-      <header className="rb-toolbar rb-print-hidden">
+      <header
+        className="rb-toolbar rb-print-hidden"
+        inert={feedbackOpen ? true : undefined}
+        aria-hidden={feedbackOpen ? "true" : undefined}
+      >
         <div className="rb-toolbar-primary">
           <div className="rb-identity">
             <div className="rb-brand">
@@ -1000,6 +1023,18 @@ export function ReaderView({
                   >
                     Print
                   </button>
+                  <button
+                    ref={feedbackTriggerRef}
+                    type="button"
+                    onClick={openFeedback}
+                    aria-label="Send feedback"
+                    aria-haspopup="dialog"
+                    aria-controls="rb-feedback-dialog"
+                    aria-expanded={feedbackOpen}
+                    title="Send feedback"
+                  >
+                    Feedback
+                  </button>
                   {mode === "document" && refreshConversation ? (
                     <button
                       type="button"
@@ -1043,7 +1078,11 @@ export function ReaderView({
         ) : null}
       </header>
 
-      <header className="rb-print-metadata">
+      <header
+        className="rb-print-metadata"
+        inert={feedbackOpen ? true : undefined}
+        aria-hidden={feedbackOpen ? "true" : undefined}
+      >
         <h1>{mode === "document" ? documentTitle : "ReadBooster — Focused response"}</h1>
         <p>
           {SOURCE_LABELS[accumulatedConversation.source]} ·{" "}
@@ -1057,6 +1096,8 @@ export function ReaderView({
         className="rb-reader-body"
         data-outline-open={outlineOpen ? "true" : "false"}
         data-narrow={isNarrow ? "true" : "false"}
+        inert={feedbackOpen ? true : undefined}
+        aria-hidden={feedbackOpen ? "true" : undefined}
       >
         {mode === "document" ? (
           <>
@@ -1091,6 +1132,7 @@ export function ReaderView({
           />
         )}
       </div>
+      {feedbackOpen ? <FeedbackModal onClose={closeFeedback} /> : null}
     </div>
   );
 }
