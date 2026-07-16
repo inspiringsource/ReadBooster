@@ -1,3 +1,5 @@
+import type { ConversationScanTerminationReason } from "./types";
+
 export interface ConversationPipelineDiagnostics {
   rawAssistantCandidates: number;
   rawUserCandidates: number;
@@ -7,6 +9,13 @@ export interface ConversationPipelineDiagnostics {
   normalizedTurns: number;
   derivedDocumentSections: number;
   renderedDocumentSections: number;
+  scanStep: number;
+  sourceScrollPosition: number;
+  mountedScanUserCount: number;
+  mountedScanAssistantCount: number;
+  accumulatedScanAssistantCount: number;
+  sourceDomChanged: boolean;
+  scanTerminationReason: ConversationScanTerminationReason | null;
 }
 
 const EMPTY_DIAGNOSTICS: ConversationPipelineDiagnostics = {
@@ -18,6 +27,13 @@ const EMPTY_DIAGNOSTICS: ConversationPipelineDiagnostics = {
   normalizedTurns: 0,
   derivedDocumentSections: 0,
   renderedDocumentSections: 0,
+  scanStep: 0,
+  sourceScrollPosition: 0,
+  mountedScanUserCount: 0,
+  mountedScanAssistantCount: 0,
+  accumulatedScanAssistantCount: 0,
+  sourceDomChanged: false,
+  scanTerminationReason: null,
 };
 
 let diagnostics: ConversationPipelineDiagnostics = { ...EMPTY_DIAGNOSTICS };

@@ -5,7 +5,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { sanitizeResponseHtml } from "../src/content/sanitize";
 import { mountReader, READER_HOST_ID, unmountReader } from "../src/reader/mountReader";
-import type { ConversationDocument, DocumentContentBlock } from "../src/shared/types";
+import type {
+  ConversationDocument,
+  ConversationScanOptions,
+  ConversationScanResult,
+  DocumentContentBlock,
+} from "../src/shared/types";
 
 function block(id: string, role: "user" | "assistant", sourceHtml: string): DocumentContentBlock {
   const source = document.createElement("div");
@@ -53,6 +58,19 @@ function conversation(numbers: readonly number[]): ConversationDocument {
   };
 }
 
+function scanResult(
+  document: ConversationDocument | null,
+  overrides: Partial<ConversationScanResult> = {},
+): ConversationScanResult {
+  return {
+    document,
+    scanPerformed: true,
+    completed: true,
+    terminationReason: "bottom",
+    ...overrides,
+  };
+}
+
 function shadowRoot(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
@@ -74,11 +92,14 @@ describe("conversation refresh and accumulation", () => {
   it("accumulates 3→6 once, preserves enhanced DOM, and updates navigation, Copy, and Print", async () => {
     const initial = conversation([1, 2, 3]);
     const complete = conversation([1, 2, 3, 4, 5, 6]);
-    let resolveRefresh!: (document: ConversationDocument | null) => void;
-    const firstRefresh = new Promise<ConversationDocument | null>((resolve) => {
+    let resolveRefresh!: (result: ConversationScanResult) => void;
+    const firstRefresh = new Promise<ConversationScanResult>((resolve) => {
       resolveRefresh = resolve;
     });
-    const refresh = vi.fn().mockReturnValueOnce(firstRefresh).mockResolvedValue(complete);
+    const refresh = vi
+      .fn()
+      .mockReturnValueOnce(firstRefresh)
+      .mockResolvedValue(scanResult(complete));
     const writeText = vi.fn().mockResolvedValue(undefined);
     const print = vi.fn();
     vi.stubGlobal("navigator", { clipboard: { writeText }, userAgent: "jsdom" });
@@ -98,25 +119,37 @@ describe("conversation refresh and accumulation", () => {
     tableScroller.scrollLeft = 73;
 
     await openActions(shadow);
-    const refreshButton = button(shadow, "Refresh conversation");
-    fireEvent.click(refreshButton);
+    const refreshButton = button(shadow, "Scanning conversation…");
     expect(refresh).toHaveBeenCalledOnce();
+    const scanOptions = refresh.mock.calls[0][0];
+    await act(async () => {
+      scanOptions.onProgress?.({
+        step: 2,
+        sourceScrollPosition: 750,
+        mountedUserCount: 3,
+        mountedAssistantCount: 3,
+        accumulatedAssistantCount: 5,
+        sourceDomChanged: true,
+      });
+    });
+    expect(shadow.querySelector("#rb-refresh-status")?.textContent).toBe(
+      "Scanning conversation… 5 responses found",
+    );
     expect(refreshButton.disabled).toBe(true);
     expect(refreshButton.getAttribute("aria-busy")).toBe("true");
-    expect(refreshButton.textContent).toBe("Checking for more responses…");
-    expect(shadow.querySelector('[role="status"]#rb-refresh-status')?.textContent).toBe(
-      "Checking for more responses…",
-    );
+    expect(refreshButton.textContent).toBe("Scanning conversation…");
     fireEvent.click(refreshButton);
     expect(refresh).toHaveBeenCalledOnce();
 
     await act(async () => {
-      resolveRefresh(complete);
+      resolveRefresh(scanResult(complete));
       await firstRefresh;
     });
     expect(shadow.querySelectorAll(".rb-document-section")).toHaveLength(6);
     expect(shadow.querySelectorAll(".rb-outline-group")).toHaveLength(6);
-    expect(shadow.querySelector("#rb-refresh-status")?.textContent).toBe("3 new responses added");
+    expect(shadow.querySelector("#rb-refresh-status")?.textContent).toBe(
+      "3 additional responses found",
+    );
     expect(shadow.querySelector('[data-rb-response-id="response-2"] .rb-table-block')).toBe(
       tableBlock,
     );
@@ -156,7 +189,7 @@ describe("conversation refresh and accumulation", () => {
     await act(async () => Promise.resolve());
     expect(refresh).toHaveBeenCalledTimes(2);
     expect(shadow.querySelector("#rb-refresh-status")?.textContent).toBe(
-      "No additional responses found",
+      "No additional responses found after scanning the conversation",
     );
     expect(shadow.querySelectorAll(".rb-document-section")).toHaveLength(6);
     expect(shadow.querySelectorAll(".rb-table-block")).toHaveLength(1);
@@ -178,12 +211,13 @@ describe("conversation refresh and accumulation", () => {
   it("inserts earlier turns while preserving the active section and its viewport offset", async () => {
     const initial = conversation([4, 5, 6]);
     const complete = conversation([1, 2, 3, 4, 5, 6]);
-    let resolveRefresh!: (document: ConversationDocument | null) => void;
-    const pending = new Promise<ConversationDocument | null>((resolve) => {
+    let resolveRefresh!: (result: ConversationScanResult) => void;
+    const pending = new Promise<ConversationScanResult>((resolve) => {
       resolveRefresh = resolve;
     });
-    const refresh = vi.fn(() => pending);
+    const refresh = vi.fn().mockResolvedValueOnce(scanResult(initial)).mockReturnValueOnce(pending);
     await act(async () => mountReader(initial, initial.turns[2].response ?? undefined, refresh));
+    await act(async () => Promise.resolve());
     const shadow = shadowRoot();
     const scrollArea = shadow.querySelector<HTMLElement>(".rb-scroll-area")!;
     Object.defineProperty(scrollArea, "scrollTo", { configurable: true, value: vi.fn() });
@@ -210,7 +244,7 @@ describe("conversation refresh and accumulation", () => {
     fireEvent.click(button(shadow, "Refresh conversation"));
     afterMerge = true;
     await act(async () => {
-      resolveRefresh(complete);
+      resolveRefresh(scanResult(complete));
       await pending;
     });
 
@@ -228,7 +262,10 @@ describe("conversation refresh and accumulation", () => {
   it("keeps accumulated content on failure, clears it on unmount, and has no DOM or storage coupling", async () => {
     const initial = conversation([1, 2, 3]);
     const complete = conversation([1, 2, 3, 4, 5, 6]);
-    const refresh = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(complete);
+    const refresh = vi
+      .fn()
+      .mockResolvedValueOnce(scanResult(null, { completed: false, terminationReason: "failed" }))
+      .mockResolvedValueOnce(scanResult(complete));
     const storageSet = vi.fn();
     vi.stubGlobal("chrome", {
       storage: { local: { get: vi.fn().mockResolvedValue({}), set: storageSet } },
@@ -236,12 +273,11 @@ describe("conversation refresh and accumulation", () => {
     const clearTimeout = vi.spyOn(window, "clearTimeout");
     await act(async () => mountReader(initial, initial.turns[2].response ?? undefined, refresh));
     const shadow = shadowRoot();
+    await act(async () => Promise.resolve());
     await openActions(shadow);
 
-    fireEvent.click(button(shadow, "Refresh conversation"));
-    await act(async () => Promise.resolve());
     expect(shadow.querySelector("#rb-refresh-status")?.textContent).toBe(
-      "Conversation could not be refreshed",
+      "Full conversation scan could not be completed",
     );
     expect(shadow.querySelectorAll(".rb-document-section")).toHaveLength(3);
 
@@ -264,21 +300,28 @@ describe("conversation refresh and accumulation", () => {
 
   it("ignores a pending refresh result after the reader is closed", async () => {
     const initial = conversation([1, 2, 3]);
-    let resolveRefresh!: (document: ConversationDocument | null) => void;
-    const pending = new Promise<ConversationDocument | null>((resolve) => {
+    let resolveRefresh!: (result: ConversationScanResult) => void;
+    const pending = new Promise<ConversationScanResult>((resolve) => {
       resolveRefresh = resolve;
     });
-    await act(async () =>
-      mountReader(initial, initial.turns[2].response ?? undefined, () => pending),
-    );
+    const refresh = vi.fn((options?: ConversationScanOptions) => {
+      void options;
+      return pending;
+    });
+    await act(async () => mountReader(initial, initial.turns[2].response ?? undefined, refresh));
     const shadow = shadowRoot();
     await openActions(shadow);
-    fireEvent.click(button(shadow, "Refresh conversation"));
-    expect(button(shadow, "Checking for more responses…").disabled).toBe(true);
+    expect(button(shadow, "Scanning conversation…").disabled).toBe(true);
+    const refreshOptions = refresh.mock.calls[0][0];
+    if (!refreshOptions?.signal) {
+      throw new Error("The automatic scan did not receive an abort signal");
+    }
+    const signal = refreshOptions.signal;
 
     await act(async () => unmountReader());
+    expect(signal.aborted).toBe(true);
     await act(async () => {
-      resolveRefresh(conversation([1, 2, 3, 4, 5, 6]));
+      resolveRefresh(scanResult(conversation([1, 2, 3, 4, 5, 6])));
       await pending;
     });
     expect(document.getElementById(READER_HOST_ID)).toBeNull();

@@ -1,6 +1,8 @@
 import type {
   AdapterCapabilities,
   ConversationDocument,
+  ConversationScanOptions,
+  ConversationScanResult,
   ExtractedResponse,
   ExtractedResponseSource,
 } from "../../shared/types";
@@ -10,6 +12,7 @@ export interface ConversationAdapter {
   readonly capabilities: AdapterCapabilities;
   isSupportedPage(): boolean;
   getConversationDocument(): ConversationDocument | null;
+  scanConversationDocument?(options?: ConversationScanOptions): Promise<ConversationScanResult>;
   hasLatestAssistantResponse(): boolean;
   getLatestAssistantResponse(): ExtractedResponse | null;
   getAllAssistantResponses(): ExtractedResponse[];

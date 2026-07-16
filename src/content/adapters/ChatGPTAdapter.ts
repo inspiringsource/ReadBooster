@@ -1,6 +1,8 @@
 import type {
   ConversationDocument,
   ConversationRole,
+  ConversationScanOptions,
+  ConversationScanResult,
   DocumentContentBlock,
   ExtractedResponse,
 } from "../../shared/types";
@@ -9,6 +11,7 @@ import {
   resetConversationPipelineDiagnostics,
 } from "../../shared/developmentDiagnostics";
 import { pairContentBlocksIntoTurns } from "../../shared/conversation";
+import { scanConversationSource } from "../conversationSourceScanner";
 import { assistantBlocks, toExtractedResponse } from "../../shared/types";
 import {
   isKnownFaviconSource,
@@ -17,6 +20,10 @@ import {
   sanitizeResponseHtml,
 } from "../sanitize";
 import type { ConversationAdapter } from "./ConversationAdapter";
+import {
+  createChatGPTConversationScanSource,
+  findChatGPTConversationScroller,
+} from "./chatgptSourceScanner";
 
 const HOSTNAME = "chatgpt.com";
 
@@ -119,6 +126,8 @@ export class ChatGPTAdapter implements ConversationAdapter {
     canExtractResponses: true,
   } as const;
 
+  private scanInFlight: Promise<ConversationScanResult> | null = null;
+
   constructor(
     private readonly doc: Document = document,
     private readonly hostname: string = window.location.hostname,
@@ -191,6 +200,91 @@ export class ChatGPTAdapter implements ConversationAdapter {
       };
     } catch {
       return null;
+    }
+  }
+
+  scanConversationDocument(options: ConversationScanOptions = {}): Promise<ConversationScanResult> {
+    if (this.scanInFlight) {
+      return this.scanInFlight;
+    }
+
+    const operation = this.performConversationScan(options);
+    this.scanInFlight = operation;
+    const clearInFlight = (): void => {
+      if (this.scanInFlight === operation) {
+        this.scanInFlight = null;
+      }
+    };
+    void operation.then(clearInFlight, clearInFlight);
+    return operation;
+  }
+
+  private async performConversationScan(
+    options: ConversationScanOptions,
+  ): Promise<ConversationScanResult> {
+    const initialDocument = this.getConversationDocument();
+    if (!initialDocument) {
+      return {
+        document: null,
+        scanPerformed: false,
+        completed: false,
+        terminationReason: "failed",
+      };
+    }
+    if (options.signal?.aborted) {
+      return {
+        document: initialDocument,
+        scanPerformed: false,
+        completed: false,
+        terminationReason: "aborted",
+      };
+    }
+
+    const candidates = this.getMessageCandidates().map((candidate) => candidate.element);
+    const scroller = findChatGPTConversationScroller(this.doc, candidates);
+    if (!scroller) {
+      return {
+        document: initialDocument,
+        scanPerformed: false,
+        completed: false,
+        terminationReason: "single-snapshot",
+      };
+    }
+
+    try {
+      const result = await scanConversationSource({
+        initialDocument,
+        source: createChatGPTConversationScanSource(scroller),
+        captureSnapshot: () => this.getConversationDocument(),
+        signal: options.signal,
+        onProgress: (progress) => {
+          if (import.meta.env.DEV) {
+            recordConversationPipelineDiagnostics({
+              scanStep: progress.step,
+              sourceScrollPosition: progress.sourceScrollPosition,
+              mountedScanUserCount: progress.mountedUserCount,
+              mountedScanAssistantCount: progress.mountedAssistantCount,
+              accumulatedScanAssistantCount: progress.accumulatedAssistantCount,
+              sourceDomChanged: progress.sourceDomChanged,
+            });
+          }
+          options.onProgress?.(progress);
+        },
+      });
+      if (import.meta.env.DEV) {
+        recordConversationPipelineDiagnostics({
+          scanTerminationReason: result.terminationReason,
+        });
+      }
+      return result;
+    } catch {
+      const aborted = options.signal?.aborted ?? false;
+      return {
+        document: initialDocument,
+        scanPerformed: true,
+        completed: false,
+        terminationReason: aborted ? "aborted" : "failed",
+      };
     }
   }
 

@@ -133,6 +133,8 @@ export function ReaderView({
   const documentScrollTopRef = useRef(0);
   const initialDocumentPositionAppliedRef = useRef(false);
   const refreshInFlightRef = useRef(false);
+  const automaticScanStartedRef = useRef(false);
+  const scanAbortControllerRef = useRef<AbortController | null>(null);
   const refreshStatusTimerRef = useRef<number | undefined>(undefined);
   const readerMountedRef = useRef(true);
   const pendingRefreshAnchorRef = useRef<PendingRefreshAnchor | null>(null);
@@ -153,6 +155,8 @@ export function ReaderView({
   useEffect(
     () => () => {
       readerMountedRef.current = false;
+      scanAbortControllerRef.current?.abort();
+      scanAbortControllerRef.current = null;
       window.clearTimeout(refreshStatusTimerRef.current);
       refreshInFlightRef.current = false;
       pendingRefreshAnchorRef.current = null;
@@ -425,30 +429,34 @@ export function ReaderView({
     }
   };
 
-  const setTransientRefreshStatus = (
-    status: Exclude<RefreshStatus, "checking">,
-    message: string,
-  ): void => {
-    if (!readerMountedRef.current) {
-      return;
-    }
-    window.clearTimeout(refreshStatusTimerRef.current);
-    setRefreshStatus(status);
-    setRefreshMessage(message);
-    refreshStatusTimerRef.current = window.setTimeout(() => {
-      setRefreshStatus("idle");
-      setRefreshMessage("");
-    }, 5000);
-  };
+  const setTransientRefreshStatus = useCallback(
+    (status: Exclude<RefreshStatus, "checking">, message: string): void => {
+      if (!readerMountedRef.current) {
+        return;
+      }
+      window.clearTimeout(refreshStatusTimerRef.current);
+      setRefreshStatus(status);
+      setRefreshMessage(message);
+      refreshStatusTimerRef.current = window.setTimeout(() => {
+        if (readerMountedRef.current) {
+          setRefreshStatus("idle");
+          setRefreshMessage("");
+        }
+      }, 5000);
+    },
+    [],
+  );
 
-  const handleRefreshConversation = async (): Promise<void> => {
+  const handleRefreshConversation = useCallback(async (): Promise<void> => {
     if (!refreshConversation || refreshInFlightRef.current) {
       return;
     }
     refreshInFlightRef.current = true;
+    const abortController = new AbortController();
+    scanAbortControllerRef.current = abortController;
     window.clearTimeout(refreshStatusTimerRef.current);
     setRefreshStatus("checking");
-    setRefreshMessage("Checking for more responses…");
+    setRefreshMessage("Scanning conversation…");
 
     const existing = accumulatedConversationRef.current;
     const activeSection = sections.find((section) => section.id === activeSectionId);
@@ -465,12 +473,27 @@ export function ReaderView({
         : 0;
 
     try {
-      const incoming = await refreshConversation();
+      const result = await refreshConversation({
+        signal: abortController.signal,
+        onProgress: (progress) => {
+          if (!readerMountedRef.current || abortController.signal.aborted) {
+            return;
+          }
+          setRefreshMessage(
+            `Scanning conversation… ${progress.accumulatedAssistantCount} response${progress.accumulatedAssistantCount === 1 ? "" : "s"} found`,
+          );
+        },
+      });
       if (!readerMountedRef.current) {
         return;
       }
+      const incoming = result.document;
+      if (result.terminationReason === "identity-mismatch") {
+        setTransientRefreshStatus("failed", "Conversation changed before the scan completed");
+        return;
+      }
       if (!incoming || !conversationDocumentsMatch(existing, incoming)) {
-        setTransientRefreshStatus("failed", "Conversation could not be refreshed");
+        setTransientRefreshStatus("failed", "Full conversation scan could not be completed");
         return;
       }
       const merged = mergeConversationDocuments(existing, incoming);
@@ -499,22 +522,48 @@ export function ReaderView({
         setAccumulatedConversation(merged);
       }
 
-      if (addedResponseCount > 0) {
+      if (!result.scanPerformed || !result.completed) {
+        setTransientRefreshStatus(
+          addedResponseCount > 0 ? "success" : "failed",
+          addedResponseCount > 0
+            ? `Conversation updated — ${nextResponses.length} responses available; full scan could not be completed`
+            : "Full conversation scan could not be completed",
+        );
+      } else if (addedResponseCount > 0) {
         setTransientRefreshStatus(
           "success",
-          `${addedResponseCount} new response${addedResponseCount === 1 ? "" : "s"} added`,
+          `${addedResponseCount} additional response${addedResponseCount === 1 ? "" : "s"} found`,
         );
       } else if (merged !== existing) {
-        setTransientRefreshStatus("success", "Conversation updated");
+        setTransientRefreshStatus(
+          "success",
+          `Conversation updated — ${nextResponses.length} responses available`,
+        );
       } else {
-        setTransientRefreshStatus("unchanged", "No additional responses found");
+        setTransientRefreshStatus(
+          "unchanged",
+          "No additional responses found after scanning the conversation",
+        );
       }
     } catch {
-      setTransientRefreshStatus("failed", "Conversation could not be refreshed");
+      if (!abortController.signal.aborted) {
+        setTransientRefreshStatus("failed", "Full conversation scan could not be completed");
+      }
     } finally {
       refreshInFlightRef.current = false;
+      if (scanAbortControllerRef.current === abortController) {
+        scanAbortControllerRef.current = null;
+      }
     }
-  };
+  }, [activeHeadingId, activeSectionId, refreshConversation, sections, setTransientRefreshStatus]);
+
+  useEffect(() => {
+    if (!refreshConversation || automaticScanStartedRef.current) {
+      return;
+    }
+    automaticScanStartedRef.current = true;
+    void handleRefreshConversation();
+  }, [handleRefreshConversation, refreshConversation]);
 
   const showPreviousResponse = (): void => {
     setCopyStatus("idle");
@@ -687,6 +736,17 @@ export function ReaderView({
           </div>
         ) : null}
 
+        {mode === "document" && refreshConversation ? (
+          <p
+            id="rb-refresh-status"
+            className="rb-refresh-status rb-toolbar-scan-status"
+            role="status"
+            aria-live="polite"
+          >
+            {refreshMessage}
+          </p>
+        ) : null}
+
         {headerPanel ? (
           <div
             ref={headerPanelRef}
@@ -852,19 +912,9 @@ export function ReaderView({
                       aria-describedby="rb-refresh-status"
                     >
                       {refreshStatus === "checking"
-                        ? "Checking for more responses…"
+                        ? "Scanning conversation…"
                         : "Refresh conversation"}
                     </button>
-                  ) : null}
-                  {mode === "document" && refreshConversation ? (
-                    <p
-                      id="rb-refresh-status"
-                      className="rb-refresh-status"
-                      role="status"
-                      aria-live="polite"
-                    >
-                      {refreshMessage}
-                    </p>
                   ) : null}
                   <button
                     type="button"

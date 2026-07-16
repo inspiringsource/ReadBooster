@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.4.6 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.4.7 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser.
 
@@ -24,6 +24,7 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
 - Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
 - Store only validated reader preferences in `chrome.storage.local`.
+- Open immediately from the current ChatGPT DOM window, then run one bounded source-page scan that accumulates virtualized turns without persisting conversation content.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
 ReadBooster has no backend, account system, analytics, remote assets, AI API, or conversation-content persistence. It does not send extracted content over the network.
@@ -63,7 +64,15 @@ The merge uses stable original-source message IDs first and stable normalized bl
 
 Refreshing preserves stable response section keys, the active section or heading viewport offset, open prompt disclosures, table state and horizontal position, outline state, preferences, and the current Focus response where applicable. Status is announced accessibly while the reader remains usable. The accumulated document and status timers are discarded when the reader unmounts.
 
-ReadBooster 0.4.6 intentionally provides manual refresh only. It does not poll, rescan on every mutation, or automatically reparse during reader scrolling. ChatGPT content absent from the live page cannot be manufactured or retrieved through private APIs. Because no reliable lazy-mounting marker has been confirmed, the reader does not show a speculative partial-conversation warning.
+ReadBooster 0.4.6 intentionally provided manual refresh only. It did not poll, rescan on every mutation, or automatically reparse during reader scrolling. Live testing subsequently confirmed that another current-DOM snapshot was insufficient when ChatGPT virtualized turns around the source-page scroll position.
+
+### Virtualized conversation scanning in 0.4.7
+
+The reader still mounts immediately from the adapter's fast current-window snapshot. Once per reader opening, the content/adapter layer starts one bounded scan of the validated ChatGPT conversation scroller. It saves the source scroll position, moves to the beginning, waits for a short mutation-quiet window, extracts through the existing normalized path, and merges each settled virtualized window before advancing by 75% of the source viewport. Scroll height is re-evaluated after every position so newly mounted earlier content and growing source geometry are handled. The original source position is restored from a `finally` cleanup path after success, timeout, failure, cancellation, reader closing, or conversation-identity mismatch.
+
+The scan is bounded to 40 positions, 12 seconds, a 650 ms settling deadline per position, three top-stabilization passes, and three consecutive no-progress positions. It uses a scoped temporary `MutationObserver`, two animation frames, and a 90 ms quiet period rather than a permanent observer or polling loop. **Actions → Refresh conversation** runs the same scan; automatic and manual activation share the adapter's single in-flight operation. Progress reports counts only. The implementation never logs content or identifiers, never calls a private API, never issues a network request, and never persists a conversation.
+
+The ChatGPT source scroller is selected as the nearest vertically overflowing ancestor shared by the currently mounted message candidates. It must contain the candidate turn elements, use scrollable vertical overflow, have meaningful viewport/scroll dimensions, and be outside the ReadBooster reader. `document.scrollingElement` is a validated fallback. If neither is reliable, ReadBooster keeps the current snapshot and reports that a full scan could not be completed instead of claiming completeness.
 
 ## Document and Focus modes
 
@@ -114,7 +123,7 @@ To replace the icons later, begin with a square high-resolution source, preserve
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
 
 Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
-Gemini remains scaffold-only in 0.4.6; this release does not add an adapter.
+Gemini remains scaffold-only in 0.4.7; this release does not add an adapter.
 
 ## Install dependencies
 
@@ -324,6 +333,27 @@ Synthetic merge and reader fixtures do not constitute final acceptance. Complete
 12. Repeat with the Napoleon demonstration conversation and confirm its chart remains associated with the correct response.
 13. Record separately how many turns exist in ChatGPT, how many are present in its live DOM, and how many ReadBooster discovers before and after refresh.
 
+### 0.4.7 virtualized-conversation scan acceptance checklist
+
+Automated five-window fixtures prove bounded accumulation and cleanup, but they do not establish that the current private ChatGPT DOM behaves identically. Complete both starting-position runs in the same live conversation.
+
+1. Open a live ChatGPT conversation containing at least five assistant responses and record the source count.
+2. Scroll ChatGPT near the final response, activate **Optimize Reading**, and confirm the reader opens before scanning finishes.
+3. Confirm the accessible `Scanning conversation…` status reports the growing discovered-response count.
+4. Confirm the final Document contains responses 1 through 5 exactly once and in chronological order.
+5. Close ReadBooster, scroll the same ChatGPT conversation near its first response, and activate **Optimize Reading** again.
+6. Confirm the top-start scan produces the same five sections in the same order as the bottom-start scan.
+7. Confirm ChatGPT returns to its original source scroll position after each scan.
+8. Open **Actions**, select **Refresh conversation**, and confirm it performs a scan and reports `No additional responses found after scanning the conversation` when unchanged.
+9. Refresh repeatedly and confirm no response, outline item, chart, table toolbar, or code toolbar is duplicated.
+10. Switch to Focus and navigate from response 1 through response 5; verify both navigation boundaries.
+11. Confirm the grouped outline, active section, Document Copy, and Document Print contain all five responses.
+12. Begin a scan while reading a middle section and confirm newly inserted earlier turns do not move the visible reading anchor to the final response.
+13. Close the reader during scanning and confirm the scan is cancelled and ChatGPT's original source position is restored.
+14. Repeat with a response still streaming, then scan after it completes and confirm the richer matching block updates safely.
+15. Recheck the Napoleon demonstration chart, citations, Python code toolbar, tables, prompts, light/dark appearance, and print preview.
+16. Record the starting ChatGPT scroll position, mounted assistant count, final discovered count, and whether the scan reached the bottom for the manual acceptance notes.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -346,10 +376,12 @@ src/
 │   ├── adapters/
 │   │   ├── ConversationAdapter.ts
 │   │   ├── ChatGPTAdapter.ts
+│   │   ├── chatgptSourceScanner.ts
 │   │   ├── ClaudeAdapter.ts
 │   │   ├── GeminiAdapter.ts
 │   │   └── getActiveAdapter.ts
 │   ├── index.ts
+│   ├── conversationSourceScanner.ts
 │   ├── injectButton.ts
 │   ├── messages.ts
 │   ├── optimization.ts
@@ -391,15 +423,15 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 - The ChatGPT DOM is private and changes over time. Live manual verification is pending, and selectors may require maintenance.
 - Claude and Gemini are host-aware scaffolds only; they intentionally return no extracted response.
-- Responses are captured when the reader opens; new streamed responses do not appear until ReadBooster is reopened.
-- ReadBooster extracts every supported message currently available in the page DOM. ChatGPT may change or virtualize its private DOM; no reliable omitted-turn marker has been confirmed, so 0.4.6 does not show a speculative partial-conversation warning or retrieve missing turns through private APIs. Scroll through the source conversation and use **Refresh conversation** before concluding that every historical turn was exposed.
+- ReadBooster scans the mounted windows ChatGPT exposes while programmatically traversing its validated source scroller. It cannot manufacture turns that ChatGPT never mounts, and it does not retrieve missing turns through private APIs. A fallback or bounded termination is reported as an incomplete full scan rather than as proof that no additional responses exist.
+- The automatic bounded scan runs once per reader opening. A response mounted or completed later can be accumulated with **Actions → Refresh conversation**; there is no polling or permanent background observer.
 - Document mode is intentionally non-virtualized in 0.4.0. Virtualization remains a future option only if real conversations demonstrate a need.
 - Generated canvas charts are preserved only when local `toDataURL()` capture succeeds. Origin-restricted or unavailable bitmaps fall back to an accessible notice; arbitrary SVG, interactive artifacts, video, audio, host controls, and host-specific styling remain excluded.
 - HTTPS response images are retained from existing response markup but are never fetched separately by extraction. Their later availability can still depend on the original URL and browser cache or access policy.
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
-- ReadBooster 0.4.6 does not provide search, bookmarks, annotations, editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation state, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.4.7 does not provide search, bookmarks, annotations, editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation state, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -407,4 +439,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.6.
+Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.7.

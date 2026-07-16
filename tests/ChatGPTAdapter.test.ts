@@ -542,4 +542,29 @@ describe("ChatGPTAdapter", () => {
         .map((response) => response.text),
     ).toEqual(["Valid before", "Valid after"]);
   });
+
+  it("shares an in-flight scan and reports an honest single-snapshot fallback", async () => {
+    document.body.innerHTML = `
+      <main>
+        <article data-message-author-role="assistant" data-message-id="response-1">
+          <div class="markdown"><p>Mounted response</p></div>
+        </article>
+      </main>
+    `;
+    const adapter = new ChatGPTAdapter(
+      document,
+      "chatgpt.com",
+      "https://chatgpt.com/c/scan-fallback",
+    );
+
+    const first = adapter.scanConversationDocument();
+    const concurrent = adapter.scanConversationDocument();
+
+    expect(concurrent).toBe(first);
+    await expect(first).resolves.toMatchObject({
+      scanPerformed: false,
+      completed: false,
+      terminationReason: "single-snapshot",
+    });
+  });
 });

@@ -4,8 +4,10 @@ import type { ConversationAdapter } from "../src/content/adapters/ConversationAd
 import { createOptimizationService } from "../src/content/optimization";
 import type {
   ConversationDocument,
+  ConversationScanResult,
   DocumentContentBlock,
   ExtractedResponse,
+  RefreshConversation,
 } from "../src/shared/types";
 
 const RESPONSE: ExtractedResponse = {
@@ -128,12 +130,12 @@ describe("optimization service", () => {
     vi.mocked(adapter.getConversationDocument)
       .mockReturnValueOnce(DOCUMENT)
       .mockReturnValueOnce(refreshedDocument);
-    let refresh!: () => Promise<ConversationDocument | null>;
+    let refresh!: RefreshConversation;
     const mount = vi.fn(
       async (
         _document: ConversationDocument,
         _block: DocumentContentBlock,
-        refreshConversation: () => Promise<ConversationDocument | null>,
+        refreshConversation: RefreshConversation,
       ) => {
         refresh = refreshConversation;
       },
@@ -141,8 +143,44 @@ describe("optimization service", () => {
     const service = createOptimizationService(adapter, mount);
 
     await service.optimizeLatest();
-    await expect(refresh()).resolves.toBe(refreshedDocument);
+    const refreshResult: ConversationScanResult = {
+      document: refreshedDocument,
+      scanPerformed: false,
+      completed: false,
+      terminationReason: "single-snapshot",
+    };
+    await expect(refresh()).resolves.toEqual(refreshResult);
     expect(adapter.getConversationDocument).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the adapter's bounded scan capability when one is available", async () => {
+    const adapter = implementedAdapter();
+    const scanned = {
+      document: DOCUMENT,
+      scanPerformed: true,
+      completed: true,
+      terminationReason: "bottom" as const,
+    };
+    adapter.scanConversationDocument = vi.fn().mockResolvedValue(scanned);
+    let refresh!: RefreshConversation;
+    const mount = vi.fn(
+      async (
+        _document: ConversationDocument,
+        _block: DocumentContentBlock,
+        refreshConversation: RefreshConversation,
+      ) => {
+        refresh = refreshConversation;
+      },
+    );
+    const service = createOptimizationService(adapter, mount);
+
+    await service.optimizeLatest();
+    const controller = new AbortController();
+    await expect(refresh({ signal: controller.signal })).resolves.toBe(scanned);
+    expect(adapter.scanConversationDocument).toHaveBeenCalledWith({
+      signal: controller.signal,
+    });
+    expect(adapter.getConversationDocument).toHaveBeenCalledOnce();
   });
 
   it("fails safely when no responses remain available", async () => {

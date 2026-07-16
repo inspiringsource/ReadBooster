@@ -72,11 +72,24 @@ export function createOptimizationService(
         return { ok: false, supported: true, reason: "no-response" };
       }
       const initialResponse = responses.at(-1)!;
-      const refreshConversation: RefreshConversation = async () => {
+      const refreshConversation: RefreshConversation = async (options) => {
         try {
-          return adapter.getConversationDocument();
+          if (adapter.scanConversationDocument) {
+            return await adapter.scanConversationDocument(options);
+          }
+          return {
+            document: adapter.getConversationDocument(),
+            scanPerformed: false,
+            completed: false,
+            terminationReason: "single-snapshot",
+          };
         } catch {
-          return null;
+          return {
+            document: null,
+            scanPerformed: false,
+            completed: false,
+            terminationReason: "failed",
+          };
         }
       };
       await mountResponse(document, initialResponse, refreshConversation);

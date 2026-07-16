@@ -44,7 +44,40 @@ export interface ConversationDocument {
   readonly turns: readonly ConversationTurn[];
 }
 
-export type RefreshConversation = () => Promise<ConversationDocument | null>;
+export type ConversationScanTerminationReason =
+  | "bottom"
+  | "aborted"
+  | "failed"
+  | "identity-mismatch"
+  | "max-duration"
+  | "max-positions"
+  | "no-progress"
+  | "single-snapshot";
+
+export interface ConversationScanProgress {
+  readonly step: number;
+  readonly sourceScrollPosition: number;
+  readonly mountedUserCount: number;
+  readonly mountedAssistantCount: number;
+  readonly accumulatedAssistantCount: number;
+  readonly sourceDomChanged: boolean;
+}
+
+export interface ConversationScanOptions {
+  readonly signal?: AbortSignal;
+  readonly onProgress?: (progress: ConversationScanProgress) => void;
+}
+
+export interface ConversationScanResult {
+  readonly document: ConversationDocument | null;
+  readonly scanPerformed: boolean;
+  readonly completed: boolean;
+  readonly terminationReason: ConversationScanTerminationReason;
+}
+
+export type RefreshConversation = (
+  options?: ConversationScanOptions,
+) => Promise<ConversationScanResult>;
 
 export function assistantBlocks(document: ConversationDocument): DocumentContentBlock[] {
   return document.turns.flatMap((turn) => (turn.response ? [turn.response] : []));

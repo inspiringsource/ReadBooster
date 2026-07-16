@@ -272,6 +272,14 @@
   min-height: 1.45em;
 }
 
+.rb-toolbar-scan-status {
+  border-top: 1px solid color-mix(in srgb, var(--rb-border) 55%, transparent);
+  margin-top: 8px;
+  padding-top: 7px;
+  text-align: center;
+  width: 100%;
+}
+
 .rb-header-controls button,
 .rb-response-navigation button,
 .rb-header-panel button,
