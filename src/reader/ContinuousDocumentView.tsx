@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
 import type { CodeAppearance } from "../shared/types";
+import { recordConversationPipelineDiagnostics } from "../shared/developmentDiagnostics";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { flattenOutline } from "./outline";
 import type { ConversationSection } from "./presentation";
@@ -24,6 +25,10 @@ export function ContinuousDocumentView({
   onActiveChange,
   codeAppearance,
 }: ContinuousDocumentViewProps) {
+  if (import.meta.env.DEV) {
+    recordConversationPipelineDiagnostics({ renderedDocumentSections: sections.length });
+  }
+
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) {

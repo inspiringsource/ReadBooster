@@ -1,4 +1,8 @@
-import type { ConversationDocument, DocumentContentBlock } from "../shared/types";
+import type {
+  ConversationDocument,
+  DocumentContentBlock,
+  RefreshConversation,
+} from "../shared/types";
 import { assistantBlocks } from "../shared/types";
 import type { ConversationAdapter } from "./adapters/ConversationAdapter";
 import type {
@@ -11,6 +15,7 @@ import type {
 export type ReaderMounter = (
   document: ConversationDocument,
   initialResponse: DocumentContentBlock,
+  refreshConversation: RefreshConversation,
 ) => Promise<unknown>;
 
 export interface OptimizationService {
@@ -67,7 +72,14 @@ export function createOptimizationService(
         return { ok: false, supported: true, reason: "no-response" };
       }
       const initialResponse = responses.at(-1)!;
-      await mountResponse(document, initialResponse);
+      const refreshConversation: RefreshConversation = async () => {
+        try {
+          return adapter.getConversationDocument();
+        } catch {
+          return null;
+        }
+      };
+      await mountResponse(document, initialResponse, refreshConversation);
       return { ok: true, supported: true, source: document.source };
     } catch {
       return { ok: false, supported: true, reason: "reader-error" };

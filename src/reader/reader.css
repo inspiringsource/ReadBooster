@@ -264,6 +264,14 @@
   gap: 8px;
 }
 
+.rb-refresh-status {
+  color: var(--rb-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  min-height: 1.45em;
+}
+
 .rb-header-controls button,
 .rb-response-navigation button,
 .rb-header-panel button,

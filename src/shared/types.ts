@@ -44,6 +44,8 @@ export interface ConversationDocument {
   readonly turns: readonly ConversationTurn[];
 }
 
+export type RefreshConversation = () => Promise<ConversationDocument | null>;
+
 export function assistantBlocks(document: ConversationDocument): DocumentContentBlock[] {
   return document.turns.flatMap((turn) => (turn.response ? [turn.response] : []));
 }

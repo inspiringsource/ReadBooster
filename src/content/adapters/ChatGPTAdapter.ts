@@ -1,10 +1,14 @@
 import type {
   ConversationDocument,
   ConversationRole,
-  ConversationTurn,
   DocumentContentBlock,
   ExtractedResponse,
 } from "../../shared/types";
+import {
+  recordConversationPipelineDiagnostics,
+  resetConversationPipelineDiagnostics,
+} from "../../shared/developmentDiagnostics";
+import { pairContentBlocksIntoTurns } from "../../shared/conversation";
 import { assistantBlocks, toExtractedResponse } from "../../shared/types";
 import {
   isKnownFaviconSource,
@@ -22,11 +26,6 @@ const ROLE_CONTAINER_SELECTORS: Record<ConversationRole, readonly string[]> = {
   assistant: ['[data-message-author-role="assistant"]', 'article[data-turn="assistant"]'],
   user: ['[data-message-author-role="user"]', 'article[data-turn="user"]'],
 };
-
-const TURN_ARTICLE_SELECTOR = [
-  "article[data-turn]",
-  'article[data-testid^="conversation-turn-"]',
-].join(",");
 
 const FALLBACK_AUTHOR_LABEL_SELECTORS = [
   ":scope > h5",
@@ -111,46 +110,6 @@ function simpleHash(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-function pairBlocksIntoTurns(blocks: readonly DocumentContentBlock[]): ConversationTurn[] {
-  const paired: Array<{
-    prompt: DocumentContentBlock | null;
-    response: DocumentContentBlock | null;
-  }> = [];
-  let current: {
-    prompt: DocumentContentBlock | null;
-    response: DocumentContentBlock | null;
-  } | null = null;
-
-  for (const block of blocks) {
-    if (block.role === "user") {
-      if (current && (current.prompt || current.response)) {
-        paired.push(current);
-      }
-      current = { prompt: block, response: null };
-      continue;
-    }
-
-    if (!current) {
-      current = { prompt: null, response: null };
-    } else if (current.response) {
-      paired.push(current);
-      current = { prompt: null, response: null };
-    }
-    current.response = block;
-  }
-
-  if (current && (current.prompt || current.response)) {
-    paired.push(current);
-  }
-
-  return paired.map((turn, index) => ({
-    id: `turn-${index}-${turn.prompt?.id ?? "missing-prompt"}-${turn.response?.id ?? "missing-response"}`,
-    index,
-    prompt: turn.prompt,
-    response: turn.response,
-  }));
-}
-
 export class ChatGPTAdapter implements ConversationAdapter {
   readonly source = "chatgpt" as const;
   readonly capabilities = {
@@ -171,6 +130,9 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   getConversationDocument(): ConversationDocument | null {
+    if (import.meta.env.DEV) {
+      resetConversationPipelineDiagnostics();
+    }
     if (!this.isSupportedPage()) {
       return null;
     }
@@ -200,7 +162,21 @@ export class ChatGPTAdapter implements ConversationAdapter {
       });
 
       if (blocks.length === 0) {
+        if (import.meta.env.DEV) {
+          recordConversationPipelineDiagnostics({
+            extractedAssistantBlocks: 0,
+            normalizedTurns: 0,
+          });
+        }
         return null;
+      }
+
+      const turns = pairContentBlocksIntoTurns(blocks);
+      if (import.meta.env.DEV) {
+        recordConversationPipelineDiagnostics({
+          extractedAssistantBlocks: blocks.filter((block) => block.role === "assistant").length,
+          normalizedTurns: turns.length,
+        });
       }
 
       return {
@@ -211,7 +187,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
         title: this.getSafeTitle(),
         sourceUrl,
         extractedAt,
-        turns: pairBlocksIntoTurns(blocks),
+        turns,
       };
     } catch {
       return null;
@@ -294,15 +270,40 @@ export class ChatGPTAdapter implements ConversationAdapter {
       }
     }
 
+    if (import.meta.env.DEV) {
+      recordConversationPipelineDiagnostics({
+        rawAssistantCandidates: raw.filter((candidate) => candidate.role === "assistant").length,
+        rawUserCandidates: raw.filter((candidate) => candidate.role === "user").length,
+      });
+    }
+
     const byElement = new Map<Element, MessageCandidate>();
     for (const candidate of raw) {
-      const canonical = this.canonicalizeCandidate(candidate.element);
+      const canonical = this.canonicalizeCandidate(candidate.element, candidate.role);
       if (!byElement.has(canonical)) {
         byElement.set(canonical, { element: canonical, role: candidate.role });
       }
     }
 
-    const ordered = Array.from(byElement.values()).sort((left, right) => {
+    const canonicalCandidates = Array.from(byElement.values());
+    if (import.meta.env.DEV) {
+      recordConversationPipelineDiagnostics({ canonicalCandidates: canonicalCandidates.length });
+    }
+
+    // Nested role markers are a second selector representation of the same message. Prefer the
+    // innermost candidate, while preserving every sibling message even when their outer markup or
+    // generic test IDs are identical.
+    const individualCandidates = canonicalCandidates.filter(
+      (candidate) =>
+        !canonicalCandidates.some(
+          (other) =>
+            other !== candidate &&
+            other.role === candidate.role &&
+            candidate.element.contains(other.element),
+        ),
+    );
+
+    const ordered = individualCandidates.sort((left, right) => {
       if (left.element === right.element) {
         return 0;
       }
@@ -315,7 +316,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
     const newestFirst: MessageCandidate[] = [];
     for (let index = ordered.length - 1; index >= 0; index -= 1) {
       const candidate = ordered[index];
-      const hostId = this.getStableHostId(candidate.element);
+      const hostId = this.getReliableMessageId(candidate.element);
       const dedupeKey = hostId ? `${candidate.role}:${hostId}` : "";
       if (dedupeKey && seen.has(dedupeKey)) {
         continue;
@@ -325,7 +326,11 @@ export class ChatGPTAdapter implements ConversationAdapter {
       }
       newestFirst.push(candidate);
     }
-    return newestFirst.reverse();
+    const deduplicated = newestFirst.reverse();
+    if (import.meta.env.DEV) {
+      recordConversationPipelineDiagnostics({ deduplicatedCandidates: deduplicated.length });
+    }
+    return deduplicated;
   }
 
   private extractBlock(
@@ -351,7 +356,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
       });
     }
     normalizedRoot.append(contentRoot);
-    const sourceMessageId = this.getStableHostId(container) || undefined;
+    const sourceMessageId = this.getReliableMessageId(container) || undefined;
     const fallbackSeed = [
       (normalizedRoot.textContent ?? "").replace(/\s+/g, " ").trim(),
       ...Array.from(normalizedRoot.querySelectorAll("img"), (image) =>
@@ -391,21 +396,46 @@ export class ChatGPTAdapter implements ConversationAdapter {
     );
   }
 
-  private getStableHostId(container: Element): string {
-    return (
-      container.getAttribute("data-message-id") ??
-      container.querySelector("[data-message-id]")?.getAttribute("data-message-id") ??
-      container.getAttribute("data-testid") ??
-      container.id
+  private getReliableMessageId(container: Element): string {
+    const ownId = container.getAttribute("data-message-id")?.trim();
+    if (ownId) {
+      return ownId;
+    }
+
+    const descendantIds = new Set(
+      Array.from(container.querySelectorAll("[data-message-id]"), (element) =>
+        element.getAttribute("data-message-id")?.trim(),
+      ).filter((value): value is string => Boolean(value)),
     );
+    return descendantIds.size === 1 ? (descendantIds.values().next().value ?? "") : "";
   }
 
-  private canonicalizeCandidate(candidate: Element): Element {
-    return (
-      candidate.closest(TURN_ARTICLE_SELECTOR) ??
-      candidate.closest("[data-message-id]") ??
-      candidate
-    );
+  private canonicalizeCandidate(candidate: Element, role: ConversationRole): Element {
+    const roleSelector = ROLE_CONTAINER_SELECTORS[role].join(",");
+    const messageContainer = candidate.closest("[data-message-id]");
+    if (messageContainer) {
+      const anyRoleSelector = [
+        ...ROLE_CONTAINER_SELECTORS.user,
+        ...ROLE_CONTAINER_SELECTORS.assistant,
+      ].join(",");
+      const roleContainerCount =
+        messageContainer.querySelectorAll(anyRoleSelector).length +
+        (messageContainer.matches(anyRoleSelector) ? 1 : 0);
+      if (roleContainerCount <= 1) {
+        return messageContainer;
+      }
+    }
+
+    if (candidate.matches(roleSelector)) {
+      return candidate;
+    }
+
+    const nestedRoleContainers = candidate.querySelectorAll(roleSelector);
+    if (nestedRoleContainers.length === 1) {
+      return nestedRoleContainers[0];
+    }
+
+    return candidate;
   }
 
   private pruneHostOnlyContent(container: Element): void {
@@ -472,9 +502,10 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   private getAssociatedChartCards(container: Element): VerifiedChartCard[] {
-    const assistantMessage = container.matches('[data-message-author-role="assistant"]')
+    const assistantRoleSelector = ROLE_CONTAINER_SELECTORS.assistant.join(",");
+    const assistantMessage = container.matches(assistantRoleSelector)
       ? container
-      : container.querySelector('[data-message-author-role="assistant"]');
+      : container.querySelector(assistantRoleSelector);
     const wrapper = assistantMessage?.parentElement;
     if (!assistantMessage || !wrapper) {
       return [];

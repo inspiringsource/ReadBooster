@@ -76,7 +76,7 @@ describe("optimization service", () => {
     expect(service.isBusy()).toBe(true);
     expect(adapter.getConversationDocument).toHaveBeenCalledOnce();
     expect(mount).toHaveBeenCalledOnce();
-    expect(mount).toHaveBeenCalledWith(DOCUMENT, BLOCK);
+    expect(mount).toHaveBeenCalledWith(DOCUMENT, BLOCK, expect.any(Function));
 
     resolveMount();
     await expect(first).resolves.toMatchObject({ ok: true });
@@ -99,6 +99,50 @@ describe("optimization service", () => {
     expect(adapter.hasLatestAssistantResponse).toHaveBeenCalledOnce();
     expect(adapter.getLatestAssistantResponse).not.toHaveBeenCalled();
     expect(adapter.getAllAssistantResponses).not.toHaveBeenCalled();
+  });
+
+  it("passes a refresh capability that performs a fresh adapter extraction", async () => {
+    const adapter = implementedAdapter();
+    const refreshedDocument: ConversationDocument = {
+      ...DOCUMENT,
+      extractedAt: "2026-07-16T09:30:00.000Z",
+      turns: [
+        ...DOCUMENT.turns,
+        {
+          id: "turn-new",
+          index: 1,
+          prompt: null,
+          response: {
+            ...BLOCK,
+            id: "new-response",
+            text: "New response",
+            provenance: {
+              ...BLOCK.provenance,
+              sourceMessageId: "new-response",
+              contentFingerprint: "djb2-new-response",
+            },
+          },
+        },
+      ],
+    };
+    vi.mocked(adapter.getConversationDocument)
+      .mockReturnValueOnce(DOCUMENT)
+      .mockReturnValueOnce(refreshedDocument);
+    let refresh!: () => Promise<ConversationDocument | null>;
+    const mount = vi.fn(
+      async (
+        _document: ConversationDocument,
+        _block: DocumentContentBlock,
+        refreshConversation: () => Promise<ConversationDocument | null>,
+      ) => {
+        refresh = refreshConversation;
+      },
+    );
+    const service = createOptimizationService(adapter, mount);
+
+    await service.optimizeLatest();
+    await expect(refresh()).resolves.toBe(refreshedDocument);
+    expect(adapter.getConversationDocument).toHaveBeenCalledTimes(2);
   });
 
   it("fails safely when no responses remain available", async () => {

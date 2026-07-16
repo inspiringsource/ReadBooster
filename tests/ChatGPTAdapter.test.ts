@@ -416,7 +416,7 @@ describe("ChatGPTAdapter", () => {
     });
 
     const latest = adapter.getLatestAssistantResponse();
-    expect(latest?.id).toBe("conversation-turn-new-shape");
+    expect(latest?.id).toMatch(/^chatgpt-assistant-\d+-/);
     expect(latest?.text).toBe("Newest response");
     expect(getAllSpy).not.toHaveBeenCalled();
   });
@@ -435,7 +435,7 @@ describe("ChatGPTAdapter", () => {
 
     const responses = new ChatGPTAdapter(document, "chatgpt.com").getAllAssistantResponses();
     expect(responses).toHaveLength(1);
-    expect(responses[0].id).toBe("conversation-turn-labeled");
+    expect(responses[0].id).toMatch(/^chatgpt-assistant-\d+-/);
   });
 
   it("returns every valid assistant response in actual document order", () => {
@@ -458,5 +458,88 @@ describe("ChatGPTAdapter", () => {
       "Second response",
       "Third response",
     ]);
+  });
+
+  it("does not collapse distinct messages that share a generic test ID", () => {
+    document.body.innerHTML = Array.from(
+      { length: 10 },
+      (_, index) => `
+        <article data-testid="conversation-turn-generic">
+          <header><h6>ChatGPT said:</h6></header>
+          <div class="markdown"><p>Generic response ${index + 1}</p></div>
+        </article>
+      `,
+    ).join("");
+
+    const conversation = new ChatGPTAdapter(document, "chatgpt.com").getConversationDocument();
+    expect(conversation?.turns).toHaveLength(10);
+    expect(conversation?.turns.map((turn) => turn.response?.text)).toEqual(
+      Array.from({ length: 10 }, (_, index) => `Generic response ${index + 1}`),
+    );
+    expect(new Set(conversation?.turns.map((turn) => turn.response?.id)).size).toBe(10);
+  });
+
+  it("deduplicates duplicate SPA nodes by stable message ID but not by markup", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="spa-message"><p>Stale copy</p></article>
+      <article data-turn="assistant" data-message-id="distinct-message"><p>Same markup</p></article>
+      <article data-turn="assistant" data-message-id="another-message"><p>Same markup</p></article>
+      <article data-turn="assistant" data-message-id="spa-message"><p>Current copy</p></article>
+    `;
+
+    const responses = new ChatGPTAdapter(document, "chatgpt.com").getAllAssistantResponses();
+    expect(responses.map((response) => response.id)).toEqual([
+      "distinct-message",
+      "another-message",
+      "spa-message",
+    ]);
+    expect(responses.map((response) => response.text)).toEqual([
+      "Same markup",
+      "Same markup",
+      "Current copy",
+    ]);
+  });
+
+  it("treats nested role elements as one message without merging sibling turns", () => {
+    document.body.innerHTML = `
+      <article data-message-author-role="assistant">
+        <div data-message-author-role="assistant"><div class="markdown"><p>Nested one</p></div></div>
+      </article>
+      <article data-message-author-role="assistant">
+        <div data-message-author-role="assistant"><div class="markdown"><p>Nested two</p></div></div>
+      </article>
+    `;
+
+    const responses = new ChatGPTAdapter(document, "chatgpt.com").getAllAssistantResponses();
+    expect(responses.map((response) => response.text)).toEqual(["Nested one", "Nested two"]);
+  });
+
+  it("does not canonicalize different roles to one shared message wrapper", () => {
+    document.body.innerHTML = `
+      <div data-message-id="shared-host-wrapper">
+        <div data-message-author-role="user"><p>Shared-wrapper prompt</p></div>
+        <div data-message-author-role="assistant"><p>Shared-wrapper response</p></div>
+      </div>
+    `;
+
+    const conversation = new ChatGPTAdapter(document, "chatgpt.com").getConversationDocument();
+    expect(conversation?.turns).toHaveLength(1);
+    expect(conversation?.turns[0].prompt?.text).toBe("Shared-wrapper prompt");
+    expect(conversation?.turns[0].response?.text).toBe("Shared-wrapper response");
+    expect(conversation?.turns[0].prompt?.id).not.toBe(conversation?.turns[0].response?.id);
+  });
+
+  it("keeps valid neighboring responses when an incomplete response is skipped", () => {
+    document.body.innerHTML = `
+      <article data-turn="assistant" data-message-id="valid-before"><p>Valid before</p></article>
+      <article data-turn="assistant" data-message-id="streaming-empty"><div data-message-content></div></article>
+      <article data-turn="assistant" data-message-id="valid-after"><p>Valid after</p></article>
+    `;
+
+    expect(
+      new ChatGPTAdapter(document, "chatgpt.com")
+        .getAllAssistantResponses()
+        .map((response) => response.text),
+    ).toEqual(["Valid before", "Valid after"]);
   });
 });

@@ -1,4 +1,8 @@
-import type { ConversationDocument, DocumentContentBlock } from "../shared/types";
+import type {
+  ConversationDocument,
+  DocumentContentBlock,
+  RefreshConversation,
+} from "../shared/types";
 import { getActiveAdapter } from "./adapters/getActiveAdapter";
 import { CONTROL_HOST_ID, injectOptimizeButton } from "./injectButton";
 import { createContentMessageListener } from "./messages";
@@ -25,13 +29,14 @@ function loadReaderModule(): Promise<typeof import("../reader/mountReader")> {
 async function mountConversationDocument(
   document: ConversationDocument,
   initialResponse: DocumentContentBlock,
+  refreshConversation: RefreshConversation,
 ): Promise<void> {
   const readerModule = await loadReaderModule();
   if (disposed) {
     readerModule.unmountReader();
     throw new Error("ReadBooster content script was disposed");
   }
-  await readerModule.mountReader(document, initialResponse);
+  await readerModule.mountReader(document, initialResponse, refreshConversation);
 }
 
 const optimizationService = createOptimizationService(adapter, mountConversationDocument);

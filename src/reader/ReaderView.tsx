@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import packageJson from "../../package.json";
+import { conversationDocumentsMatch, mergeConversationDocuments } from "../shared/conversation";
 import { preferencesForPreset } from "../shared/preferences";
 import { saveReaderPreferences } from "../shared/storage";
 import type {
@@ -10,9 +11,11 @@ import type {
   DocumentOpenAt,
   ReaderPreferences,
   ReaderPreset,
+  RefreshConversation,
   SpacingLevel,
   TextSize,
 } from "../shared/types";
+import { assistantBlocks } from "../shared/types";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { ContinuousDocumentView } from "./ContinuousDocumentView";
 import { ConversationOutline } from "./ConversationOutline";
@@ -30,10 +33,18 @@ interface ReaderViewProps {
   conversation: ConversationDocument;
   initialResponseId?: string;
   initialPreferences: ReaderPreferences;
+  refreshConversation?: RefreshConversation;
   onClose: () => void;
 }
 
 type HeaderPanel = "actions" | "reading-settings";
+type RefreshStatus = "idle" | "checking" | "success" | "unchanged" | "failed";
+
+interface PendingRefreshAnchor {
+  responseBlockId: string;
+  headingId: string | null;
+  viewportOffset: number;
+}
 
 const READER_VERSION = packageJson.version;
 
@@ -79,9 +90,15 @@ export function ReaderView({
   conversation,
   initialResponseId,
   initialPreferences,
+  refreshConversation,
   onClose,
 }: ReaderViewProps) {
-  const sections = useMemo(() => deriveConversationSections(conversation), [conversation]);
+  const [accumulatedConversation, setAccumulatedConversation] = useState(conversation);
+  const accumulatedConversationRef = useRef(conversation);
+  const sections = useMemo(
+    () => deriveConversationSections(accumulatedConversation),
+    [accumulatedConversation],
+  );
   const outlineGroups = useMemo(() => deriveConversationOutline(sections), [sections]);
   const responses = useMemo(() => sections.map((section) => section.response), [sections]);
   const requestedInitialIndex = responses.findIndex(
@@ -97,6 +114,8 @@ export function ReaderView({
   const [activeSectionId, setActiveSectionId] = useState(initialDocumentSection?.id ?? "");
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>("idle");
+  const [refreshMessage, setRefreshMessage] = useState("");
   const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(
@@ -113,12 +132,33 @@ export function ReaderView({
   const headerPanelRef = useRef<HTMLDivElement>(null);
   const documentScrollTopRef = useRef(0);
   const initialDocumentPositionAppliedRef = useRef(false);
+  const refreshInFlightRef = useRef(false);
+  const refreshStatusTimerRef = useRef<number | undefined>(undefined);
+  const readerMountedRef = useRef(true);
+  const pendingRefreshAnchorRef = useRef<PendingRefreshAnchor | null>(null);
+  const modeRef = useRef(mode);
+  const currentResponseIdRef = useRef<string | undefined>(undefined);
   const [tableSessionStates] = useState(() => new Map<string, TableDisplayState>());
   const [fullscreenCoordinator] = useState<TableFullscreenCoordinator>(() => ({
     activeClose: null,
   }));
   const response = responses[currentResponseIndex];
-  const documentTitle = conversation.title?.trim() || "Conversation document.";
+  const documentTitle = accumulatedConversation.title?.trim() || "Conversation document.";
+
+  useLayoutEffect(() => {
+    modeRef.current = mode;
+    currentResponseIdRef.current = response?.id;
+  }, [mode, response?.id]);
+
+  useEffect(
+    () => () => {
+      readerMountedRef.current = false;
+      window.clearTimeout(refreshStatusTimerRef.current);
+      refreshInFlightRef.current = false;
+      pendingRefreshAnchorRef.current = null;
+    },
+    [],
+  );
 
   const closeHeaderPanel = useCallback(
     (restoreFocus = true): void => {
@@ -297,6 +337,33 @@ export function ReaderView({
     initialDocumentPositionAppliedRef.current = true;
   }, [initialDocumentSection?.id, mode]);
 
+  useLayoutEffect(() => {
+    const pending = pendingRefreshAnchorRef.current;
+    const scrollArea = scrollAreaRef.current;
+    if (!pending || mode !== "document" || !scrollArea) {
+      return;
+    }
+    pendingRefreshAnchorRef.current = null;
+    const section = sections.find(
+      (candidate) => candidate.responseBlockId === pending.responseBlockId,
+    );
+    if (!section) {
+      return;
+    }
+    const targetId = pending.headingId ?? section.id;
+    const target = Array.from(scrollArea.querySelectorAll<HTMLElement>("[id]")).find(
+      (element) => element.id === targetId,
+    );
+    if (target) {
+      const currentOffset =
+        target.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top;
+      scrollArea.scrollTop += currentOffset - pending.viewportOffset;
+      documentScrollTopRef.current = scrollArea.scrollTop;
+    }
+    setActiveSectionId(section.id);
+    setActiveHeadingId(pending.headingId && target ? pending.headingId : null);
+  }, [mode, sections]);
+
   const readerStyle = useMemo(
     () =>
       ({
@@ -355,6 +422,97 @@ export function ReaderView({
       setCopyStatus("copied");
     } catch {
       setCopyStatus("failed");
+    }
+  };
+
+  const setTransientRefreshStatus = (
+    status: Exclude<RefreshStatus, "checking">,
+    message: string,
+  ): void => {
+    if (!readerMountedRef.current) {
+      return;
+    }
+    window.clearTimeout(refreshStatusTimerRef.current);
+    setRefreshStatus(status);
+    setRefreshMessage(message);
+    refreshStatusTimerRef.current = window.setTimeout(() => {
+      setRefreshStatus("idle");
+      setRefreshMessage("");
+    }, 5000);
+  };
+
+  const handleRefreshConversation = async (): Promise<void> => {
+    if (!refreshConversation || refreshInFlightRef.current) {
+      return;
+    }
+    refreshInFlightRef.current = true;
+    window.clearTimeout(refreshStatusTimerRef.current);
+    setRefreshStatus("checking");
+    setRefreshMessage("Checking for more responses…");
+
+    const existing = accumulatedConversationRef.current;
+    const activeSection = sections.find((section) => section.id === activeSectionId);
+    const scrollArea = scrollAreaRef.current;
+    const anchorTargetId = activeHeadingId ?? activeSection?.id;
+    const anchorTarget = anchorTargetId
+      ? Array.from(scrollArea?.querySelectorAll<HTMLElement>("[id]") ?? []).find(
+          (element) => element.id === anchorTargetId,
+        )
+      : null;
+    const viewportOffset =
+      anchorTarget && scrollArea
+        ? anchorTarget.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top
+        : 0;
+
+    try {
+      const incoming = await refreshConversation();
+      if (!readerMountedRef.current) {
+        return;
+      }
+      if (!incoming || !conversationDocumentsMatch(existing, incoming)) {
+        setTransientRefreshStatus("failed", "Conversation could not be refreshed");
+        return;
+      }
+      const merged = mergeConversationDocuments(existing, incoming);
+      const previousResponseCount = assistantBlocks(existing).length;
+      const nextResponses = assistantBlocks(merged);
+      const addedResponseCount = nextResponses.length - previousResponseCount;
+
+      if (merged !== existing) {
+        if (activeSection && anchorTarget) {
+          pendingRefreshAnchorRef.current = {
+            responseBlockId: activeSection.responseBlockId,
+            headingId: activeHeadingId,
+            viewportOffset,
+          };
+        }
+        const focusedResponseId = currentResponseIdRef.current;
+        if (modeRef.current === "focus" && focusedResponseId) {
+          const nextIndex = nextResponses.findIndex(
+            (candidate) => candidate.id === focusedResponseId,
+          );
+          if (nextIndex >= 0) {
+            setCurrentResponseIndex(nextIndex);
+          }
+        }
+        accumulatedConversationRef.current = merged;
+        setAccumulatedConversation(merged);
+      }
+
+      if (addedResponseCount > 0) {
+        setTransientRefreshStatus(
+          "success",
+          `${addedResponseCount} new response${addedResponseCount === 1 ? "" : "s"} added`,
+        );
+      } else if (merged !== existing) {
+        setTransientRefreshStatus("success", "Conversation updated");
+      } else {
+        setTransientRefreshStatus("unchanged", "No additional responses found");
+      }
+    } catch {
+      setTransientRefreshStatus("failed", "Conversation could not be refreshed");
+    } finally {
+      refreshInFlightRef.current = false;
     }
   };
 
@@ -685,6 +843,29 @@ export function ReaderView({
                   >
                     Print
                   </button>
+                  {mode === "document" && refreshConversation ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleRefreshConversation()}
+                      disabled={refreshStatus === "checking"}
+                      aria-busy={refreshStatus === "checking"}
+                      aria-describedby="rb-refresh-status"
+                    >
+                      {refreshStatus === "checking"
+                        ? "Checking for more responses…"
+                        : "Refresh conversation"}
+                    </button>
+                  ) : null}
+                  {mode === "document" && refreshConversation ? (
+                    <p
+                      id="rb-refresh-status"
+                      className="rb-refresh-status"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {refreshMessage}
+                    </p>
+                  ) : null}
                   <button
                     type="button"
                     aria-controls="rb-about-readbooster"
@@ -718,7 +899,7 @@ export function ReaderView({
       <header className="rb-print-metadata">
         <h1>{mode === "document" ? documentTitle : "ReadBooster — Focused response"}</h1>
         <p>
-          {SOURCE_LABELS[conversation.source]} ·{" "}
+          {SOURCE_LABELS[accumulatedConversation.source]} ·{" "}
           {mode === "document"
             ? `${sections.length} assistant responses`
             : `Response ${currentResponseIndex + 1} of ${responses.length}`}

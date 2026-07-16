@@ -1,4 +1,5 @@
 import type { ConversationDocument, DocumentContentBlock } from "../shared/types";
+import { recordConversationPipelineDiagnostics } from "../shared/developmentDiagnostics";
 import { buildOutline, flattenOutline, type OutlineItem } from "./outline";
 
 export type ReaderMode = "document" | "focus";
@@ -92,7 +93,7 @@ export function deriveConversationSections(
     const outline = buildOutline([turn.response]);
     const { title, titleSource } = sectionTitle(outline, turn.prompt, index);
     sections.push({
-      id: `rb-section-${safeIdPart(turn.id)}-${safeIdPart(turn.response.id)}`,
+      id: `rb-section-${safeIdPart(turn.response.id)}`,
       turnId: turn.id,
       responseBlockId: turn.response.id,
       index,
@@ -102,6 +103,10 @@ export function deriveConversationSections(
       response: turn.response,
       outline,
     });
+  }
+
+  if (import.meta.env.DEV) {
+    recordConversationPipelineDiagnostics({ derivedDocumentSections: sections.length });
   }
 
   return sections;
@@ -121,7 +126,7 @@ export function deriveConversationOutline(
     }
 
     return {
-      id: `rb-outline-group-${safeIdPart(section.turnId)}-${safeIdPart(section.responseBlockId)}`,
+      id: `rb-outline-group-${safeIdPart(section.responseBlockId)}`,
       turnId: section.turnId,
       responseBlockId: section.responseBlockId,
       title: section.title,

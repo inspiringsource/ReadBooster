@@ -66,7 +66,7 @@ describe("continuous document sections", () => {
     expect(sections[0].prompt).toBe(prompt);
     expect(sections[1].prompt).toBeNull();
     expect(sections.map((section) => section.index)).toEqual([0, 1]);
-    expect(sections[0].id).toContain("turn-a-first");
+    expect(sections[0].id).toBe("rb-section-first");
     expect(
       deriveConversationSections(
         conversation([{ id: "turn-a", index: 0, prompt, response: first }]),

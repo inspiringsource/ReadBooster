@@ -6,6 +6,7 @@ import type {
   ConversationTurn,
   DocumentContentBlock,
   ExtractedResponse,
+  RefreshConversation,
 } from "../shared/types";
 import { assistantBlocks } from "../shared/types";
 import readerStyles from "./reader.css?inline";
@@ -154,6 +155,7 @@ function selectedBlockId(
 export function mountReader(
   conversation: ConversationDocument,
   initialSelection?: ReaderInitialSelection,
+  refreshConversation?: RefreshConversation,
 ): Promise<() => void>;
 /** @deprecated Compatibility boundary for 0.2.x callers and fixtures. */
 export function mountReader(
@@ -163,6 +165,7 @@ export function mountReader(
 export async function mountReader(
   input: ConversationDocument | ExtractedResponse[],
   initialSelection?: ReaderInitialSelection | number,
+  refreshConversation?: RefreshConversation,
 ): Promise<() => void> {
   const conversation = Array.isArray(input) ? legacyResponsesToDocument(input) : input;
   const responses = assistantBlocks(conversation);
@@ -248,6 +251,7 @@ export async function mountReader(
         conversation={conversation}
         initialResponseId={initialResponseId}
         initialPreferences={preferences}
+        refreshConversation={refreshConversation}
         onClose={() => queueMicrotask(cleanup)}
       />,
     );
