@@ -3,7 +3,15 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import packageJson from "../../package.json";
 import { conversationDocumentsMatch, mergeConversationDocuments } from "../shared/conversation";
 import { preferencesForPreset } from "../shared/preferences";
-import { saveReaderPreferences } from "../shared/storage";
+import {
+  removeSectionTitleOverride,
+  saveReaderPreferences,
+  saveSectionTitleOverride,
+} from "../shared/storage";
+import {
+  normalizeCustomSectionTitle,
+  sectionTitleOverrideIdentity,
+} from "../shared/sectionTitleOverrides";
 import type {
   AppearanceMode,
   CodeAppearance,
@@ -23,6 +31,7 @@ import { FocusResponseView } from "./FocusResponseView";
 import type { OutlineItem } from "./outline";
 import {
   conversationCopyText,
+  applySectionTitleOverrides,
   deriveConversationOutline,
   deriveConversationSections,
   type ConversationOutlineGroup,
@@ -33,6 +42,7 @@ interface ReaderViewProps {
   conversation: ConversationDocument;
   initialResponseId?: string;
   initialPreferences: ReaderPreferences;
+  initialSectionTitleOverrides: ReadonlyMap<string, string>;
   refreshConversation?: RefreshConversation;
   onClose: () => void;
 }
@@ -90,14 +100,23 @@ export function ReaderView({
   conversation,
   initialResponseId,
   initialPreferences,
+  initialSectionTitleOverrides,
   refreshConversation,
   onClose,
 }: ReaderViewProps) {
   const [accumulatedConversation, setAccumulatedConversation] = useState(conversation);
   const accumulatedConversationRef = useRef(conversation);
-  const sections = useMemo(
+  const [sectionTitleOverrides, setSectionTitleOverrides] = useState(
+    () => new Map(initialSectionTitleOverrides),
+  );
+  const automaticSections = useMemo(
     () => deriveConversationSections(accumulatedConversation),
     [accumulatedConversation],
+  );
+  const sections = useMemo(
+    () =>
+      applySectionTitleOverrides(accumulatedConversation, automaticSections, sectionTitleOverrides),
+    [accumulatedConversation, automaticSections, sectionTitleOverrides],
   );
   const outlineGroups = useMemo(() => deriveConversationOutline(sections), [sections]);
   const responses = useMemo(() => sections.map((section) => section.response), [sections]);
@@ -116,6 +135,7 @@ export function ReaderView({
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>("idle");
   const [refreshMessage, setRefreshMessage] = useState("");
+  const [sectionTitleStatus, setSectionTitleStatus] = useState("");
   const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(
@@ -136,6 +156,7 @@ export function ReaderView({
   const automaticScanStartedRef = useRef(false);
   const scanAbortControllerRef = useRef<AbortController | null>(null);
   const refreshStatusTimerRef = useRef<number | undefined>(undefined);
+  const sectionTitleStatusTimerRef = useRef<number | undefined>(undefined);
   const readerMountedRef = useRef(true);
   const pendingRefreshAnchorRef = useRef<PendingRefreshAnchor | null>(null);
   const modeRef = useRef(mode);
@@ -158,6 +179,7 @@ export function ReaderView({
       scanAbortControllerRef.current?.abort();
       scanAbortControllerRef.current = null;
       window.clearTimeout(refreshStatusTimerRef.current);
+      window.clearTimeout(sectionTitleStatusTimerRef.current);
       refreshInFlightRef.current = false;
       pendingRefreshAnchorRef.current = null;
     },
@@ -242,6 +264,15 @@ export function ReaderView({
       }
 
       if (event.key === "Escape") {
+        const sectionTitleEditorInPath = event
+          .composedPath()
+          .some(
+            (target) =>
+              target instanceof Element && target.matches("[data-rb-section-title-editor]"),
+          );
+        if (sectionTitleEditorInPath) {
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         if (headerPanel) {
@@ -401,6 +432,72 @@ export function ReaderView({
       setActiveHeadingId(headingId);
     },
     [],
+  );
+
+  const announceSectionTitleStatus = useCallback((message: string): void => {
+    if (!readerMountedRef.current) {
+      return;
+    }
+    window.clearTimeout(sectionTitleStatusTimerRef.current);
+    setSectionTitleStatus(message);
+    sectionTitleStatusTimerRef.current = window.setTimeout(() => {
+      if (readerMountedRef.current) {
+        setSectionTitleStatus("");
+      }
+    }, 5000);
+  }, []);
+
+  const renameSection = useCallback(
+    async (group: ConversationOutlineGroup, value: string): Promise<void> => {
+      const title = normalizeCustomSectionTitle(value);
+      const section = sections.find(
+        (candidate) => candidate.responseBlockId === group.responseBlockId,
+      );
+      if (!title || !section) {
+        return;
+      }
+      const currentConversation = accumulatedConversationRef.current;
+      const identity = sectionTitleOverrideIdentity(currentConversation, section.response);
+      setSectionTitleOverrides((current) => {
+        const next = new Map(current);
+        next.set(identity.lookupKey, title);
+        return next;
+      });
+
+      const result = await saveSectionTitleOverride(currentConversation, section.response, title);
+      announceSectionTitleStatus(
+        result === "saved"
+          ? "Section title renamed."
+          : "Title renamed for this session, but it could not be saved locally.",
+      );
+    },
+    [announceSectionTitleStatus, sections],
+  );
+
+  const restoreAutomaticSectionTitle = useCallback(
+    async (group: ConversationOutlineGroup): Promise<void> => {
+      const section = sections.find(
+        (candidate) => candidate.responseBlockId === group.responseBlockId,
+      );
+      if (!section) {
+        return;
+      }
+      const currentConversation = accumulatedConversationRef.current;
+      const identity = sectionTitleOverrideIdentity(currentConversation, section.response);
+      setSectionTitleOverrides((current) => {
+        const next = new Map(current);
+        next.delete(identity.lookupKey);
+        return next;
+      });
+
+      const result = await removeSectionTitleOverride(currentConversation, section.response);
+      announceSectionTitleStatus(
+        result === "removed" || result === "not-persistable"
+          ? "Automatic section title restored."
+          : "Automatic title restored for this session, but the saved override could not be removed.",
+      );
+    },
+    [announceSectionTitleStatus, sections],
   );
 
   const changeMode = (nextMode: ReaderMode): void => {
@@ -970,6 +1067,9 @@ export function ReaderView({
               open={outlineOpen}
               onSelectGroup={selectGroup}
               onSelectHeading={selectHeading}
+              onRenameSection={renameSection}
+              onRestoreAutomaticTitle={restoreAutomaticSectionTitle}
+              titleStatus={sectionTitleStatus}
             />
             <ContinuousDocumentView
               sections={sections}

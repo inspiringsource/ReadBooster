@@ -139,9 +139,9 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.4.7 as the manifest source of truth", () => {
+  it("uses package version 0.4.8 as the manifest source of truth", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.4.7");
+    expect(packageJson.version).toBe("0.4.8");
     expect(manifestSource).toContain("version: packageJson.version");
   });
 

@@ -1,8 +1,8 @@
 # ReadBooster
 
-ReadBooster 0.4.7 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.4.8 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
-> **Privacy:** ReadBooster processes content locally in your browser.
+> **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies.
 
 This repository contains the first MVP. ChatGPT extraction is implemented and covered by mock-DOM tests. Live Chrome verification is still required because ChatGPT's DOM is not a public or stable API.
 
@@ -23,11 +23,11 @@ This repository contains the first MVP. ChatGPT extraction is implemented and co
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
 - Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
-- Store only validated reader preferences in `chrome.storage.local`.
+- Store only validated reader preferences and minimal section-title override metadata in `chrome.storage.local`.
 - Open immediately from the current ChatGPT DOM window, then run one bounded source-page scan that accumulates virtualized turns without persisting conversation content.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
-ReadBooster has no backend, account system, analytics, remote assets, AI API, or conversation-content persistence. It does not send extracted content over the network.
+ReadBooster has no backend, account system, analytics, remote assets, AI API, or conversation-body persistence. It does not send extracted content over the network.
 
 ## Technology stack
 
@@ -73,6 +73,16 @@ The reader still mounts immediately from the adapter's fast current-window snaps
 The scan is bounded to 40 positions, 12 seconds, a 650 ms settling deadline per position, three top-stabilization passes, and three consecutive no-progress positions. It uses a scoped temporary `MutationObserver`, two animation frames, and a 90 ms quiet period rather than a permanent observer or polling loop. **Actions → Refresh conversation** runs the same scan; automatic and manual activation share the adapter's single in-flight operation. Progress reports counts only. The implementation never logs content or identifiers, never calls a private API, never issues a network request, and never persists a conversation.
 
 The ChatGPT source scroller is selected as the nearest vertically overflowing ancestor shared by the currently mounted message candidates. It must contain the candidate turn elements, use scrollable vertical overflow, have meaningful viewport/scroll dimensions, and be outside the ReadBooster reader. `document.scrollingElement` is a validated fallback. If neither is reliable, ReadBooster keeps the current snapshot and reports that a full scan could not be completed instead of claiming completeness.
+
+### Custom section titles in 0.4.8
+
+Each top-level section row in the Conversation outline now has a subtle, keyboard-reachable **Rename section** control. Rename opens one inline plain-text field initialized with the displayed title. Enter or **Save** accepts a title; Escape or **Cancel** leaves the previous title unchanged and returns focus to the section's Rename control. Titles are whitespace-normalized, limited to 120 characters, rendered only as text, and may be duplicated. The Rename action remains visible through keyboard focus and on narrow or touch layouts rather than depending on hover alone.
+
+A restrained dot identifies a **Custom title** visually and accessibly. **Restore automatic title** removes the override and immediately returns to the current deterministic heading/prompt/`Response N` title. The automatic title remains separately derived from the current normalized response, so restoration after Refresh uses the newest automatic title. Custom titles apply to the Conversation outline, Continuous Document section heading, Document Copy, and Document Print; they never replace the source response heading or alter Focus response content.
+
+Overrides use stable ChatGPT `sourceConversationId` plus assistant `sourceMessageId` associations and are stored under the versioned `sectionTitleOverrides:v1` key. The array schema contains only a conversation association key, response association key, and normalized custom title. It stores no prompt, response text, HTML, source URL, chart, table, code, automatic title, or signed media URL. Malformed and prototype-polluting records are ignored. If either stable source identity is unavailable, the rename remains valid for the current reader session but is deliberately not persisted, preventing it from attaching to the wrong response later.
+
+Preferences and the current conversation's overrides load in parallel before the first reader render. Refresh and virtualized scanning continue to merge only normalized source documents; presentation overrides stay separate and follow stable response identity when earlier or later turns are inserted. Renaming updates presentation labels without remounting response content or resetting scroll, outline, prompt, table, chart, or code state.
 
 ## Document and Focus modes
 
@@ -123,7 +133,7 @@ To replace the icons later, begin with a square high-resolution source, preserve
 “Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
 
 Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
-Gemini remains scaffold-only in 0.4.7; this release does not add an adapter.
+Gemini remains scaffold-only in 0.4.8; this release does not add an adapter.
 
 ## Install dependencies
 
@@ -354,6 +364,27 @@ Automated five-window fixtures prove bounded accumulation and cleanup, but they 
 15. Recheck the Napoleon demonstration chart, citations, Python code toolbar, tables, prompts, light/dark appearance, and print preview.
 16. Record the starting ChatGPT scroll position, mounted assistant count, final discovered count, and whether the scan reached the bottom for the manual acceptance notes.
 
+### 0.4.8 custom section-title acceptance checklist
+
+Automated storage and reader fixtures verify schema validation and UI behavior, but persistence acceptance requires closing and reopening ReadBooster on the same live ChatGPT conversation.
+
+1. Open a multi-response ChatGPT conversation and complete the automatic source scan.
+2. In the Conversation outline, hover a section row and confirm the restrained Rename pencil appears.
+3. Tab through the same row and confirm Rename becomes visible with a clear focus indicator.
+4. Rename a prompt-derived title with Enter; confirm whitespace is normalized and focus returns to Rename.
+5. Rename another section with **Save**, then start and cancel another edit with both Escape and **Cancel**.
+6. Attempt an empty and an over-120-character title; confirm the accessible validation message and previous title remain.
+7. Confirm the custom-title indicator is visible and announced as `Custom title`.
+8. Confirm the custom title appears in the Conversation outline, Document section heading, Document Copy, and Document print preview.
+9. Confirm the original assistant heading and Focus response content remain unchanged.
+10. Close and reopen ReadBooster on the same conversation; confirm the custom title reloads on the same response.
+11. Open another ChatGPT conversation and confirm the custom title does not appear there.
+12. Run **Refresh conversation** and confirm earlier or later inserted responses do not shift the custom title to another section.
+13. Rename a section, then exercise prompts, charts, tables, code controls, outline expansion, Document/Focus switching, and scrolling; confirm none are reset or duplicated.
+14. Select **Restore automatic title** and confirm the current derived title returns, the indicator disappears, focus is restored, and the override remains absent after reopening.
+15. At a narrow or touch-sized layout, confirm Rename and Restore remain discoverable without hover.
+16. Inspect `chrome.storage.local` and confirm `sectionTitleOverrides:v1` contains only association keys and custom title text, never prompt or response bodies.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -362,6 +393,7 @@ Automated five-window fixtures prove bounded accumulation and cleanup, but they 
 - Host controls are removed before DOMPurify applies a conservative element and attribute allowlist.
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
 - Extracted response HTML and text remain in memory for the active reader session and are not written to storage.
+- `chrome.storage.local` contains validated reader preferences and optional `sectionTitleOverrides:v1` entries with stable conversation/response association keys plus user-created title text only.
 - No remote code, JavaScript, fonts, telemetry, or network processing is used.
 
 ## Project structure
@@ -412,6 +444,7 @@ src/
     ├── conversation.ts
     ├── developmentDiagnostics.ts
     ├── preferences.ts
+    ├── sectionTitleOverrides.ts
     ├── storage.ts
     └── types.ts
 tests/
@@ -431,7 +464,8 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Wide and complex tables intentionally use horizontal scrolling. Sticky headers depend on the source containing a semantic `thead`.
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
-- ReadBooster 0.4.7 does not provide search, bookmarks, annotations, editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation state, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
+- ReadBooster 0.4.8 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -439,4 +473,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
 
-Later roadmap candidates include search, bookmarks, annotations, editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.7.
+Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.8.

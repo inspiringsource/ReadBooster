@@ -366,11 +366,13 @@
   align-items: flex-start;
   display: grid;
   gap: 3px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
 }
 
 .rb-outline-group-link,
-.rb-outline-group-toggle {
+.rb-outline-group-toggle,
+.rb-section-title-controls button,
+.rb-section-title-editor button {
   appearance: none;
   background: transparent;
   border: 0;
@@ -403,10 +405,126 @@
   width: 30px;
 }
 
-.rb-outline-group-link:hover,
-.rb-outline-group-toggle:hover {
+.rb-custom-title-indicator {
+  color: var(--rb-accent);
+  font-size: 18px;
+  line-height: 30px;
+  text-align: center;
+  width: 12px;
+}
+
+.rb-section-title-controls {
+  display: flex;
+  gap: 1px;
+}
+
+.rb-section-title-controls button {
+  color: var(--rb-muted);
+  font:
+    700 14px/1 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  height: 30px;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  width: 27px;
+}
+
+.rb-outline-group-row:hover .rb-section-title-controls button,
+.rb-outline-group-row:focus-within .rb-section-title-controls button,
+.rb-section-title-controls button:focus-visible {
+  opacity: 0.78;
+  pointer-events: auto;
+}
+
+.rb-section-title-controls button:hover {
   background: var(--rb-code);
   color: var(--rb-text);
+  opacity: 1;
+}
+
+.rb-section-title-editor {
+  background: color-mix(in srgb, var(--rb-code) 70%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+}
+
+.rb-section-title-editor label {
+  color: var(--rb-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rb-section-title-editor input {
+  background: var(--rb-background);
+  border: 1px solid var(--rb-border);
+  border-radius: 6px;
+  color: var(--rb-text);
+  font: inherit;
+  min-width: 0;
+  padding: 7px 8px;
+  width: 100%;
+}
+
+.rb-section-title-editor input[aria-invalid="true"] {
+  border-color: #c84949;
+}
+
+.rb-section-title-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.rb-section-title-editor button {
+  background: var(--rb-background);
+  border: 1px solid var(--rb-border);
+  font-size: 11px;
+  padding: 6px 9px;
+}
+
+.rb-section-title-editor button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rb-section-title-editor p {
+  color: #b63d3d;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.rb-section-title-status {
+  color: var(--rb-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: -4px 0 8px;
+  min-height: 1.4em;
+}
+
+.rb-outline-group-link:hover,
+.rb-outline-group-toggle:hover,
+.rb-section-title-editor button:hover {
+  background: var(--rb-code);
+  color: var(--rb-text);
+}
+
+.rb-section-title-controls button:focus-visible,
+.rb-section-title-editor input:focus-visible,
+.rb-section-title-editor button:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+@media (hover: none), (max-width: 900px) {
+  .rb-section-title-controls button {
+    opacity: 0.72;
+    pointer-events: auto;
+  }
 }
 
 .rb-outline-group > ul {

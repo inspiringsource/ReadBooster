@@ -1,5 +1,6 @@
 import type { ConversationDocument, DocumentContentBlock } from "../shared/types";
 import { recordConversationPipelineDiagnostics } from "../shared/developmentDiagnostics";
+import { sectionTitleOverrideIdentity } from "../shared/sectionTitleOverrides";
 import { buildOutline, flattenOutline, type OutlineItem } from "./outline";
 
 export type ReaderMode = "document" | "focus";
@@ -10,8 +11,10 @@ export interface ConversationSection {
   turnId: string;
   responseBlockId: string;
   index: number;
+  automaticTitle: string;
   title: string;
   titleSource: SectionTitleSource;
+  hasCustomTitle: boolean;
   prompt: DocumentContentBlock | null;
   response: DocumentContentBlock;
   outline: OutlineItem[];
@@ -21,7 +24,9 @@ export interface ConversationOutlineGroup {
   id: string;
   turnId: string;
   responseBlockId: string;
+  automaticTitle: string;
   title: string;
+  hasCustomTitle: boolean;
   targetSectionId: string;
   children: OutlineItem[];
 }
@@ -97,8 +102,10 @@ export function deriveConversationSections(
       turnId: turn.id,
       responseBlockId: turn.response.id,
       index,
+      automaticTitle: title,
       title,
       titleSource,
+      hasCustomTitle: false,
       prompt: turn.prompt,
       response: turn.response,
       outline,
@@ -112,12 +119,27 @@ export function deriveConversationSections(
   return sections;
 }
 
+/** Applies local presentation-only overrides without mutating the normalized conversation. */
+export function applySectionTitleOverrides(
+  conversation: ConversationDocument,
+  sections: readonly ConversationSection[],
+  overrides: ReadonlyMap<string, string>,
+): ConversationSection[] {
+  return sections.map((section) => {
+    const identity = sectionTitleOverrideIdentity(conversation, section.response);
+    const customTitle = overrides.get(identity.lookupKey);
+    return customTitle
+      ? { ...section, title: customTitle, hasCustomTitle: true }
+      : { ...section, title: section.automaticTitle, hasCustomTitle: false };
+  });
+}
+
 export function deriveConversationOutline(
   sections: readonly ConversationSection[],
 ): ConversationOutlineGroup[] {
   return sections.map((section) => {
     let children = section.outline;
-    if (section.titleSource === "heading") {
+    if (section.titleSource === "heading" && !section.hasCustomTitle) {
       const firstHeading = flattenOutline(section.outline)[0];
       const firstRoot = section.outline[0];
       if (firstHeading && firstRoot?.targetHeadingId === firstHeading.targetHeadingId) {
@@ -129,7 +151,9 @@ export function deriveConversationOutline(
       id: `rb-outline-group-${safeIdPart(section.responseBlockId)}`,
       turnId: section.turnId,
       responseBlockId: section.responseBlockId,
+      automaticTitle: section.automaticTitle,
       title: section.title,
+      hasCustomTitle: section.hasCustomTitle,
       targetSectionId: section.id,
       children,
     };

@@ -1,4 +1,4 @@
-import { cleanup } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 import { unmountReader } from "../src/reader/mountReader";
@@ -7,7 +7,7 @@ import { unmountReader } from "../src/reader/mountReader";
   true;
 
 afterEach(() => {
-  unmountReader();
+  act(() => unmountReader());
   cleanup();
   document.body.innerHTML = "";
   document.body.removeAttribute("style");

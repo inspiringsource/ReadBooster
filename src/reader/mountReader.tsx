@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 
-import { loadReaderPreferences } from "../shared/storage";
+import { loadReaderPreferences, loadSectionTitleOverrides } from "../shared/storage";
 import type {
   ConversationDocument,
   ConversationTurn,
@@ -179,7 +179,10 @@ export async function mountReader(
   }
 
   const previouslyFocused = getDeepActiveElement();
-  const preferences = await loadReaderPreferences();
+  const [preferences, sectionTitleOverrides] = await Promise.all([
+    loadReaderPreferences(),
+    loadSectionTitleOverrides(conversation),
+  ]);
 
   // A newer mount or explicit unmount may have happened while storage was loading.
   if (requestId !== mountRequestId) {
@@ -251,6 +254,7 @@ export async function mountReader(
         conversation={conversation}
         initialResponseId={initialResponseId}
         initialPreferences={preferences}
+        initialSectionTitleOverrides={sectionTitleOverrides}
         refreshConversation={refreshConversation}
         onClose={() => queueMicrotask(cleanup)}
       />,
