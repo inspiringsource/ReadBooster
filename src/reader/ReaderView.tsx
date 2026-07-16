@@ -1067,8 +1067,9 @@ export function ReaderView({
                     <p>Version {READER_VERSION} Beta</p>
                     <p>ReadBooster processes content locally in your browser.</p>
                     <p>
-                      ChatGPT conversation extraction is implemented. Claude and Gemini extraction
-                      are not implemented.
+                      ChatGPT extraction is implemented and manually verified. Gemini extraction is
+                      implemented with live manual verification pending. Claude extraction is not
+                      implemented.
                     </p>
                   </section>
                 ) : null}

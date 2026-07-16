@@ -1,0 +1,158 @@
+<chat-app data-conversation-id="fixture-gemini-conversation">
+  <chat-window>
+    <chat-window-content>
+      <main data-test-id="conversation-scroll">
+        <section data-turn="one">
+          <user-query data-query-id="gemini-query-1">
+            <user-query-content>
+              <p>Fixture prompt about semantic content.</p>
+            </user-query-content>
+          </user-query>
+
+          <model-response data-response-id="gemini-response-1">
+            <message-content>
+              <div class="markdown-main-panel">
+                <h2 id="overview">Semantic overview</h2>
+                <p>
+                  Gemini response with
+                  <strong>meaningful structure</strong>
+                  and
+                  <span data-test-id="citation-source">
+                    <a href="https://example.com/reference?utm_source=gemini&amp;item=1">
+                      <img
+                        alt=""
+                        width="128"
+                        height="128"
+                        src="https://www.google.com/s2/favicons?domain=example.com&amp;sz=128"
+                      />
+                      <span>Example reference</span>
+                      <span>+1</span>
+                    </a>
+                  </span>
+                  .
+                </p>
+                <h3>Nested points</h3>
+                <ul>
+                  <li>First point</li>
+                  <li>
+                    Second point
+                    <ul>
+                      <li>Nested detail</li>
+                    </ul>
+                  </li>
+                </ul>
+                <blockquote>Fixture quotation.</blockquote>
+                <p>Formula: <span aria-label="x squared plus y squared">x² + y²</span></p>
+                <table>
+                  <caption>
+                    Comparison
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row" rowspan="1">Alpha</th>
+                      <td colspan="1">One</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <code-block>
+                  <div class="code-block-decoration" data-code-language="Python">
+                    <svg aria-hidden="true"></svg>
+                    Python
+                    <button aria-label="Copy code">Copy</button>
+                  </div>
+                  <pre><code><span>def</span> answer():
+    return 42</code></pre>
+                </code-block>
+                <figure data-test-id="generated-image">
+                  <img
+                    src="https://lh3.googleusercontent.com/fixture-image.png"
+                    alt="Generated Gemini diagram"
+                    width="640"
+                    height="320"
+                  />
+                  <figcaption>Generated Gemini diagram</figcaption>
+                </figure>
+                <button aria-label="Share response">Share</button>
+                <button aria-label="Read aloud">Listen</button>
+                <script>
+                  window.fixtureShouldNeverRun = true;
+                </script>
+              </div>
+            </message-content>
+          </model-response>
+
+          <model-response
+            data-response-id="gemini-response-1-draft"
+            aria-hidden="true"
+            data-selected="false"
+          >
+            <message-content><p>Hidden alternative draft must not appear.</p></message-content>
+          </model-response>
+        </section>
+
+        <section data-turn="two">
+          <user-query data-query-id="gemini-query-2">
+            <user-query-content><p>Fixture prompt for code examples.</p></user-query-content>
+          </user-query>
+          <model-response data-response-id="gemini-response-2">
+            <message-content>
+              <p>A response without a semantic heading remains navigable.</p>
+              <code-block>
+                <div data-code-language="JavaScript">JavaScript</div>
+                <pre><code>const value = 2;
+console.log(value);</code></pre>
+              </code-block>
+              <code-block>
+                <div data-code-language="JSON">JSON</div>
+                <pre><code>{"value": 2}</code></pre>
+              </code-block>
+              <pre><code>unlabeled example</code></pre>
+              <img src="javascript:alert(1)" alt="Unsafe image" width="800" height="400" />
+              <img
+                src="https://example.com/unrelated-large-asset.png"
+                alt="Unrelated declared-size asset"
+                width="800"
+                height="400"
+              />
+              <gem-icon aria-hidden="true">more_vert</gem-icon>
+            </message-content>
+          </model-response>
+        </section>
+
+        <section data-turn="three">
+          <model-response data-response-id="gemini-response-3">
+            <message-content>
+              <h3>Assistant-only result</h3>
+              <p>This valid response has no mounted prompt.</p>
+            </message-content>
+          </model-response>
+        </section>
+
+        <section data-turn="malformed">
+          <model-response data-response-id="gemini-response-malformed">
+            <message-content
+              ><script>
+                alert("malformed");
+              </script></message-content
+            >
+          </model-response>
+        </section>
+
+        <section data-turn="streaming">
+          <user-query data-query-id="gemini-query-4">
+            <user-query-content><p>Fixture prompt while streaming.</p></user-query-content>
+          </user-query>
+          <model-response data-response-id="gemini-response-4" aria-busy="true">
+            <message-content><p>Currently available partial response.</p></message-content>
+          </model-response>
+        </section>
+      </main>
+    </chat-window-content>
+  </chat-window>
+</chat-app>

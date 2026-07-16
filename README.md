@@ -1,31 +1,31 @@
 # ReadBooster
 
-ReadBooster 0.4.10 is a local-first Chrome extension that renders a normalized ChatGPT conversation as one calm, continuous document. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.5.0 is a local-first Chrome extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
-This repository contains the first MVP. ChatGPT extraction is implemented and covered by mock-DOM tests. Live Chrome verification is still required because ChatGPT's DOM is not a public or stable API.
+This repository contains the first MVP. ChatGPT and Gemini extraction are implemented and covered by compact DOM fixtures. ChatGPT is manually verified; Gemini live Chrome verification remains required because neither platform's conversation DOM is a public or stable API.
 
 ## MVP scope
 
 - Detect configured AI conversation sites.
 - Inject one idempotent **Optimize Reading** control.
 - Serialize optimization requests so rapid repeated activation cannot create duplicate readers.
-- Extract and sanitize ChatGPT prompts and assistant responses into a platform-neutral conversation document.
+- Extract and sanitize ChatGPT and Gemini prompts and assistant responses into one platform-neutral conversation model.
 - Open in continuous Document mode by default, with every valid assistant response rendered chronologically.
 - Preserve the 0.3.1 single-response experience as Focus mode, including Previous and Next navigation.
 - Provide a grouped conversation outline in Document mode and the existing active-response outline in Focus mode.
 - Keep associated prompts available through collapsed, accessible disclosures.
 - Remove host controls and sanitize the cloned HTML with a conservative allowlist.
 - Open a Shadow DOM-isolated full-screen reader overlay.
-- Preserve paragraphs, headings, lists, links, blockquotes, verified safe response images, the tested ChatGPT Estuary chart-card structure, code, tables, emphasis, and preformatted text.
+- Preserve paragraphs, headings, lists, links, blockquotes, verified safe response images, the tested ChatGPT Estuary chart-card structure, code, tables, emphasis, and preformatted text through the shared reader.
 - Add response-local code toolbars with language labels, exact Copy code, and optional locally bundled syntax color.
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
 - Offer a discreet, user-initiated **Feedback** action that displays the published Tally form in an accessible modal without changing the reader.
 - Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
 - Store only validated reader preferences and minimal section-title override metadata in `chrome.storage.local`.
-- Open immediately from the current ChatGPT DOM window, then run one bounded source-page scan that accumulates virtualized turns without persisting conversation content.
+- Open immediately from the current platform DOM window, then use the shared bounded source-page scanner when a verified overflowing conversation scroller exists.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
 ReadBooster has no backend, account system, analytics, remote assets, AI API, or conversation-body persistence. It does not send extracted content over the network.
@@ -53,7 +53,7 @@ No background service worker is present because the popup can communicate direct
 
 ## Normalized conversation foundation
 
-The ChatGPT adapter's principal extraction result is a `ConversationDocument`. It contains a source URL, optional safely obtained title, extraction timestamp, and chronological `ConversationTurn` records. Each turn can contain a user prompt, an assistant response, or either side alone so streaming and unusual DOM transitions fail safely. Content blocks carry explicit roles, stable host message IDs when available, deterministic fallback IDs otherwise, and immutable original-source provenance with a content fingerprint.
+Each implemented adapter's principal extraction result is a `ConversationDocument`. It contains a source URL, optional safely obtained title, extraction timestamp, and chronological `ConversationTurn` records. Each turn can contain a user prompt, an assistant response, or either side alone so streaming and unusual DOM transitions fail safely. Content blocks carry explicit roles, stable host message IDs when available, deterministic fallback IDs otherwise, and immutable original-source provenance with a content fingerprint.
 
 Sanitized element and heading IDs are namespaced with the stable content-block ID. This keeps source ID and table `headers` relationships valid while ensuring that identically named headings in separate responses remain unique in a future multi-block DOM.
 
@@ -89,9 +89,23 @@ Each top-level section row in the Conversation outline now has a subtle, keyboar
 
 A restrained dot identifies a **Custom title** visually and accessibly. **Restore automatic title** removes the override and immediately returns to the current deterministic heading/prompt/`Response N` title. The automatic title remains separately derived from the current normalized response, so restoration after Refresh uses the newest automatic title. Custom titles apply to the Conversation outline, Continuous Document section heading, Document Copy, and Document Print; they never replace the source response heading or alter Focus response content.
 
-Overrides use stable ChatGPT `sourceConversationId` plus assistant `sourceMessageId` associations and are stored under the versioned `sectionTitleOverrides:v1` key. The array schema contains only a conversation association key, response association key, and normalized custom title. It stores no prompt, response text, HTML, source URL, chart, table, code, automatic title, or signed media URL. Malformed and prototype-polluting records are ignored. If either stable source identity is unavailable, the rename remains valid for the current reader session but is deliberately not persisted, preventing it from attaching to the wrong response later.
+Overrides use stable platform `sourceConversationId` plus assistant `sourceMessageId` associations and are stored under the versioned `sectionTitleOverrides:v1` key. The platform prefix prevents a ChatGPT override from appearing in Gemini or another conversation. The array schema contains only a conversation association key, response association key, and normalized custom title. It stores no prompt, response text, HTML, source URL, chart, table, code, automatic title, or signed media URL. Malformed and prototype-polluting records are ignored. If either stable source identity is unavailable, the rename remains valid for the current reader session but is deliberately not persisted, preventing it from attaching to the wrong response later.
 
 Preferences and the current conversation's overrides load in parallel before the first reader render. Refresh and virtualized scanning continue to merge only normalized source documents; presentation overrides stay separate and follow stable response identity when earlier or later turns are inserted. Renaming updates presentation labels without remounting response content or resetting scroll, outline, prompt, table, chart, or code state.
+
+### Gemini conversation support in 0.5.0
+
+Gemini now implements the same `ConversationAdapter` boundary as ChatGPT. It extracts a current DOM snapshot into chronological user and assistant blocks, pairs them through the shared normalized turn model, and hands that document to the existing Document/Focus reader. Compatibility response helpers derive from that document, the popup uses the same content-script status/optimization path, and Refresh requests a fresh adapter snapshot rather than querying Gemini from React.
+
+Public, unauthenticated Gemini inspection on 16 July 2026 confirmed semantic Angular shell elements including `chat-app`, `chat-window`, `chat-window-content`, `assistant-messages-primary`, and `infinite-scroller`. An authenticated conversation was not available in this implementation session. The message contracts `user-query`, `model-response`, and `message-content`, plus their role/data-attribute fallbacks, are therefore reduced-fixture assumptions and are explicitly marked as maintenance-sensitive in `GeminiAdapter.ts`; they are implemented but not claimed as live manually verified.
+
+The adapter prefers a `/app/{conversation-id}` URL segment or a stable `data-conversation-id`, then stable `data-message-id`, `data-query-id`, `data-response-id`, or `data-turn-id` message identity. Without a stable message identity it generates the existing deterministic index/content fallback and deliberately leaves custom-title persistence session-only. Stable identities drive refresh merging, response-local table/code keys, Focus navigation, and title-override ownership without using prompt or response text as deduplication evidence.
+
+Supported fixture content includes headings, paragraphs, emphasis, links, nested lists, blockquotes, semantic tables, preformatted/code blocks, explicit Python/JavaScript/TypeScript/JSON and other existing local language mappings, restrained citations, and safe semantic response images. Gemini buttons, menus, feedback/share/audio controls, code-language headers, decorative SVG/icons, citation favicons, tracking counters, unsafe markup, and explicitly hidden or inactive drafts are removed before the shared sanitizer. Only the selected visible draft is eligible; ReadBooster does not add draft-selection UI.
+
+Gemini uses the shared bounded source scanner only when mounted messages have a validated, vertically overflowing common ancestor. The scanner retains its existing cancellation, accumulation, limits, and source-scroll restoration. If no such scroller exists, Gemini returns an honest `single-snapshot` refresh result and performs no artificial traversal. Whether authenticated Gemini currently virtualizes conversation turns remains a live-testing question.
+
+Interactive Gemini artifacts, canvases, arbitrary SVG graphics, embedded applications, and shadow-root-only output are not captured in 0.5.0. Safe semantic raster images already present in response content may be retained; private Gemini APIs, network interception, proxying, uploads, and code execution are never used.
 
 ## Document and Focus modes
 
@@ -133,16 +147,13 @@ To replace the icons later, begin with a square high-resolution source, preserve
 
 ## Website and adapter status
 
-| Website                      | Host access | Adapter implementation                                                    | Automated verification                    | Manual Chrome verification                  |
-| ---------------------------- | ----------- | ------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------- |
-| ChatGPT (`chatgpt.com`)      | Configured  | Normalized turns with continuous Document and single-response Focus modes | Compact mock DOM and reader tests         | **Not yet verified** against the live site  |
-| Claude (`claude.ai`)         | Configured  | Scaffold; safely returns `null` / `[]`                                    | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
-| Gemini (`gemini.google.com`) | Configured  | Scaffold; safely returns `null` / `[]`                                    | Safe no-result behavior by implementation | Not verified; no extraction support claimed |
+| Website                      | Host access | Adapter implementation                                                    | Automated verification                          | Manual Chrome verification                        |
+| ---------------------------- | ----------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| ChatGPT (`chatgpt.com`)      | Configured  | Normalized turns with continuous Document and single-response Focus modes | Compact live-derived fixtures and reader tests  | Implemented and manually verified                 |
+| Gemini (`gemini.google.com`) | Configured  | Normalized turns using the shared Document and Focus reader               | Reduced semantic fixtures and integration tests | **Pending** against an authenticated conversation |
+| Claude (`claude.ai`)         | Configured  | Scaffold; safely returns `null` / `[]`                                    | Safe no-result behavior by implementation       | Not verified; no extraction support claimed       |
 
-“Functional” for ChatGPT describes the implemented adapter and automated fixture behavior, not a claim that the current live ChatGPT DOM has been manually verified. Selectors and assumptions that may require maintenance are commented in `ChatGPTAdapter.ts`.
-
-Claude and Gemini are recognized as configured platforms, but ReadBooster does not inject an optimization control for them and the popup explicitly reports that support is not yet implemented.
-Gemini remains scaffold-only in 0.4.10; this release does not add an adapter.
+Gemini's public app-shell elements were inspected, but its authenticated message selectors and dynamic conversation behavior remain manually unverified. `GeminiAdapter.capabilities.manuallyVerified` therefore remains `false`. Claude remains a configured scaffold and does not receive an Optimize Reading control.
 
 ## Install dependencies
 
@@ -171,16 +182,16 @@ The development command runs Vite's extension-aware development workflow. Chrome
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.
 5. Select the generated extension build directory: `dist/`.
-6. Open ChatGPT at `https://chatgpt.com/`.
+6. Open ChatGPT at `https://chatgpt.com/` or Gemini at `https://gemini.google.com/`.
 7. Refresh the page if necessary.
 8. Open a conversation containing an assistant response.
 9. Click **Optimize Reading**.
 
-After rebuilding, use the reload control on the ReadBooster card in `chrome://extensions`, then refresh the ChatGPT tab.
+After rebuilding, use the reload control on the ReadBooster card in `chrome://extensions`, then refresh the platform tab.
 
 ## Manual acceptance test
 
-Automated tests deliberately use compact fixtures rather than reproducing a brittle copy of the live ChatGPT DOM. Complete these checks in Chrome before describing the ChatGPT integration as manually verified:
+Automated tests deliberately use compact fixtures rather than reproducing a brittle copy of the live ChatGPT DOM. ChatGPT is manually verified; retain this checklist for regression acceptance after extraction or reader changes:
 
 ### 0.2.2 scrolling and table regression checklist
 
@@ -218,7 +229,7 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 17. Trigger a new or streaming response; after completion, confirm optimizing selects the newest assistant response.
 18. Open the popup on ChatGPT and confirm it reports support and opens the same reader flow.
 19. Open the popup on an unrelated website and confirm it reports that the page is unsupported.
-20. Visit Claude and Gemini and confirm no page optimization button is injected and the popup reports that support is not yet implemented.
+20. Visit Gemini and confirm its optimization control and popup support are available; visit Claude and confirm no optimization button is injected and the popup reports that extraction is not implemented.
 
 ### 0.2.3 print and PDF checklist
 
@@ -413,6 +424,39 @@ Automated tests simulate iframe load and failure events and mock the fallback ne
 13. Inspect the iframe and fallback URL; confirm no chat text, title, source URL, or conversation identifier was automatically included.
 14. Recheck Continuous Document mode, both outlines, tables, Copy, Print, section renaming, and Refresh conversation.
 
+### 0.5.0 Gemini acceptance checklist
+
+Automated fixtures establish normalized behavior, not compatibility with Gemini's current authenticated DOM. Keep `manuallyVerified: false` until this checklist passes on `gemini.google.com`.
+
+1. Open an existing Gemini conversation containing at least three prompt-response turns.
+2. Confirm one keyboard-reachable **Optimize Reading** control appears.
+3. Confirm the popup reports Gemini as supported and enables **Optimize latest response**.
+4. Open ReadBooster from the injected control, close it, and repeat from the popup.
+5. Confirm every available Gemini response appears exactly once and chronologically.
+6. Confirm associated prompts are correct and collapsed by default.
+7. Verify headings, nested lists, links, citations, blockquotes, code, and a semantic table.
+8. Confirm Gemini copy, share, feedback, audio, model, menu, and draft controls are absent.
+9. If Gemini exposes alternative drafts, confirm only the selected visible draft appears.
+10. Test Document and Focus modes plus Previous/Next boundaries.
+11. Test grouped and focused outlines, exact heading navigation, and active-section tracking.
+12. Test Document and Focus Copy and inspect the semantic text.
+13. Print and Save as PDF; verify prompts and interactive controls remain excluded.
+14. Exercise Fit, Wide, Fullscreen, Compact text, and Reset on a Gemini table.
+15. Test Color and Plain code appearances and exact Copy code for labelled and unlabelled blocks.
+16. Rename a Gemini section, close and reopen ReadBooster, and confirm persistence only when stable identity is available.
+17. Restore the automatic title and confirm source headings remain unchanged.
+18. Generate a new Gemini response, then use **Refresh conversation** and confirm it is added or completed once.
+19. Start Refresh while a response is streaming; confirm empty or shorter content does not replace richer captured content.
+20. Navigate to another Gemini conversation without reloading the tab and confirm one control remains available.
+21. Confirm content and custom titles never cross between Gemini conversations or between Gemini and ChatGPT.
+22. Record whether Gemini virtualizes turns and whether top-start and bottom-start scans discover the same available set.
+23. If scanning occurs, confirm Gemini returns to its original source scroll position after success, cancellation, and reader closing.
+24. Test safe semantic response images; record unsupported interactive, canvas, SVG, iframe, or shadow-root artifacts honestly.
+25. Open the Feedback modal and confirm it sends no Gemini prompt, response, title, ID, URL, or selected text automatically.
+26. Test light and dark appearance, narrow width, and Chrome zoom from 80% through 150%.
+27. Close ReadBooster and confirm Gemini scrolling, focus, input, and controls remain usable.
+28. Record the Gemini URL shape, semantic message elements, stable IDs, selected-draft state, source scroller, SPA navigation behavior, and final pass/fail results.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -422,6 +466,7 @@ Automated tests simulate iframe load and failure events and mock the fallback ne
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
 - Extracted response HTML and text remain in memory for the active reader session and are not written to storage.
 - `chrome.storage.local` contains validated reader preferences and optional `sectionTitleOverrides:v1` entries with stable conversation/response association keys plus user-created title text only.
+- ChatGPT and Gemini extraction reads only the currently rendered page DOM; it does not call platform APIs, private conversation endpoints, intercept network traffic, or add authentication.
 - No remote executable code is loaded into the extension execution context, and no telemetry or automatic Tally request is used. After explicit activation, the Tally web application runs only inside its isolated iframe; ReadBooster does not load Tally's widget script or inspect the iframe's submitted content.
 
 ## Project structure
@@ -439,7 +484,9 @@ src/
 │   │   ├── chatgptSourceScanner.ts
 │   │   ├── ClaudeAdapter.ts
 │   │   ├── GeminiAdapter.ts
+│   │   ├── geminiSourceScanner.ts
 │   │   └── getActiveAdapter.ts
+│   ├── conversationDomScanner.ts
 │   ├── index.ts
 │   ├── conversationSourceScanner.ts
 │   ├── injectButton.ts
@@ -482,9 +529,10 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 ## Known limitations
 
-- The ChatGPT DOM is private and changes over time. Live manual verification is pending, and selectors may require maintenance.
-- Claude and Gemini are host-aware scaffolds only; they intentionally return no extracted response.
-- ReadBooster scans the mounted windows ChatGPT exposes while programmatically traversing its validated source scroller. It cannot manufacture turns that ChatGPT never mounts, and it does not retrieve missing turns through private APIs. A fallback or bounded termination is reported as an incomplete full scan rather than as proof that no additional responses exist.
+- ChatGPT and Gemini DOM structures are private and can change. ChatGPT is manually verified; Gemini's authenticated message selectors and behavior remain live-manual acceptance work.
+- Claude is a host-aware scaffold only and intentionally returns no extracted response.
+- ReadBooster scans mounted windows a supported platform exposes only after validating a shared overflowing source scroller. It cannot manufacture turns the platform never mounts, and it does not retrieve missing turns through private APIs. A single-snapshot fallback or bounded termination is not proof that no additional responses exist.
+- Gemini alternative drafts are limited to the explicitly selected visible response. Interactive artifacts, canvases, arbitrary SVG, embedded applications, and shadow-root-only output are not captured in 0.5.0.
 - The automatic bounded scan runs once per reader opening. A response mounted or completed later can be accumulated with **Actions → Refresh conversation**; there is no polling or permanent background observer.
 - Document mode is intentionally non-virtualized in 0.4.0. Virtualization remains a future option only if real conversations demonstrate a need.
 - Generated canvas charts are preserved only when local `toDataURL()` capture succeeds. Origin-restricted or unavailable bitmaps fall back to an accessible notice; arbitrary SVG, interactive artifacts, video, audio, host controls, and host-specific styling remain excluded.
@@ -493,12 +541,12 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
-- ReadBooster 0.4.10 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, additional extracting platform adapters, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.5.0 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Claude or other additional extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
 ## Roadmap
 
-After live ChatGPT verification, the best next implementation step is to capture small, sanitized fixtures from several current ChatGPT response shapes and harden selector coverage against those cases. Only then should extraction be added and manually verified separately for Claude and Gemini.
+The next integration task is live Gemini acceptance followed by small, sanitized fixture corrections for any authenticated DOM differences. Claude extraction should remain separate until its current structure can be inspected and tested independently.
 
-Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.4.10.
+Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.5.0.

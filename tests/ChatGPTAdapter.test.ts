@@ -5,6 +5,15 @@ import { describe, expect, it, vi } from "vitest";
 import { ChatGPTAdapter } from "../src/content/adapters/ChatGPTAdapter";
 
 describe("ChatGPTAdapter", () => {
+  it("reports the established ChatGPT integration as implemented and manually verified", () => {
+    expect(new ChatGPTAdapter(document, "chatgpt.com").capabilities).toEqual({
+      configured: true,
+      implemented: true,
+      manuallyVerified: true,
+      canExtractResponses: true,
+    });
+  });
+
   it("assembles live-derived sibling chart cards with their matching assistant responses", () => {
     document.body.innerHTML = readFileSync("tests/fixtures/chatgpt-live-chart.html", "utf8");
 

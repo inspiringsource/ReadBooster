@@ -16,5 +16,6 @@ describe("getActiveAdapter", () => {
     expect(getActiveAdapter("example.com", document)).toBeNull();
     expect(getActiveAdapter("chatgpt.com.example.org", document)).toBeNull();
     expect(getActiveAdapter("gemini.google.example", document)).toBeNull();
+    expect(getActiveAdapter("labs.gemini.google.com", document)).toBeNull();
   });
 });

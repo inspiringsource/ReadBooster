@@ -16,7 +16,7 @@ export function getActiveAdapter(
     return new ClaudeAdapter(normalized);
   }
   if (normalized === "gemini.google.com") {
-    return new GeminiAdapter(normalized);
+    return new GeminiAdapter(doc, normalized);
   }
   return null;
 }

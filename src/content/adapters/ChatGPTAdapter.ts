@@ -122,7 +122,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
   readonly capabilities = {
     configured: true,
     implemented: true,
-    manuallyVerified: false,
+    manuallyVerified: true,
     canExtractResponses: true,
   } as const;
 

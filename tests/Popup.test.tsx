@@ -43,27 +43,47 @@ describe("Popup", () => {
     ).toBe(true);
   });
 
-  it.each([
-    ["Claude", "https://claude.ai/chat/1", "claude" as const],
-    ["Gemini", "https://gemini.google.com/app/1", "gemini" as const],
-  ])("shows %s as not implemented and disables optimization", async (name, url, source) => {
-    installChromeMock(url, () => ({
+  it.each([["Claude", "https://claude.ai/chat/1", "claude" as const]])(
+    "shows %s as not implemented and disables optimization",
+    async (name, url, source) => {
+      installChromeMock(url, () => ({
+        ok: true,
+        supported: true,
+        source,
+        implemented: false,
+        manuallyVerified: false,
+        canExtractResponses: false,
+        responseAvailable: false,
+      }));
+
+      render(<Popup />);
+
+      expect(await screen.findByText(`${name} support is not yet implemented.`)).toBeTruthy();
+      expect(
+        (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true);
+    },
+  );
+
+  it("enables optimization for an available Gemini response", async () => {
+    installChromeMock("https://gemini.google.com/app/fixture", () => ({
       ok: true,
       supported: true,
-      source,
-      implemented: false,
+      source: "gemini",
+      implemented: true,
       manuallyVerified: false,
-      canExtractResponses: false,
-      responseAvailable: false,
+      canExtractResponses: true,
+      responseAvailable: true,
     }));
 
     render(<Popup />);
 
-    expect(await screen.findByText(`${name} support is not yet implemented.`)).toBeTruthy();
+    expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
         .disabled,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("prevents duplicate popup optimization while busy", async () => {
