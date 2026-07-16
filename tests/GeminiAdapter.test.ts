@@ -8,6 +8,7 @@ import { mergeConversationDocuments } from "../src/shared/conversation";
 import { sectionTitleOverrideIdentity } from "../src/shared/sectionTitleOverrides";
 
 const FIXTURE = readFileSync("tests/fixtures/gemini-conversation.html", "utf8");
+const BUTTON_IMAGE_FIXTURE = readFileSync("tests/fixtures/gemini-button-image.html", "utf8");
 const EMPTY_FIXTURE = readFileSync("tests/fixtures/gemini-no-response.html", "utf8");
 const SOURCE_URL = "https://gemini.google.com/app/fixture-url-conversation";
 
@@ -114,6 +115,101 @@ describe("GeminiAdapter", () => {
     expect(first.html).not.toContain("+1");
     expect(first.html).not.toMatch(/<button|<svg|<script|Share response|Read aloud/);
     expect(first.html).not.toContain("Hidden alternative draft");
+  });
+
+  it("normalizes the live-derived Gemini image button into one inert semantic figure", () => {
+    const response = adapter(fixtureDocument(BUTTON_IMAGE_FIXTURE)).getConversationDocument()!
+      .turns[0].response!;
+    const output = fixtureDocument(`<div>${response.html}</div>`);
+    const figure = output.querySelector("figure");
+    const image = figure?.querySelector("img");
+
+    expect(output.querySelectorAll("img")).toHaveLength(1);
+    expect(output.querySelectorAll("figure")).toHaveLength(1);
+    expect(output.querySelector("button")).toBeNull();
+    expect(image).toMatchObject({
+      alt: "The Federal Palace in Bern, AI generated",
+      width: 2048,
+      height: 1365,
+    });
+    expect(image?.getAttribute("src")).toBe(
+      "https://encrypted-tbn1.gstatic.com/licensed-image?q=redacted-fixture",
+    );
+    expect(figure?.querySelector("figcaption")).toBeNull();
+    expect(response.html).not.toMatch(
+      /jslog|_ngcontent|ng-star-inserted|spark-licensed|hero-image/,
+    );
+    expect(response.html.indexOf("Introductory response paragraph.")).toBeLessThan(
+      response.html.indexOf("<figure"),
+    );
+    expect(response.html.indexOf("<figure")).toBeLessThan(
+      response.html.indexOf("Following response explanation."),
+    );
+    expect(response.text).toContain("The Federal Palace in Bern, AI generated");
+  });
+
+  it("keeps rejecting control, citation, avatar, unsafe, and structurally unrelated images", () => {
+    const response = adapter(fixtureDocument(BUTTON_IMAGE_FIXTURE)).getConversationDocument()!
+      .turns[0].response!;
+
+    expect(response.html).not.toMatch(
+      /copy\.png|share\.png|audio\.png|avatar\.png|s2\/favicons|empty-alt|declared-large|one-class-only|javascript:|source-thumbnail\.png|<svg/,
+    );
+    expect(response.html).toContain("Fixture source");
+    expect(response.html).toContain("https://example.test/source");
+    expect(response.html).not.toContain("<button");
+    expect(response.html).not.toContain("Visual could not be captured");
+  });
+
+  it("retains an otherwise image-only response when the wrapped image qualifies", () => {
+    const imageOnly = fixtureDocument(`
+      <chat-app data-conversation-id="image-only">
+        <model-response data-response-id="image-only-response">
+          <message-content>
+            <button class="image-button">
+              <img class="hero-image" alt="Meaningful generated landscape" width="900" height="600"
+                src="https://encrypted-tbn1.gstatic.com/licensed-image?q=image-only-fixture">
+            </button>
+          </message-content>
+        </model-response>
+      </chat-app>`);
+    const response = adapter(imageOnly).getConversationDocument()?.turns[0].response;
+
+    expect(response?.html).toContain("<figure>");
+    expect(response?.html).toContain('alt="Meaningful generated landscape"');
+    expect(response?.text).toBe("Meaningful generated landscape");
+  });
+
+  it("preserves the relative order of multiple qualifying wrapped images", () => {
+    const multiple = fixtureDocument(`
+      <chat-app data-conversation-id="multiple-images">
+        <model-response data-response-id="multiple-image-response">
+          <message-content>
+            <p>Before images.</p>
+            <button class="image-button"><img class="hero-image" alt="First image" width="800"
+              height="500" src="https://example.test/first.png"></button>
+            <p>Between images.</p>
+            <button class="image-button"><img class="spark-licensed-landscape" alt="Second image"
+              width="900" height="600" src="https://example.test/second.png"></button>
+            <p>After images.</p>
+          </message-content>
+        </model-response>
+      </chat-app>`);
+    const response = adapter(multiple).getConversationDocument()!.turns[0].response!;
+
+    expect(response.html.match(/<figure>/g)).toHaveLength(2);
+    expect(response.html.indexOf("Before images.")).toBeLessThan(
+      response.html.indexOf("First image"),
+    );
+    expect(response.html.indexOf("First image")).toBeLessThan(
+      response.html.indexOf("Between images."),
+    );
+    expect(response.html.indexOf("Between images.")).toBeLessThan(
+      response.html.indexOf("Second image"),
+    );
+    expect(response.html.indexOf("Second image")).toBeLessThan(
+      response.html.indexOf("After images."),
+    );
   });
 
   it("transfers supported code labels and leaves unlabeled code plain", () => {

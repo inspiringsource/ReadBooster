@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.5.0 is a local-first Chrome extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.5.1 is a local-first Chrome extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
@@ -106,6 +106,14 @@ Supported fixture content includes headings, paragraphs, emphasis, links, nested
 Gemini uses the shared bounded source scanner only when mounted messages have a validated, vertically overflowing common ancestor. The scanner retains its existing cancellation, accumulation, limits, and source-scroll restoration. If no such scroller exists, Gemini returns an honest `single-snapshot` refresh result and performs no artificial traversal. Whether authenticated Gemini currently virtualizes conversation turns remains a live-testing question.
 
 Interactive Gemini artifacts, canvases, arbitrary SVG graphics, embedded applications, and shadow-root-only output are not captured in 0.5.0. Safe semantic raster images already present in response content may be retained; private Gemini APIs, network interception, proxying, uploads, and code execution are never used.
+
+### Gemini host-wrapped images in 0.5.1
+
+Live Gemini testing confirmed that meaningful hero/licensed response images can appear inside an interactive `button.image-button`. Earlier extraction treated every button descendant as host UI, so image pruning removed the raster and the later host-control cleanup removed its wrapper. The Gemini adapter now normalizes a narrowly verified response-media shape before ordinary pruning: one dominant safe image, the confirmed image-button plus hero/licensed-image structure, meaningful alternative text, substantial dimensions, and no citation, avatar, navigation, menu, toolbar, source-chip, or control-label context.
+
+A qualifying wrapper becomes an inert semantic `<figure><img></figure>` in its original response position. Only the safe source, normalized alternative text, and valid intrinsic width and height are copied. A genuine source caption may be retained, but alternative text is not duplicated as a visible caption. Gemini classes, Angular attributes, `jslog`, handlers, buttons, tracking metadata, and interactive behavior are discarded before the shared sanitizer. Ordinary control icons, empty-alt images, favicons, source thumbnails, unsafe URLs, arbitrary large declared dimensions, and unrelated SVG remain excluded.
+
+The HTTPS image reference remains only in the active normalized reader document. ReadBooster does not fetch, proxy, upload, log, diagnose with, or persist the URL or its query parameters, and 0.5.1 adds no permissions. The browser may render the referenced image normally; availability can still depend on the source URL and browser access policy. Interactive Gemini media, canvas, iframe, arbitrary SVG, and shadow-root-only output remain unsupported.
 
 ## Document and Focus modes
 
@@ -457,6 +465,18 @@ Automated fixtures establish normalized behavior, not compatibility with Gemini'
 27. Close ReadBooster and confirm Gemini scrolling, focus, input, and controls remain usable.
 28. Record the Gemini URL shape, semantic message elements, stable IDs, selected-draft state, source scroller, SPA navigation behavior, and final pass/fail results.
 
+### 0.5.1 Gemini image acceptance checklist
+
+Automated fixtures verify the normalized live-derived structure, but final acceptance requires the actual Gemini response in Chrome.
+
+1. Open the Gemini response containing “The Federal Palace in Bern, AI generated.”
+2. Confirm the Federal Palace image appears exactly once and remains between its surrounding prose.
+3. Confirm no Gemini image button, tracking metadata, menu, download, expand, or other host control appears.
+4. Switch between Document and Focus modes, rename the section, and Refresh conversation; confirm the image remains present once.
+5. Use Document Copy and confirm it includes the meaningful alternative text but no image URL or binary data.
+6. Print and Save as PDF; confirm the image stays within printable width and preserves its aspect ratio.
+7. Confirm unrelated Gemini toolbar icons, avatars, citation favicons, source thumbnails, and decorative SVG remain absent.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT, Claude, and Gemini.
@@ -532,7 +552,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - ChatGPT and Gemini DOM structures are private and can change. ChatGPT is manually verified; Gemini's authenticated message selectors and behavior remain live-manual acceptance work.
 - Claude is a host-aware scaffold only and intentionally returns no extracted response.
 - ReadBooster scans mounted windows a supported platform exposes only after validating a shared overflowing source scroller. It cannot manufacture turns the platform never mounts, and it does not retrieve missing turns through private APIs. A single-snapshot fallback or bounded termination is not proof that no additional responses exist.
-- Gemini alternative drafts are limited to the explicitly selected visible response. Interactive artifacts, canvases, arbitrary SVG, embedded applications, and shadow-root-only output are not captured in 0.5.0.
+- Gemini alternative drafts are limited to the explicitly selected visible response. Version 0.5.1 preserves the confirmed host-wrapped hero/licensed raster-image structure, but interactive artifacts, canvases, arbitrary SVG, embedded applications, and shadow-root-only output are not captured.
 - The automatic bounded scan runs once per reader opening. A response mounted or completed later can be accumulated with **Actions → Refresh conversation**; there is no polling or permanent background observer.
 - Document mode is intentionally non-virtualized in 0.4.0. Virtualization remains a future option only if real conversations demonstrate a need.
 - Generated canvas charts are preserved only when local `toDataURL()` capture succeeds. Origin-restricted or unavailable bitmaps fall back to an accessible notice; arbitrary SVG, interactive artifacts, video, audio, host controls, and host-specific styling remain excluded.
@@ -541,7 +561,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
-- ReadBooster 0.5.0 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Claude or other additional extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.5.1 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Claude or other additional extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -549,4 +569,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 The next integration task is live Gemini acceptance followed by small, sanitized fixture corrections for any authenticated DOM differences. Claude extraction should remain separate until its current structure can be inspected and tested independently.
 
-Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.5.0.
+Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, safe completion-triggered refresh, and separately verified platform adapters. These features are not implemented in 0.5.1.

@@ -121,6 +121,29 @@ const VISUAL_CONTEXT_SELECTOR = [
   '[aria-label*="generated image" i]',
 ].join(",");
 
+const WRAPPED_RESPONSE_IMAGE_SELECTOR = 'button.image-button, [role="button"].image-button';
+
+const EXCLUDED_WRAPPED_MEDIA_CONTEXT_SELECTOR = [
+  CITATION_CONTEXT_SELECTOR,
+  "a[href]",
+  "nav",
+  '[role="menu"]',
+  '[role="toolbar"]',
+  '[data-test-id*="avatar" i]',
+  '[data-test-id*="citation" i]',
+  '[data-test-id*="source" i]',
+  '[data-test-id*="reference" i]',
+  '[aria-label*="avatar" i]',
+  '[aria-label*="citation" i]',
+  '[aria-label*="source" i]',
+].join(",");
+
+const HOST_CONTROL_LABEL =
+  /\b(?:copy|feedback|share|audio|listen|download|expand|menu|avatar|source|citation)\b/i;
+
+const MINIMUM_WRAPPED_IMAGE_WIDTH = 320;
+const MINIMUM_WRAPPED_IMAGE_HEIGHT = 160;
+
 const SOURCE_MESSAGE_ID_ATTRIBUTES: Record<ConversationRole, readonly string[]> = {
   user: ["data-message-id", "data-query-id", "data-turn-id"],
   assistant: ["data-message-id", "data-response-id", "data-turn-id"],
@@ -486,6 +509,9 @@ export class GeminiAdapter implements ConversationAdapter {
     const sourceRoot = this.findContentRoot(container, role);
     const contentRoot = sourceRoot.cloneNode(true) as Element;
     this.preserveHostCodeLanguages(contentRoot);
+    if (role === "assistant") {
+      this.normalizeWrappedResponseImages(contentRoot);
+    }
     this.normalizeCitations(contentRoot, sourceUrl);
     this.pruneImages(contentRoot);
     contentRoot.querySelectorAll(HOST_UI_SELECTORS).forEach((element) => element.remove());
@@ -628,6 +654,85 @@ export class GeminiAdapter implements ConversationAdapter {
     } catch {
       return value;
     }
+  }
+
+  /**
+   * Gemini sometimes makes a response image itself clickable. Convert only the confirmed
+   * response-media shape into inert semantic HTML before the broad host-control removal runs.
+   */
+  private normalizeWrappedResponseImages(root: Element): void {
+    for (const wrapper of root.querySelectorAll<HTMLElement>(WRAPPED_RESPONSE_IMAGE_SELECTOR)) {
+      const images = Array.from(wrapper.querySelectorAll<HTMLImageElement>("img"));
+      if (images.length !== 1) {
+        continue;
+      }
+      const image = images[0];
+      if (!this.isQualifyingWrappedResponseImage(root, wrapper, image)) {
+        continue;
+      }
+
+      const normalizedImage = this.doc.createElement("img");
+      normalizedImage.src = image.getAttribute("src")!.trim();
+      normalizedImage.alt = normalizedText(image.getAttribute("alt"));
+      for (const attribute of ["width", "height"] as const) {
+        const value = image.getAttribute(attribute)?.trim();
+        if (value && /^\d{1,5}$/.test(value)) {
+          normalizedImage.setAttribute(attribute, value);
+        }
+      }
+
+      const existingFigure = wrapper.closest("figure");
+      if (existingFigure && root.contains(existingFigure)) {
+        wrapper.replaceWith(normalizedImage);
+        continue;
+      }
+
+      const figure = this.doc.createElement("figure");
+      figure.append(normalizedImage);
+      const caption = wrapper.querySelector("figcaption");
+      if (caption && normalizedText(caption.textContent)) {
+        const normalizedCaption = this.doc.createElement("figcaption");
+        normalizedCaption.textContent = normalizedText(caption.textContent);
+        figure.append(normalizedCaption);
+      }
+      wrapper.replaceWith(figure);
+    }
+  }
+
+  private isQualifyingWrappedResponseImage(
+    root: Element,
+    wrapper: HTMLElement,
+    image: HTMLImageElement,
+  ): boolean {
+    const source = image.getAttribute("src")?.trim() ?? "";
+    const alternative = normalizedText(image.getAttribute("alt"));
+    const width = this.safeImageDimension(image.getAttribute("width"));
+    const height = this.safeImageDimension(image.getAttribute("height"));
+    const responseImageIdentity =
+      image.classList.contains("hero-image") ||
+      image.classList.contains("spark-licensed-landscape");
+    const outerControl = wrapper.parentElement?.closest("button, [role='button']");
+    const labelledAsControl = HOST_CONTROL_LABEL.test(wrapper.getAttribute("aria-label") ?? "");
+
+    return Boolean(
+      root.contains(wrapper) &&
+      wrapper.classList.contains("image-button") &&
+      responseImageIdentity &&
+      alternative &&
+      alternative.length <= 1_000 &&
+      width >= MINIMUM_WRAPPED_IMAGE_WIDTH &&
+      height >= MINIMUM_WRAPPED_IMAGE_HEIGHT &&
+      isSafeImageSource(source) &&
+      !isKnownFaviconSource(source) &&
+      !labelledAsControl &&
+      !outerControl &&
+      !wrapper.closest(EXCLUDED_WRAPPED_MEDIA_CONTEXT_SELECTOR),
+    );
+  }
+
+  private safeImageDimension(value: string | null): number {
+    const normalized = value?.trim() ?? "";
+    return /^\d{1,5}$/.test(normalized) ? Number.parseInt(normalized, 10) : 0;
   }
 
   private pruneImages(root: Element): void {

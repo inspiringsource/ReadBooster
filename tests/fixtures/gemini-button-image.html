@@ -1,0 +1,102 @@
+<chat-app data-conversation-id="fixture-gemini-image-conversation">
+  <chat-window>
+    <chat-window-content>
+      <main data-test-id="conversation-scroll">
+        <user-query data-query-id="gemini-image-query">
+          <user-query-content><p>Fixture prompt for a response image.</p></user-query-content>
+        </user-query>
+
+        <model-response data-response-id="gemini-image-response">
+          <message-content>
+            <p>Introductory response paragraph.</p>
+
+            <button
+              class="image-button ng-star-inserted"
+              jslog="redacted-tracking-metadata"
+              _ngcontent-fixture=""
+            >
+              <img
+                loading="lazy"
+                class="spark-licensed-landscape hero-image loaded"
+                alt="The Federal Palace in Bern, AI generated"
+                width="2048"
+                height="1365"
+                src="https://encrypted-tbn1.gstatic.com/licensed-image?q=redacted-fixture"
+                _ngcontent-fixture=""
+              />
+            </button>
+
+            <p>Following response explanation.</p>
+
+            <button aria-label="Copy"><img src="https://example.test/copy.png" alt="" /></button>
+            <button aria-label="Share response">
+              <img src="https://example.test/share.png" alt="Share" />
+            </button>
+            <button aria-label="Read aloud">
+              <img src="https://example.test/audio.png" alt="Audio" />
+            </button>
+            <div data-test-id="avatar">
+              <img src="https://example.test/avatar.png" alt="Gemini avatar" />
+            </div>
+            <source-footnote>
+              <a href="https://example.test/source">
+                <img
+                  src="https://www.google.com/s2/favicons?domain=example.test&amp;sz=128"
+                  alt=""
+                  width="128"
+                  height="128"
+                />
+                <span>Fixture source</span>
+              </a>
+            </source-footnote>
+            <button class="image-button">
+              <img
+                class="hero-image"
+                src="https://example.test/empty-alt.png"
+                alt=""
+                width="2048"
+                height="1365"
+              />
+            </button>
+            <button aria-label="Open arbitrary media">
+              <img
+                class="hero-image"
+                src="https://example.test/declared-large.png"
+                alt="Declared dimensions alone"
+                width="2048"
+                height="1365"
+              />
+            </button>
+            <button class="image-button">
+              <img
+                src="https://example.test/one-class-only.png"
+                alt="One class alone"
+                width="2048"
+                height="1365"
+              />
+            </button>
+            <button class="image-button">
+              <img
+                class="spark-licensed-landscape hero-image"
+                src="javascript:alert(1)"
+                alt="Unsafe wrapped image"
+                width="2048"
+                height="1365"
+              />
+            </button>
+            <a href="https://example.test/source-thumbnail">
+              <img
+                class="hero-image"
+                src="https://example.test/source-thumbnail.png"
+                alt="Source thumbnail"
+                width="800"
+                height="500"
+              />
+            </a>
+            <svg aria-hidden="true"><path d="M0 0h10v10z" /></svg>
+          </message-content>
+        </model-response>
+      </main>
+    </chat-window-content>
+  </chat-window>
+</chat-app>

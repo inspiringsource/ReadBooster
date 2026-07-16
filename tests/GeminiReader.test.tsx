@@ -8,6 +8,8 @@ import { mountReader, READER_HOST_ID } from "../src/reader/mountReader";
 import { SECTION_TITLE_OVERRIDES_STORAGE_KEY } from "../src/shared/sectionTitleOverrides";
 
 const FIXTURE = readFileSync("tests/fixtures/gemini-conversation.html", "utf8");
+const BUTTON_IMAGE_FIXTURE = readFileSync("tests/fixtures/gemini-button-image.html", "utf8");
+const PRINT_CSS = readFileSync("src/reader/reader.print.css", "utf8");
 
 function conversation() {
   const doc = new DOMParser().parseFromString(FIXTURE, "text/html");
@@ -16,6 +18,15 @@ function conversation() {
     doc,
     "gemini.google.com",
     "https://gemini.google.com/app/fixture-reader",
+  ).getConversationDocument()!;
+}
+
+function imageConversation() {
+  const doc = new DOMParser().parseFromString(BUTTON_IMAGE_FIXTURE, "text/html");
+  return new GeminiAdapter(
+    doc,
+    "gemini.google.com",
+    "https://gemini.google.com/app/fixture-image-reader",
   ).getConversationDocument()!;
 }
 
@@ -128,5 +139,78 @@ describe("Gemini reader integration", () => {
     expect(payload).toContain("gemini:gemini-response-1");
     expect(payload).not.toContain("Gemini response with");
     expect(payload).not.toContain("Fixture prompt");
+  });
+
+  it("renders the normalized hero image once across Document, Focus, Copy, and Print", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText }, userAgent: "jsdom" });
+    await act(async () => mountReader(imageConversation()));
+    const shadow = shadowRoot();
+
+    expect(shadow.querySelectorAll(".rb-document-section figure img")).toHaveLength(1);
+    expect(shadow.querySelector("figure img")?.getAttribute("alt")).toBe(
+      "The Federal Palace in Bern, AI generated",
+    );
+    fireEvent.click(button(shadow, "Actions"));
+    await act(async () => {
+      fireEvent.click(shadow.querySelector('[aria-label="Copy conversation document"]')!);
+      await Promise.resolve();
+    });
+    const copied = String(writeText.mock.calls.at(-1)?.[0]);
+    expect(copied).toContain("The Federal Palace in Bern, AI generated");
+    expect(copied).not.toContain("encrypted-tbn1.gstatic.com");
+    expect(PRINT_CSS).toMatch(/\.rb-content figure img[\s\S]+max-width: 100% !important/);
+
+    fireEvent.click(button(shadow, "Focus"));
+    expect(shadow.querySelectorAll(".rb-content--focus figure img")).toHaveLength(1);
+    expect(shadow.querySelectorAll(".rb-reader figure img")).toHaveLength(1);
+    fireEvent.click(button(shadow, "Document"));
+    expect(shadow.querySelectorAll(".rb-document-section figure img")).toHaveLength(1);
+  });
+
+  it("keeps the hero image stable through refresh merging and section renaming", async () => {
+    const values: Record<string, unknown> = {};
+    vi.stubGlobal("chrome", {
+      storage: {
+        local: {
+          get: vi.fn(async (key: string) => ({ [key]: values[key] })),
+          set: vi.fn(async (update: Record<string, unknown>) => Object.assign(values, update)),
+        },
+      },
+    });
+    const source = imageConversation();
+    const refresh = vi.fn().mockResolvedValue({
+      document: source,
+      scanPerformed: false,
+      completed: false,
+      terminationReason: "single-snapshot",
+    });
+    await act(async () => mountReader(source, undefined, refresh));
+    await act(async () => Promise.resolve());
+    const shadow = shadowRoot();
+    const originalFigure = shadow.querySelector(".rb-document-section figure");
+
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(shadow.querySelectorAll(".rb-document-section figure")).toHaveLength(1);
+    fireEvent.click(button(shadow, "Actions"));
+    fireEvent.click(button(shadow, "Refresh conversation"));
+    await act(async () => Promise.resolve());
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(shadow.querySelectorAll(".rb-document-section figure")).toHaveLength(1);
+    expect(shadow.querySelector(".rb-document-section figure")).toBe(originalFigure);
+
+    fireEvent.click(
+      shadow.querySelector('[aria-label="Rename section “Fixture prompt for a response image.”"]')!,
+    );
+    const input = shadow.querySelector<HTMLInputElement>("[data-rb-section-title-editor] input")!;
+    fireEvent.change(input, { target: { value: "Federal Palace image" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+      await Promise.resolve();
+    });
+    expect(shadow.querySelector(".rb-document-section figure")).toBe(originalFigure);
+    expect(shadow.querySelectorAll(".rb-document-section figure img")).toHaveLength(1);
+    expect(JSON.stringify(values)).not.toContain("encrypted-tbn1.gstatic.com");
+    expect(JSON.stringify(values)).not.toContain("redacted-fixture");
   });
 });
