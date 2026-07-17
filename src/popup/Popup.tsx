@@ -13,8 +13,6 @@ function isConfiguredUrl(url: string | undefined): boolean {
     return (
       hostname === "chatgpt.com" ||
       hostname.endsWith(".chatgpt.com") ||
-      hostname === "claude.ai" ||
-      hostname.endsWith(".claude.ai") ||
       hostname === "gemini.google.com"
     );
   } catch {
@@ -61,14 +59,8 @@ export function Popup() {
         const response = await sendToTab(tab.id, { type: "READBOOSTER_GET_STATUS" });
         if (response.ok && "canExtractResponses" in response && response.supported) {
           if (!response.canExtractResponses) {
-            const platform =
-              response.source === "claude"
-                ? "Claude"
-                : response.source === "gemini"
-                  ? "Gemini"
-                  : "This platform";
             setState("unavailable");
-            setMessage(`${platform} support is not yet implemented.`);
+            setMessage("This platform is not available in this release.");
           } else {
             setState("supported");
             setMessage(

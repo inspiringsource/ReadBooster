@@ -3,7 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import packageJson from "../package.json";
-import { ACTION_ICONS, EXTENSION_ICONS } from "../src/manifest/manifest";
+import {
+  ACTION_ICONS,
+  EXTENSION_ICONS,
+  HOMEPAGE_URL,
+  MANIFEST_DESCRIPTION,
+  SUPPORTED_HOST_MATCHES,
+} from "../src/manifest/manifest";
 
 function pngDimensions(path: string): { width: number; height: number } {
   const buffer = readFileSync(path);
@@ -12,12 +18,22 @@ function pngDimensions(path: string): { width: number; height: number } {
 }
 
 describe("extension branding package", () => {
-  it("uses package version 0.5.1 and keeps the existing permission boundary", () => {
+  it("uses package version 0.5.2 and keeps the exact store permission boundary", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.5.1");
+    expect(packageJson.version).toBe("0.5.2");
     expect(manifestSource).toContain("version: packageJson.version");
     expect(manifestSource).toContain('permissions: ["storage"]');
     expect(manifestSource).not.toContain('permissions: ["storage",');
+    expect(SUPPORTED_HOST_MATCHES).toEqual([
+      "https://chatgpt.com/*",
+      "https://gemini.google.com/*",
+    ]);
+    expect(MANIFEST_DESCRIPTION).toBe("Turn AI conversations into readable, navigable documents.");
+    expect(MANIFEST_DESCRIPTION.length).toBeLessThanOrEqual(132);
+    expect(HOMEPAGE_URL).toBe("https://inspiringsource.github.io/ReadBooster/");
+    expect(manifestSource).not.toMatch(
+      /claude\.ai|mistral\.ai|<all_urls>|activeTab|\btabs\b|\bscripting\b|webRequest|update_url/,
+    );
   });
 
   it("declares exact PNG icon sizes and action icons backed by runtime public assets", () => {

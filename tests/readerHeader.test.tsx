@@ -65,7 +65,7 @@ describe("reader header refinement", () => {
     const shadow = shadowRoot();
     const primary = shadow.querySelector(".rb-toolbar-primary")!;
 
-    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.5.1");
+    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.5.2");
     expect(primary.contains(button(shadow, "Document"))).toBe(true);
     expect(primary.contains(button(shadow, "Focus"))).toBe(true);
     expect(primary.contains(button(shadow, "Hide outline"))).toBe(true);
@@ -192,19 +192,22 @@ describe("reader header refinement", () => {
     expect(writeText).toHaveBeenCalledOnce();
     expect(print).toHaveBeenCalledOnce();
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Version 0.5.1 Beta",
+      "Version 0.5.2 Beta",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
       "ReadBooster processes content locally in your browser.",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "ChatGPT extraction is implemented and manually verified.",
+      "ReadBooster currently supports ChatGPT and Google Gemini.",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Gemini extraction is implemented with live manual verification pending.",
+      "Gemini live manual verification remains pending.",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Claude extraction is not implemented.",
+      "Mistral AI and Claude support are planned for future development milestones.",
+    );
+    expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
+      "These platforms are not currently enabled and ReadBooster does not request access to them.",
     );
   });
 });

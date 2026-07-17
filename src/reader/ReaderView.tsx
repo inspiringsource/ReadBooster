@@ -1067,9 +1067,13 @@ export function ReaderView({
                     <p>Version {READER_VERSION} Beta</p>
                     <p>ReadBooster processes content locally in your browser.</p>
                     <p>
-                      ChatGPT extraction is implemented and manually verified. Gemini extraction is
-                      implemented with live manual verification pending. Claude extraction is not
-                      implemented.
+                      ReadBooster currently supports ChatGPT and Google Gemini. Gemini live manual
+                      verification remains pending.
+                    </p>
+                    <p>
+                      Mistral AI and Claude support are planned for future development milestones.
+                      These platforms are not currently enabled and ReadBooster does not request
+                      access to them.
                     </p>
                   </section>
                 ) : null}

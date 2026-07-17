@@ -1,5 +1,4 @@
 import { ChatGPTAdapter } from "./ChatGPTAdapter";
-import { ClaudeAdapter } from "./ClaudeAdapter";
 import type { ConversationAdapter } from "./ConversationAdapter";
 import { GeminiAdapter } from "./GeminiAdapter";
 
@@ -11,9 +10,6 @@ export function getActiveAdapter(
 
   if (normalized === "chatgpt.com" || normalized.endsWith(".chatgpt.com")) {
     return new ChatGPTAdapter(doc, normalized);
-  }
-  if (normalized === "claude.ai" || normalized.endsWith(".claude.ai")) {
-    return new ClaudeAdapter(normalized);
   }
   if (normalized === "gemini.google.com") {
     return new GeminiAdapter(doc, normalized);

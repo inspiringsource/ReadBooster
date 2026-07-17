@@ -14,14 +14,19 @@ export const ACTION_ICONS = {
   "32": EXTENSION_ICONS["32"],
 };
 
+export const SUPPORTED_HOST_MATCHES = ["https://chatgpt.com/*", "https://gemini.google.com/*"];
+export const MANIFEST_DESCRIPTION = "Turn AI conversations into readable, navigable documents.";
+export const HOMEPAGE_URL = "https://inspiringsource.github.io/ReadBooster/";
+
 export default defineManifest({
   manifest_version: 3,
   name: "ReadBooster",
-  description: "Read AI-generated responses in a calm, adjustable reader view.",
+  description: MANIFEST_DESCRIPTION,
   version: packageJson.version,
+  homepage_url: HOMEPAGE_URL,
   icons: EXTENSION_ICONS,
   permissions: ["storage"],
-  host_permissions: ["https://chatgpt.com/*", "https://claude.ai/*", "https://gemini.google.com/*"],
+  host_permissions: [...SUPPORTED_HOST_MATCHES],
   action: {
     default_title: "ReadBooster",
     default_popup: "src/popup/index.html",
@@ -29,7 +34,7 @@ export default defineManifest({
   },
   content_scripts: [
     {
-      matches: ["https://chatgpt.com/*", "https://claude.ai/*", "https://gemini.google.com/*"],
+      matches: [...SUPPORTED_HOST_MATCHES],
       js: ["src/content/index.ts"],
       run_at: "document_idle",
     },

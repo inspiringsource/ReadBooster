@@ -43,31 +43,26 @@ describe("Popup", () => {
     ).toBe(true);
   });
 
-  it.each([["Claude", "https://claude.ai/chat/1", "claude" as const]])(
-    "shows %s as not implemented and disables optimization",
-    async (name, url, source) => {
-      installChromeMock(url, () => ({
-        ok: true,
-        supported: true,
-        source,
-        implemented: false,
-        manuallyVerified: false,
-        canExtractResponses: false,
-        responseAvailable: false,
-      }));
+  it.each([
+    ["Claude", "https://claude.ai/chat/1"],
+    ["Claude subdomain", "https://chat.claude.ai/chat/1"],
+    ["Mistral", "https://mistral.ai/"],
+    ["Mistral chat", "https://chat.mistral.ai/chat/1"],
+  ])("treats %s as unsupported without messaging a content script", async (_name, url) => {
+    const sendMessage = installChromeMock(url, () => null);
 
-      render(<Popup />);
+    render(<Popup />);
 
-      expect(await screen.findByText(`${name} support is not yet implemented.`)).toBeTruthy();
-      expect(
-        (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
-    },
-  );
+    expect(await screen.findByText("This page is not supported.")).toBeTruthy();
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(
+      (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
 
   it("enables optimization for an available Gemini response", async () => {
-    installChromeMock("https://gemini.google.com/app/fixture", () => ({
+    const sendMessage = installChromeMock("https://gemini.google.com/app/fixture", () => ({
       ok: true,
       supported: true,
       source: "gemini",
@@ -76,14 +71,22 @@ describe("Popup", () => {
       canExtractResponses: true,
       responseAvailable: true,
     }));
+    const close = vi.spyOn(window, "close").mockImplementation(() => undefined);
 
     render(<Popup />);
 
     expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(false);
+    const optimize = screen.getByRole("button", {
+      name: "Optimize latest response",
+    }) as HTMLButtonElement;
+    expect(optimize.disabled).toBe(false);
+    fireEvent.click(optimize);
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      7,
+      { type: "READBOOSTER_OPTIMIZE_LATEST" },
+      expect.any(Function),
+    );
   });
 
   it("prevents duplicate popup optimization while busy", async () => {
