@@ -117,7 +117,7 @@ describe("minimal continuous document mode", () => {
               appearance: "system",
               textSize: "medium",
               spacing: "comfortable",
-              preset: "comfortable",
+              readingFont: "default",
               codeAppearance: "color",
               documentOpenAt: "beginning",
             },

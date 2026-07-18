@@ -10,7 +10,7 @@ No company name, legal address, data-protection officer, or support email is ass
 
 ## 1. Product and scope
 
-ReadBooster is a Chrome extension that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.5.2 supports:
+ReadBooster is a Chrome extension that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.5.3 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`.

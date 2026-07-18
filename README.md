@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.5.2 is a local-first Chrome extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.5.3 is a local-first Chrome extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
@@ -27,7 +27,7 @@ Chrome Web Store preparation material is maintained in [Chrome Web Store submiss
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
 - Offer a discreet, user-initiated **Feedback** action that displays the published Tally form in an accessible modal without changing the reader.
-- Offer light, dark, and system appearance; text-size and spacing controls; Comfortable and Dyslexia-friendly visual presets; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
+- Offer light, dark, and system appearance; text-size and spacing controls; Default, Serif, Dyslexia-friendly, and optional locally bundled Fast Reading styles; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
 - Store only validated reader preferences and minimal section-title override metadata in `chrome.storage.local`.
 - Open immediately from the current platform DOM window, then use the shared bounded source-page scanner when a verified overflowing conversation scroller exists.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
@@ -42,6 +42,18 @@ ReadBooster does not load Tally's remote widget script, call `Tally.openPopup()`
 
 No manifest change was required for the iframe. The extension continues using Chrome's default Manifest V3 extension-page CSP, requests no Tally host permission, and retains only the existing `storage` permission. Tally's current response has no `X-Frame-Options` or `frame-ancestors` response restriction, but live Chrome acceptance remains necessary because external framing behavior can change independently of ReadBooster.
 
+### Fast Reading in 0.5.3
+
+**Reading settings → Reading style → Fast Reading** selects the optional Fast Sans face from the open-source [Fast Font project](https://github.com/Born2Root/Fast-Font). It uses fixation-guided letter emphasis to support faster scanning. It is an optional visual preference, not a guaranteed reading-speed improvement or a treatment for dyslexia.
+
+`Fast_Sans.ttf` is bundled inside the extension and loaded through a Manifest V3 extension asset URL, so selecting it makes no external font request and works offline. The reader explicitly enables the font's contextual-alternate OpenType feature. Normal paragraphs, headings, lists, links, blockquotes, tables, figures, and captions inherit the choice, while code, preformatted text, keyboard samples, and recognized math containers retain non-Fast fonts. Copy, outline derivation, section titles, and stored conversation text are unchanged because ReadBooster never rewrites words or inserts per-word markup.
+
+The single **Reading style** selector contains Default, Serif, Dyslexia-friendly, and Fast Reading. Text size and spacing remain independent controls. The former Comfortable and Custom preset states are no longer part of the active settings model. Existing Comfortable and Custom records retain their explicit style, text size, spacing, appearance, code, and opening preferences; an existing Dyslexia-friendly preset migrates to the Dyslexia-friendly reading style without resetting those independent values.
+
+The fixation-guided explanation appears contextually below the complete settings grid only while Fast Reading is selected. It does not occupy one grid cell or appear for Default and Serif, so both desktop columns retain aligned labels and controls; the grid switches to one column at narrow effective viewport widths.
+
+Fast Font attribution and its complete MIT License are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The production build also includes that notice alongside the font.
+
 ## Technology stack
 
 - TypeScript and React for typed extension and reader UI code
@@ -50,6 +62,7 @@ No manifest change was required for the iframe. The extension continues using Ch
 - `@crxjs/vite-plugin` for a lightweight Vite-to-MV3 build pipeline
 - DOMPurify for maintained browser-side HTML sanitization
 - Highlight.js core with a deliberately registered language subset for local syntax highlighting
+- Fast Sans from Fast Font, bundled locally with contextual alternates preserved
 - Vitest, jsdom, and Testing Library for focused DOM unit tests
 - ESLint and Prettier for code quality and formatting conventions
 
@@ -141,7 +154,7 @@ Recognized citation pills are normalized to restrained inline source links witho
 
 Canvas capture can fail when its bitmap is unavailable or origin-restricted. In that case ReadBooster preserves surrounding prose and code and inserts the restrained text “Visual could not be captured.” It does not fetch or screenshot an entire host widget. Meaningful raw SVG is not admitted through the sanitizer; a verified chart container currently follows the same safe-failure path because SVG also represents many ChatGPT interface icons.
 
-Every block-level code section receives a local enhancement toolbar with its explicit language and **Copy code**. Copy preserves the code text, line breaks, and indentation and excludes prose and the language label. Color mode lazily loads a selected Highlight.js bundle for Python, JavaScript, TypeScript, JSON, HTML, CSS, shell, SQL, and Markdown. Unsupported or unlabeled code remains readable plain code without guessing. Plain mode removes color tokens while preserving the code block and horizontal scrolling. Code appearance is persisted independently of typography presets. ReadBooster does not add Run and never executes response code.
+Every block-level code section receives a local enhancement toolbar with its explicit language and **Copy code**. Copy preserves the code text, line breaks, and indentation and excludes prose and the language label. Color mode lazily loads a selected Highlight.js bundle for Python, JavaScript, TypeScript, JSON, HTML, CSS, shell, SQL, and Markdown. Unsupported or unlabeled code remains readable plain code without guessing. Plain mode removes color tokens while preserving the code block and horizontal scrolling. Code appearance is persisted independently of the reading style. ReadBooster does not add Run and never executes response code.
 
 ## Reader header and About
 
@@ -163,8 +176,8 @@ To replace the icons later, begin with a square high-resolution source, preserve
 | ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------ |
 | ChatGPT (`chatgpt.com`)      | Supported                                 | Host access, content script, normalized Document and Focus reader               | Implemented and manually verified                |
 | Gemini (`gemini.google.com`) | Supported                                 | Host access, content script, normalized Document and Focus reader               | Live full-checklist verification remains pending |
-| Mistral AI                   | Planned for the 0.6 development milestone | No permission, content script, adapter routing, or placeholder control in 0.5.2 | Not enabled                                      |
-| Claude                       | Planned for the 0.7 development milestone | No permission, content script, adapter routing, or placeholder control in 0.5.2 | Not enabled                                      |
+| Mistral AI                   | Planned for the 0.6 development milestone | No permission, content script, adapter routing, or placeholder control in 0.5.3 | Not enabled                                      |
+| Claude                       | Planned for the 0.7 development milestone | No permission, content script, adapter routing, or placeholder control in 0.5.3 | Not enabled                                      |
 
 Gemini's public app-shell elements and selected live-derived response structures were inspected, but its full authenticated checklist and dynamic conversation behavior remain manually unverified. `GeminiAdapter.capabilities.manuallyVerified` therefore remains `false`. The retained Claude source scaffold is isolated from production, reports `configured: false`, and is tree-shaken from the content bundle.
 
@@ -204,13 +217,13 @@ After rebuilding, use the reload control on the ReadBooster card in `chrome://ex
 
 ## Chrome Web Store packaging
 
-Version 0.5.2 is prepared as a submission candidate, but this repository does not publish or submit it automatically. The production archive must contain the contents of `dist/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a `dist/` directory.
+Version 0.5.3 is prepared as a submission candidate, but this repository does not publish or submit it automatically. The production archive must contain the contents of `dist/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a `dist/` directory.
 
 The release workflow is:
 
 1. Run the complete typecheck, lint, test, build, formatting, audit, and diff gate.
 2. Inspect `dist/manifest.json`, including permissions, host permissions, content-script matches, and web-accessible-resource matches.
-3. Create `readbooster-0.5.2-chrome.zip` from inside `dist/` with metadata-stripping options where available.
+3. Create `readbooster-0.5.3-chrome.zip` from inside `dist/` with metadata-stripping options where available.
 4. Inspect the ZIP root and exclude repository sources, tests, fixtures, dependencies, secrets, `.DS_Store`, and `__MACOSX` metadata.
 5. Keep publication deferred until the website privacy/support handoff and live Chrome acceptance are complete.
 
@@ -242,7 +255,7 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 3. Confirm exactly one **Optimize Reading** button appears and is reachable by keyboard.
 4. Click the injected button and confirm Document mode opens with every eligible assistant response once, in chronological order.
 5. Switch to Focus, then use Previous and Next through every response; confirm the position label and disabled boundary controls are correct.
-6. Change appearance, text size, spacing, and preset, then switch responses and confirm those preferences remain active.
+6. Change appearance, reading style, text size, and spacing, then switch responses and confirm those preferences remain active.
 7. Confirm paragraphs, headings, lists, links, blockquotes, inline code, code blocks, and tables remain semantically intact when present.
 8. For a multi-column table, exercise Fit, Wide, Compact text, and Reset; confirm ordinary words are not broken in the middle and horizontal scrolling remains keyboard accessible.
 9. Open a table Fullscreen, verify focus stays inside it, close with its control and Escape, and confirm focus returns to the Fullscreen button.
@@ -496,11 +509,33 @@ Automated fixtures verify the normalized live-derived structure, but final accep
 6. Print and Save as PDF; confirm the image stays within printable width and preserves its aspect ratio.
 7. Confirm unrelated Gemini toolbar icons, avatars, citation favicons, source thumbnails, and decorative SVG remain absent.
 
+### 0.5.3 Fast Reading acceptance checklist
+
+Automated tests verify preference normalization, persistence, scoped styling, bundled-asset declarations, and unchanged response DOM. The fixation effect and glyph fallback still require the built extension in Chrome.
+
+1. Open a ChatGPT or Gemini conversation containing several assistant responses and open ReadBooster.
+2. Open **Reading settings**, select **Fast Reading**, and confirm fixation-guided letter emphasis appears in every Document section.
+3. Confirm there is no Preset control; confirm Reading style contains Default, Serif, Dyslexia-friendly, and Fast Reading.
+4. Confirm the fixation-guided explanation is absent for Default and Serif, appears only for Fast Reading, and does not misalign the control grid.
+5. Switch among all four reading styles; confirm changes apply immediately and Fast Reading persists after closing and reopening.
+6. Test English text and German `ä`, `ö`, `ü`, and `ß`.
+7. Test French `é`, `è`, `à`, `ç`, and `œ`.
+8. Inspect headings, paragraphs, lists, links, `strong`, `b`, bold italic text, blockquotes, captions, and source citations; confirm synthesized heavier weights remain readable and distinct.
+9. Exercise Fit, Wide, Compact text, and Fullscreen table modes and confirm the font does not break sizing, scrolling, or controls.
+10. Inspect inline code, fenced code, `pre`, `kbd`, and `samp`; confirm they retain monospace typography and code highlighting remains unchanged.
+11. Inspect MathML, KaTeX, MathJax, or other recognized formula markup where available; confirm Fast Sans is not imposed on it.
+12. Test light and dark appearances, a narrow single-column layout, and Chrome zoom at 100%, 125%, 150%, and 200%.
+13. Refresh or scan a multi-section conversation and confirm newly discovered sections inherit Fast Reading without duplicate content controls.
+14. Copy Document and Focus content and confirm the clipboard text contains no inserted spans, bold markup, or transformed characters.
+15. Print and Save as PDF and confirm the existing print typography, tables, figures, and pagination remain valid.
+16. In DevTools, confirm `Fast_Sans.ttf` is declared only as Regular 400, loads from the extension origin, and makes no request to GitHub, a CDN, or a font service.
+17. Confirm there are no Content Security Policy or missing-asset errors in the console.
+
 ## Security and content handling
 
 - Manifest host access is limited to ChatGPT and Google Gemini.
 - The only requested Chrome permission is `storage`; content scripts and their generated web-accessible resources use only the same two supported host patterns.
-- Claude and Mistral AI receive no production host permission, content script, adapter routing, or injected control in 0.5.2.
+- Claude and Mistral AI receive no production host permission, content script, adapter routing, or injected control in 0.5.3.
 - Extraction clones user prompts and assistant responses into an in-memory normalized document; it does not mutate the host conversation.
 - Host controls are removed before DOMPurify applies a conservative element and attribute allowlist.
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
@@ -518,6 +553,8 @@ docs/
 ├── chrome-web-store-submission.md
 └── privacy-policy-draft.md
 public/
+├── fonts/
+│   └── Fast_Sans.ttf     # Locally bundled Fast Reading face
 └── icons/                 # Runtime Chrome extension PNG icons
 src/
 ├── content/
@@ -584,7 +621,8 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Print output normalizes tables to the printable page width. Especially dense tables may remain easier to read when Landscape is selected manually in Chrome's print dialog.
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
-- ReadBooster 0.5.2 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Mistral or Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- Fast Sans is one static Regular face rather than a variable family. Browser-synthesized bold may differ from a dedicated bold face, and unsupported characters fall back to the reader's local sans-serif stack. Live Chrome checks remain necessary for multilingual glyph appearance and Chromium contextual-alternate behavior.
+- ReadBooster 0.5.3 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Mistral or Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -592,4 +630,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 Mistral AI is planned for the 0.6 development milestone. Claude is planned for the 0.7 development milestone. These are current roadmap intentions rather than contractual guarantees; each integration still requires live DOM evidence, a separate permission review, compact fixtures, and manual acceptance before it can be enabled.
 
-Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.5.2.
+Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.5.3.

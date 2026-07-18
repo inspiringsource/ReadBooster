@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import packageJson from "../../package.json";
 import { conversationDocumentsMatch, mergeConversationDocuments } from "../shared/conversation";
-import { preferencesForPreset } from "../shared/preferences";
 import {
   removeSectionTitleOverride,
   saveReaderPreferences,
@@ -17,8 +16,8 @@ import type {
   CodeAppearance,
   ConversationDocument,
   DocumentOpenAt,
+  ReadingFont,
   ReaderPreferences,
-  ReaderPreset,
   RefreshConversation,
   SpacingLevel,
   TextSize,
@@ -422,19 +421,6 @@ export function ReaderView({
     void saveReaderPreferences(next).catch(() => undefined);
   };
 
-  const updatePreset = (preset: ReaderPreset): void => {
-    if (preset === "custom") {
-      updatePreferences({ ...preferences, preset });
-      return;
-    }
-    updatePreferences(
-      preferencesForPreset(preset, preferences.appearance, {
-        codeAppearance: preferences.codeAppearance,
-        documentOpenAt: preferences.documentOpenAt,
-      }),
-    );
-  };
-
   const handleActiveDocumentChange = useCallback(
     (sectionId: string, headingId: string | null): void => {
       setActiveSectionId(sectionId);
@@ -745,7 +731,7 @@ export function ReaderView({
       ref={dialogRef}
       className="rb-reader"
       data-appearance={preferences.appearance}
-      data-preset={preferences.preset}
+      data-reading-style={preferences.readingFont}
       data-mode={mode}
       data-code-appearance={preferences.codeAppearance}
       role="dialog"
@@ -883,15 +869,42 @@ export function ReaderView({
                 <h2 id="reading-settings-title">Reading settings</h2>
                 <div className="rb-settings-grid">
                   <label>
-                    <span>Preset</span>
+                    <span>Reading style</span>
                     <select
-                      aria-label="Reading preset"
-                      value={preferences.preset}
-                      onChange={(event) => updatePreset(event.target.value as ReaderPreset)}
+                      aria-label="Reading style"
+                      aria-describedby={
+                        preferences.readingFont === "fast-reading"
+                          ? "rb-fast-reading-description"
+                          : undefined
+                      }
+                      value={preferences.readingFont}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          readingFont: event.target.value as ReadingFont,
+                        })
+                      }
                     >
-                      <option value="comfortable">Comfortable</option>
+                      <option value="default">Default</option>
+                      <option value="serif">Serif</option>
                       <option value="dyslexia-friendly">Dyslexia-friendly</option>
-                      <option value="custom">Custom</option>
+                      <option value="fast-reading">Fast Reading</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Open document at</span>
+                    <select
+                      aria-label="Open document at"
+                      value={preferences.documentOpenAt}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          documentOpenAt: event.target.value as DocumentOpenAt,
+                        })
+                      }
+                    >
+                      <option value="latest">Latest section</option>
+                      <option value="beginning">Beginning</option>
                     </select>
                   </label>
                   <label>
@@ -911,19 +924,21 @@ export function ReaderView({
                     </select>
                   </label>
                   <label>
-                    <span>Open document at</span>
+                    <span>Text size</span>
                     <select
-                      aria-label="Open document at"
-                      value={preferences.documentOpenAt}
+                      aria-label="Reader text size"
+                      value={preferences.textSize}
                       onChange={(event) =>
                         updatePreferences({
                           ...preferences,
-                          documentOpenAt: event.target.value as DocumentOpenAt,
+                          textSize: event.target.value as TextSize,
                         })
                       }
                     >
-                      <option value="latest">Latest section</option>
-                      <option value="beginning">Beginning</option>
+                      <option value="small">Small</option>
+                      <option value="medium">Medium</option>
+                      <option value="large">Large</option>
+                      <option value="x-large">Extra large</option>
                     </select>
                   </label>
                   <label>
@@ -944,25 +959,6 @@ export function ReaderView({
                     </select>
                   </label>
                   <label>
-                    <span>Text size</span>
-                    <select
-                      aria-label="Reader text size"
-                      value={preferences.textSize}
-                      onChange={(event) =>
-                        updatePreferences({
-                          ...preferences,
-                          textSize: event.target.value as TextSize,
-                          preset: "custom",
-                        })
-                      }
-                    >
-                      <option value="small">Small</option>
-                      <option value="medium">Medium</option>
-                      <option value="large">Large</option>
-                      <option value="x-large">Extra large</option>
-                    </select>
-                  </label>
-                  <label>
                     <span>Spacing</span>
                     <select
                       aria-label="Reader spacing"
@@ -971,7 +967,6 @@ export function ReaderView({
                         updatePreferences({
                           ...preferences,
                           spacing: event.target.value as SpacingLevel,
-                          preset: "custom",
                         })
                       }
                     >
@@ -981,6 +976,15 @@ export function ReaderView({
                     </select>
                   </label>
                 </div>
+                {preferences.readingFont === "fast-reading" ? (
+                  <p
+                    id="rb-fast-reading-description"
+                    className="rb-settings-help"
+                    aria-live="polite"
+                  >
+                    Uses fixation-guided letter emphasis to support faster scanning.
+                  </p>
+                ) : null}
               </>
             ) : (
               <>

@@ -65,7 +65,7 @@ describe("reader header refinement", () => {
     const shadow = shadowRoot();
     const primary = shadow.querySelector(".rb-toolbar-primary")!;
 
-    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.5.2");
+    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.5.3");
     expect(primary.contains(button(shadow, "Document"))).toBe(true);
     expect(primary.contains(button(shadow, "Focus"))).toBe(true);
     expect(primary.contains(button(shadow, "Hide outline"))).toBe(true);
@@ -104,13 +104,26 @@ describe("reader header refinement", () => {
     expect(settingsTrigger.getAttribute("aria-expanded")).toBe("true");
     expect(shadow.querySelector("#rb-reading-settings-panel")).not.toBeNull();
     expect(shadow.activeElement).toBe(
-      shadow.querySelector<HTMLSelectElement>('[aria-label="Reading preset"]'),
+      shadow.querySelector<HTMLSelectElement>('[aria-label="Reading style"]'),
     );
     fireEvent.change(shadow.querySelector('[aria-label="Reader appearance"]')!, {
       target: { value: "dark" },
     });
+    fireEvent.change(shadow.querySelector('[aria-label="Reading style"]')!, {
+      target: { value: "fast-reading" },
+    });
     await vi.waitFor(() => expect(storageSet).toHaveBeenCalled());
     expect(shadow.querySelector(".rb-reader")?.getAttribute("data-appearance")).toBe("dark");
+    expect(shadow.querySelector(".rb-reader")?.getAttribute("data-reading-style")).toBe(
+      "fast-reading",
+    );
+    expect(
+      shadow.querySelector<HTMLSelectElement>('[aria-label="Reading style"]')?.selectedOptions[0]
+        .textContent,
+    ).toBe("Fast Reading");
+    expect(shadow.querySelector("#rb-fast-reading-description")?.textContent).toBe(
+      "Uses fixation-guided letter emphasis to support faster scanning.",
+    );
 
     fireEvent.click(actionsTrigger);
     expect(shadow.querySelector("#rb-reading-settings-panel")).toBeNull();
@@ -137,6 +150,7 @@ describe("reader header refinement", () => {
           readerPreferences: expect.objectContaining({
             codeAppearance: "plain",
             documentOpenAt: "beginning",
+            readingFont: "fast-reading",
           }),
         }),
       ),
@@ -192,7 +206,7 @@ describe("reader header refinement", () => {
     expect(writeText).toHaveBeenCalledOnce();
     expect(print).toHaveBeenCalledOnce();
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Version 0.5.2 Beta",
+      "Version 0.5.3 Beta",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
       "ReadBooster processes content locally in your browser.",

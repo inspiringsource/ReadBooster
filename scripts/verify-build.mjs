@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,8 @@ const expectedSizes = { 16: 16, 32: 32, 48: 48, 128: 128 };
 const expectedHosts = ["https://chatgpt.com/*", "https://gemini.google.com/*"];
 const expectedDescription = "Turn AI conversations into readable, navigable documents.";
 const expectedHomepage = "https://inspiringsource.github.io/ReadBooster/";
+const fastReadingFontPath = "fonts/Fast_Sans.ttf";
+const thirdPartyNoticesPath = join(dist, "THIRD_PARTY_NOTICES.md");
 
 function assert(condition, message) {
   if (!condition) {
@@ -47,6 +50,23 @@ for (const resourceGroup of manifest.web_accessible_resources ?? []) {
     "web-accessible-resource matches changed",
   );
 }
+assert(
+  manifest.web_accessible_resources.some((group) => group.resources?.includes(fastReadingFontPath)),
+  "Fast Reading font is not declared as a web-accessible resource",
+);
+const fastReadingFont = join(dist, fastReadingFontPath);
+assert(existsSync(fastReadingFont), "Fast Reading font was not copied to dist");
+const fastReadingFontBuffer = readFileSync(fastReadingFont);
+assert(
+  fastReadingFontBuffer.subarray(0, 4).equals(Buffer.from([0x00, 0x01, 0x00, 0x00])),
+  "Fast Reading font is not a TrueType sfnt",
+);
+assert(fastReadingFontBuffer.length > 1_000_000, "Fast Reading font asset is unexpectedly small");
+assert(existsSync(thirdPartyNoticesPath), "third-party notices were not copied to dist");
+const thirdPartyNotices = readFileSync(thirdPartyNoticesPath, "utf8");
+assert(/Fast Font/.test(thirdPartyNotices), "Fast Font attribution is missing");
+assert(/Copyright \(c\) 2023 Born2Root/.test(thirdPartyNotices), "Fast Font copyright is missing");
+assert(/MIT License/.test(thirdPartyNotices), "Fast Font MIT license is missing");
 const manifestText = JSON.stringify(manifest);
 assert(!/claude\.ai|mistral\.ai|<all_urls>/i.test(manifestText), "unused host access was shipped");
 assert(
@@ -91,6 +111,27 @@ const shippedText = shippedEntries
   .filter((entry) => textExtensions.has(extname(entry)))
   .map((entry) => readFileSync(entry, "utf8"))
   .join("\n");
+assert(
+  /font-family:\s*["']ReadBooster Fast Sans["'][\s\S]*font-weight:\s*400/.test(shippedText),
+  "built Fast Reading face is not declared at weight 400",
+);
+assert(
+  !/font-weight:\s*100\s+900/.test(shippedText),
+  "built Fast Reading face was incorrectly declared as variable",
+);
+assert(
+  /font-feature-settings:\s*["']calt["']\s*1/.test(shippedText) &&
+    /font-variant-ligatures:\s*contextual/.test(shippedText),
+  "built Fast Reading contextual alternates are missing",
+);
+assert(
+  /new FontFace\(/.test(shippedText) && /document\.fonts\.add\(/.test(shippedText),
+  "built reader does not register Fast Sans with the document FontFaceSet",
+);
+assert(
+  /data-reading-style/.test(shippedText) && !/data-reading-font/.test(shippedText),
+  "built reader does not use the unified Reading style attribute",
+);
 assert(!/MyWebSite|MySite/.test(shippedText), "generic website placeholder metadata was shipped");
 assert(
   !/tally\.so\/widgets\/embed\.js|Tally\.openPopup/.test(shippedText),

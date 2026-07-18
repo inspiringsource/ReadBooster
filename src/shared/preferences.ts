@@ -2,8 +2,8 @@ import type {
   AppearanceMode,
   CodeAppearance,
   DocumentOpenAt,
+  ReadingFont,
   ReaderPreferences,
-  ReaderPreset,
   SpacingLevel,
   TextSize,
 } from "./types";
@@ -12,7 +12,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   appearance: "system",
   textSize: "medium",
   spacing: "comfortable",
-  preset: "comfortable",
+  readingFont: "default",
   codeAppearance: "color",
   documentOpenAt: "latest",
 };
@@ -20,7 +20,12 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
 const APPEARANCE_MODES: readonly AppearanceMode[] = ["system", "light", "dark"];
 const TEXT_SIZES: readonly TextSize[] = ["small", "medium", "large", "x-large"];
 const SPACING_LEVELS: readonly SpacingLevel[] = ["compact", "comfortable", "roomy"];
-const READER_PRESETS: readonly ReaderPreset[] = ["comfortable", "dyslexia-friendly", "custom"];
+const READING_FONTS: readonly ReadingFont[] = [
+  "default",
+  "serif",
+  "dyslexia-friendly",
+  "fast-reading",
+];
 const CODE_APPEARANCES: readonly CodeAppearance[] = ["color", "plain"];
 const DOCUMENT_OPEN_POSITIONS: readonly DocumentOpenAt[] = ["latest", "beginning"];
 
@@ -37,19 +42,23 @@ export function normalizeReaderPreferences(value: unknown): ReaderPreferences {
   const appearance = isAllowed(candidate.appearance, APPEARANCE_MODES)
     ? candidate.appearance
     : DEFAULT_READER_PREFERENCES.appearance;
-  const preset = isAllowed(candidate.preset, READER_PRESETS)
-    ? candidate.preset
-    : DEFAULT_READER_PREFERENCES.preset;
   const codeAppearance = isAllowed(candidate.codeAppearance, CODE_APPEARANCES)
     ? candidate.codeAppearance
     : DEFAULT_READER_PREFERENCES.codeAppearance;
   const documentOpenAt = isAllowed(candidate.documentOpenAt, DOCUMENT_OPEN_POSITIONS)
     ? candidate.documentOpenAt
     : DEFAULT_READER_PREFERENCES.documentOpenAt;
-
-  if (preset !== "custom") {
-    return preferencesForPreset(preset, appearance, { codeAppearance, documentOpenAt });
-  }
+  const explicitReadingFont = isAllowed(candidate.readingFont, READING_FONTS)
+    ? candidate.readingFont
+    : null;
+  // 0.5.3 previously stored a multi-setting preset. Preserve every independent
+  // preference, and use the preset only as a migration hint when no valid
+  // explicit reading style exists.
+  const readingFont =
+    candidate.preset === "dyslexia-friendly" &&
+    (explicitReadingFont === null || explicitReadingFont === "default")
+      ? "dyslexia-friendly"
+      : (explicitReadingFont ?? DEFAULT_READER_PREFERENCES.readingFont);
 
   return {
     appearance,
@@ -59,23 +68,8 @@ export function normalizeReaderPreferences(value: unknown): ReaderPreferences {
     spacing: isAllowed(candidate.spacing, SPACING_LEVELS)
       ? candidate.spacing
       : DEFAULT_READER_PREFERENCES.spacing,
-    preset,
+    readingFont,
     codeAppearance,
     documentOpenAt,
   };
-}
-
-export function preferencesForPreset(
-  preset: Exclude<ReaderPreset, "custom">,
-  appearance: AppearanceMode,
-  independent: Pick<ReaderPreferences, "codeAppearance" | "documentOpenAt"> = {
-    codeAppearance: DEFAULT_READER_PREFERENCES.codeAppearance,
-    documentOpenAt: DEFAULT_READER_PREFERENCES.documentOpenAt,
-  },
-): ReaderPreferences {
-  if (preset === "dyslexia-friendly") {
-    return { appearance, textSize: "large", spacing: "roomy", preset, ...independent };
-  }
-
-  return { appearance, textSize: "medium", spacing: "comfortable", preset, ...independent };
 }

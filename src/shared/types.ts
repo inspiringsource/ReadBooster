@@ -103,7 +103,7 @@ export interface AdapterCapabilities {
 export type AppearanceMode = "system" | "light" | "dark";
 export type TextSize = "small" | "medium" | "large" | "x-large";
 export type SpacingLevel = "compact" | "comfortable" | "roomy";
-export type ReaderPreset = "comfortable" | "dyslexia-friendly" | "custom";
+export type ReadingFont = "default" | "serif" | "dyslexia-friendly" | "fast-reading";
 export type CodeAppearance = "color" | "plain";
 export type DocumentOpenAt = "latest" | "beginning";
 
@@ -111,7 +111,7 @@ export interface ReaderPreferences {
   appearance: AppearanceMode;
   textSize: TextSize;
   spacing: SpacingLevel;
-  preset: ReaderPreset;
+  readingFont: ReadingFont;
   codeAppearance: CodeAppearance;
   documentOpenAt: DocumentOpenAt;
 }

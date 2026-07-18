@@ -1,6 +1,7 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
 import packageJson from "../../package.json";
+import { FAST_READING_FONT_PATH } from "../shared/assets";
 
 export const EXTENSION_ICONS = {
   "16": "icons/readbooster-16.png",
@@ -37,6 +38,12 @@ export default defineManifest({
       matches: [...SUPPORTED_HOST_MATCHES],
       js: ["src/content/index.ts"],
       run_at: "document_idle",
+    },
+  ],
+  web_accessible_resources: [
+    {
+      resources: [FAST_READING_FONT_PATH],
+      matches: [...SUPPORTED_HOST_MATCHES],
     },
   ],
 });

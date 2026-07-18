@@ -40,6 +40,12 @@
   --rb-code-number: #b44b00;
   --rb-code-title: #1456b8;
   --rb-code-comment: #68717e;
+  --rb-reader-default-font:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rb-reader-serif-font: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --rb-reader-dyslexia-font: Arial, Verdana, ui-sans-serif, system-ui, sans-serif;
+  --rb-reader-fast-font: "ReadBooster Fast Sans", ui-sans-serif, system-ui, sans-serif;
+  --rb-reader-content-font: var(--rb-reader-default-font);
   background: var(--rb-background);
   color: var(--rb-text);
   display: grid;
@@ -253,11 +259,24 @@
 }
 
 .rb-settings-grid label {
+  align-content: start;
   color: var(--rb-muted);
   display: grid;
   font-size: 11px;
   font-weight: 650;
   gap: 3px;
+}
+
+.rb-settings-grid select {
+  min-height: 36px;
+}
+
+.rb-settings-help {
+  color: var(--rb-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  margin: 12px 0 0;
 }
 
 .rb-actions-list {
@@ -429,6 +448,12 @@
 .rb-header-panel select {
   min-width: 0;
   width: 100%;
+}
+
+.rb-header-panel .rb-settings-grid select {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 7px 9px;
 }
 
 .rb-header-controls button:hover,
@@ -791,7 +816,7 @@
   border: 1px solid var(--rb-border);
   border-radius: 14px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-family: var(--rb-reader-content-font);
   font-size: var(--rb-font-size);
   line-height: var(--rb-line-height);
   margin: 0 auto;
@@ -851,10 +876,10 @@
 }
 
 .rb-document-section-header h2 {
-  font:
-    700 clamp(18px, 2vw, 24px) / 1.3 ui-sans-serif,
-    system-ui,
-    sans-serif;
+  font-family: var(--rb-reader-content-font);
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 700;
+  line-height: 1.3;
   margin: 0;
 }
 
@@ -887,10 +912,10 @@
 }
 
 .rb-prompt-content {
-  font:
-    500 14px/1.55 ui-sans-serif,
-    system-ui,
-    sans-serif;
+  font-family: var(--rb-reader-content-font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
   margin-top: 10px;
   opacity: 0.9;
 }
@@ -903,11 +928,91 @@
   margin-bottom: 0;
 }
 
-.rb-reader[data-preset="dyslexia-friendly"] .rb-content {
-  font-family: Arial, Verdana, ui-sans-serif, system-ui, sans-serif;
+.rb-reader[data-reading-style="serif"] {
+  --rb-reader-content-font: var(--rb-reader-serif-font);
+}
+
+.rb-reader[data-reading-style="dyslexia-friendly"] {
+  --rb-reader-content-font: var(--rb-reader-dyslexia-font);
+}
+
+.rb-reader[data-reading-style="fast-reading"] {
+  --rb-reader-content-font: var(--rb-reader-fast-font);
+}
+
+.rb-reader[data-reading-style="dyslexia-friendly"] .rb-content {
   letter-spacing: 0.035em;
   max-width: 66ch;
   word-spacing: 0.08em;
+}
+
+.rb-reader :is(.rb-content, .rb-prompt-content, .rb-document-section-header h2) {
+  font-family: var(--rb-reader-content-font);
+}
+
+.rb-reader
+  .rb-content
+  :where(
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    li,
+    blockquote,
+    a,
+    strong,
+    b,
+    em,
+    table,
+    thead,
+    tbody,
+    tr,
+    th,
+    td,
+    caption,
+    figcaption,
+    cite
+  ) {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variant-ligatures: inherit;
+}
+
+.rb-reader[data-reading-style="fast-reading"]
+  :is(.rb-content, .rb-prompt-content, .rb-document-section-header h2) {
+  font-feature-settings: "calt" 1;
+  font-variant-ligatures: contextual;
+}
+
+.rb-reader[data-reading-style="fast-reading"]
+  .rb-content
+  :is(code, pre, kbd, samp, button, input, textarea, select, .rb-block-toolbar, .rb-code-toolbar),
+.rb-reader[data-reading-style="fast-reading"]
+  .rb-content
+  :is(code, pre, kbd, samp, button, input, textarea, select, .rb-block-toolbar, .rb-code-toolbar)
+  *,
+.rb-reader[data-reading-style="fast-reading"]
+  .rb-content
+  :is(math, mjx-container, .math, .katex, .MathJax, [role="math"]),
+.rb-reader[data-reading-style="fast-reading"]
+  .rb-content
+  :is(math, mjx-container, .math, .katex, .MathJax, [role="math"])
+  * {
+  font-feature-settings: normal;
+  font-variant-ligatures: normal;
+}
+
+.rb-reader[data-reading-style="fast-reading"]
+  .rb-content
+  :is(math, mjx-container, .math, .katex, .MathJax, [role="math"]),
+.rb-reader[data-reading-style="fast-reading"]
+  .rb-content
+  :is(math, mjx-container, .math, .katex, .MathJax, [role="math"])
+  * {
+  font-family: math, "STIX Two Math", "Cambria Math", serif;
 }
 
 .rb-content > :first-child {
@@ -946,10 +1051,9 @@
 
 .rb-content figcaption {
   color: var(--rb-muted);
-  font:
-    500 0.75em/1.45 ui-sans-serif,
-    system-ui,
-    sans-serif;
+  font-size: 0.75em;
+  font-weight: 500;
+  line-height: 1.45;
   margin-top: 0.65em;
 }
 
@@ -959,13 +1063,6 @@
 .rb-content h4,
 .rb-content h5,
 .rb-content h6 {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
   line-height: 1.3;
   margin: 1.7em 0 0.55em;
 }
@@ -1005,10 +1102,9 @@
 .rb-content cite {
   color: var(--rb-muted);
   display: inline;
-  font:
-    600 0.72em/1.35 ui-sans-serif,
-    system-ui,
-    sans-serif;
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1.35;
   white-space: normal;
 }
 
@@ -1024,10 +1120,16 @@
   padding: 0.12em 0.32em;
 }
 
+.rb-content kbd,
+.rb-content samp {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
 .rb-content pre {
   background: var(--rb-code);
   border: 1px solid var(--rb-border);
   border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   overflow-x: auto;
   padding: 1em;
   white-space: pre;
@@ -1116,13 +1218,7 @@
 }
 
 .rb-table-block {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: inherit;
   font-size: var(--rb-table-font-size, 0.82em);
   line-height: var(--rb-table-line-height, 1.42);
   margin-block: 1.4em;
@@ -1150,6 +1246,7 @@
   border-radius: 8px 8px 0 0;
   display: flex;
   flex-wrap: wrap;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   gap: 6px;
   max-width: 100%;
   min-width: 0;
@@ -1281,7 +1378,7 @@
 
 .rb-table-block th {
   background: var(--rb-code);
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: inherit;
 }
 
 .rb-table-block thead th {
@@ -1392,6 +1489,12 @@
   }
 }
 
+@media (max-width: 700px) {
+  .rb-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 620px) {
   .rb-feedback-overlay {
     padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
@@ -1425,10 +1528,6 @@
 
   .rb-header-controls button {
     width: 100%;
-  }
-
-  .rb-settings-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .rb-response-navigation {

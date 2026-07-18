@@ -11,6 +11,11 @@ import type {
 import { assistantBlocks } from "../shared/types";
 import readerStyles from "./reader.css?inline";
 import readerPrintStyles from "./reader.print.css?inline";
+import {
+  fastReadingFontFace,
+  registerFastReadingFont,
+  unregisterFastReadingFont,
+} from "./fastReadingFont";
 import { ReaderView } from "./ReaderView";
 
 export const READER_HOST_ID = "readbooster-reader-root";
@@ -28,6 +33,7 @@ interface ActiveReader {
   printStyle: HTMLStyleElement;
   previouslyFocused: HTMLElement | null;
   restoreInert: () => void;
+  fastReadingFont: FontFace | null;
   closed: boolean;
 }
 
@@ -90,6 +96,7 @@ function cleanupActiveReader(restoreFocus: boolean): void {
   } finally {
     reader.host.remove();
     reader.printStyle.remove();
+    unregisterFastReadingFont(reader.fastReadingFont);
     reader.restoreInert();
     if (restoreFocus && reader.previouslyFocused?.isConnected) {
       reader.previouslyFocused.focus();
@@ -183,9 +190,11 @@ export async function mountReader(
     loadReaderPreferences(),
     loadSectionTitleOverrides(conversation),
   ]);
+  const fastReadingFont = registerFastReadingFont();
 
   // A newer mount or explicit unmount may have happened while storage was loading.
   if (requestId !== mountRequestId) {
+    unregisterFastReadingFont(fastReadingFont);
     return () => undefined;
   }
   cleanupActiveReader(true);
@@ -203,7 +212,7 @@ export async function mountReader(
 
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
-  style.textContent = `${readerStyles}\n${readerPrintStyles}`;
+  style.textContent = `${fastReadingFontFace()}\n${readerStyles}\n${readerPrintStyles}`;
   const mountPoint = document.createElement("div");
   mountPoint.className = "rb-reader-mount";
   shadow.append(style, mountPoint);
@@ -238,6 +247,7 @@ export async function mountReader(
     printStyle,
     previouslyFocused,
     restoreInert,
+    fastReadingFont,
     closed: false,
   };
   activeReader = reader;
