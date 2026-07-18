@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { ContentRequest, ContentResponse } from "../content/messages";
+import { getExtensionApi } from "../shared/extensionApi";
 
 type PopupState = "loading" | "supported" | "unsupported" | "unavailable";
 
@@ -21,22 +22,25 @@ function isConfiguredUrl(url: string | undefined): boolean {
 }
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const extensionApi = getExtensionApi();
+  if (!extensionApi) {
+    return null;
+  }
+  const [tab] = await extensionApi.tabs.query({ active: true, currentWindow: true });
   return tab ?? null;
 }
 
-function sendToTab(tabId: number, request: ContentRequest): Promise<ContentResponse> {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.sendMessage(tabId, request, (response: ContentResponse | undefined) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else if (!response) {
-        reject(new Error("No response from the content script"));
-      } else {
-        resolve(response);
-      }
-    });
-  });
+async function sendToTab(tabId: number, request: ContentRequest): Promise<ContentResponse> {
+  const extensionApi = getExtensionApi();
+  if (!extensionApi) {
+    throw new Error("ReadBooster extension API is unavailable");
+  }
+  const response = (await extensionApi.tabs.sendMessage(tabId, request)) as
+    ContentResponse | undefined;
+  if (!response) {
+    throw new Error("No response from the content script");
+  }
+  return response;
 }
 
 export function Popup() {

@@ -7,6 +7,7 @@ import { getActiveAdapter } from "./adapters/getActiveAdapter";
 import { CONTROL_HOST_ID, injectOptimizeButton } from "./injectButton";
 import { createContentMessageListener } from "./messages";
 import { createOptimizationService } from "./optimization";
+import { getExtensionApi } from "../shared/extensionApi";
 
 declare global {
   interface Window {
@@ -15,6 +16,11 @@ declare global {
 }
 
 window.__readBoosterCleanup?.();
+
+const extensionApi = getExtensionApi();
+if (!extensionApi) {
+  throw new Error("ReadBooster extension API is unavailable");
+}
 
 const adapter = getActiveAdapter();
 let buttonCleanup: (() => void) | null = null;
@@ -57,7 +63,7 @@ const messageListener = createContentMessageListener(optimizationService.handleM
   Boolean(adapter?.isSupportedPage()),
 );
 
-chrome.runtime.onMessage.addListener(messageListener);
+extensionApi.runtime.onMessage.addListener(messageListener);
 ensureButton();
 const stopObserving = adapter?.capabilities.canExtractResponses
   ? adapter.observePageChanges(ensureButton)
@@ -68,7 +74,7 @@ window.__readBoosterCleanup = () => {
   stopObserving();
   buttonCleanup?.();
   buttonCleanup = null;
-  chrome.runtime.onMessage.removeListener(messageListener);
+  extensionApi.runtime.onMessage.removeListener(messageListener);
   if (readerModulePromise) {
     void readerModulePromise
       .then((readerModule) => readerModule.unmountReader())

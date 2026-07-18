@@ -11,20 +11,22 @@ import {
 } from "./sectionTitleOverrides";
 import type { ConversationDocument, DocumentContentBlock } from "./types";
 import type { ReaderPreferences } from "./types";
+import { getExtensionApi } from "./extensionApi";
 
 const READER_PREFERENCES_KEY = "readerPreferences";
 
-function hasChromeStorage(): boolean {
-  return typeof chrome !== "undefined" && Boolean(chrome.storage?.local);
+function getLocalStorage(): chrome.storage.LocalStorageArea | null {
+  return getExtensionApi()?.storage?.local ?? null;
 }
 
 export async function loadReaderPreferences(): Promise<ReaderPreferences> {
-  if (!hasChromeStorage()) {
+  const storage = getLocalStorage();
+  if (!storage) {
     return { ...DEFAULT_READER_PREFERENCES };
   }
 
   try {
-    const stored = await chrome.storage.local.get(READER_PREFERENCES_KEY);
+    const stored = await storage.get(READER_PREFERENCES_KEY);
     return normalizeReaderPreferences(stored[READER_PREFERENCES_KEY]);
   } catch {
     return { ...DEFAULT_READER_PREFERENCES };
@@ -32,12 +34,13 @@ export async function loadReaderPreferences(): Promise<ReaderPreferences> {
 }
 
 export async function saveReaderPreferences(preferences: ReaderPreferences): Promise<void> {
-  if (!hasChromeStorage()) {
+  const storage = getLocalStorage();
+  if (!storage) {
     return;
   }
 
   const normalized = normalizeReaderPreferences(preferences);
-  await chrome.storage.local.set({ [READER_PREFERENCES_KEY]: normalized });
+  await storage.set({ [READER_PREFERENCES_KEY]: normalized });
 }
 
 export type SectionTitlePersistenceResult =
@@ -47,12 +50,13 @@ export async function loadSectionTitleOverrides(
   conversation: ConversationDocument,
 ): Promise<Map<string, string>> {
   const conversationKey = persistedConversationTitleKey(conversation);
-  if (!conversationKey || !hasChromeStorage()) {
+  const storage = getLocalStorage();
+  if (!conversationKey || !storage) {
     return new Map();
   }
 
   try {
-    const stored = await chrome.storage.local.get(SECTION_TITLE_OVERRIDES_STORAGE_KEY);
+    const stored = await storage.get(SECTION_TITLE_OVERRIDES_STORAGE_KEY);
     const normalized = normalizeSectionTitleOverrideStore(
       stored[SECTION_TITLE_OVERRIDES_STORAGE_KEY],
     );
@@ -69,8 +73,10 @@ export async function loadSectionTitleOverrides(
   }
 }
 
-async function readOverrideEntries(): Promise<SectionTitleOverrideRecord[]> {
-  const stored = await chrome.storage.local.get(SECTION_TITLE_OVERRIDES_STORAGE_KEY);
+async function readOverrideEntries(
+  storage: chrome.storage.LocalStorageArea,
+): Promise<SectionTitleOverrideRecord[]> {
+  const stored = await storage.get(SECTION_TITLE_OVERRIDES_STORAGE_KEY);
   return [
     ...normalizeSectionTitleOverrideStore(stored[SECTION_TITLE_OVERRIDES_STORAGE_KEY]).entries,
   ];
@@ -85,7 +91,8 @@ export async function saveSectionTitleOverride(
   if (!identity.persistable) {
     return "not-persistable";
   }
-  if (!hasChromeStorage()) {
+  const storage = getLocalStorage();
+  if (!storage) {
     return "unavailable";
   }
   const title = normalizeCustomSectionTitle(value);
@@ -94,7 +101,7 @@ export async function saveSectionTitleOverride(
   }
 
   try {
-    const entries = await readOverrideEntries();
+    const entries = await readOverrideEntries(storage);
     const lookupKey = identity.lookupKey;
     const next = entries.filter(
       (entry) =>
@@ -105,7 +112,7 @@ export async function saveSectionTitleOverride(
       responseKey: identity.responseKey,
       title,
     });
-    await chrome.storage.local.set({
+    await storage.set({
       [SECTION_TITLE_OVERRIDES_STORAGE_KEY]: {
         version: SECTION_TITLE_OVERRIDES_SCHEMA_VERSION,
         entries: next,
@@ -125,18 +132,19 @@ export async function removeSectionTitleOverride(
   if (!identity.persistable) {
     return "not-persistable";
   }
-  if (!hasChromeStorage()) {
+  const storage = getLocalStorage();
+  if (!storage) {
     return "unavailable";
   }
 
   try {
-    const entries = await readOverrideEntries();
+    const entries = await readOverrideEntries(storage);
     const next = entries.filter(
       (entry) =>
         sectionTitleOverrideLookupKey(entry.conversationKey, entry.responseKey) !==
         identity.lookupKey,
     );
-    await chrome.storage.local.set({
+    await storage.set({
       [SECTION_TITLE_OVERRIDES_STORAGE_KEY]: {
         version: SECTION_TITLE_OVERRIDES_SCHEMA_VERSION,
         entries: next,

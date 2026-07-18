@@ -5,20 +5,15 @@ import type { ContentResponse } from "../src/content/messages";
 import { Popup } from "../src/popup/Popup";
 
 function installChromeMock(url: string, getResponse: (type: string) => ContentResponse | null) {
-  const sendMessage = vi.fn(
-    (_tabId: number, request: { type: string }, callback: (response: ContentResponse) => void) => {
-      const response = getResponse(request.type);
-      if (response) {
-        callback(response);
-      }
-    },
+  const sendMessage = vi.fn(async (_tabId: number, request: { type: string }) =>
+    getResponse(request.type),
   );
   vi.stubGlobal("chrome", {
     tabs: {
       query: vi.fn(async () => [{ id: 7, url }]),
       sendMessage,
     },
-    runtime: { lastError: undefined },
+    runtime: {},
   });
   return sendMessage;
 }
@@ -82,11 +77,7 @@ describe("Popup", () => {
     expect(optimize.disabled).toBe(false);
     fireEvent.click(optimize);
     await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
-    expect(sendMessage).toHaveBeenLastCalledWith(
-      7,
-      { type: "READBOOSTER_OPTIMIZE_LATEST" },
-      expect.any(Function),
-    );
+    expect(sendMessage).toHaveBeenLastCalledWith(7, { type: "READBOOSTER_OPTIMIZE_LATEST" });
   });
 
   it("prevents duplicate popup optimization while busy", async () => {
@@ -107,9 +98,10 @@ describe("Popup", () => {
     });
     sendMessage.mockImplementationOnce(sendMessage.getMockImplementation()!);
     sendMessage.mockImplementationOnce(
-      (_tabId, _request, callback: (response: ContentResponse) => void) => {
-        finishOptimization = callback;
-      },
+      () =>
+        new Promise<ContentResponse>((resolve) => {
+          finishOptimization = resolve;
+        }),
     );
 
     render(<Popup />);

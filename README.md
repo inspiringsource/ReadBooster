@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.5.3 is a local-first Chrome extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.5.3 is a local-first browser extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
@@ -58,7 +58,7 @@ Fast Font attribution and its complete MIT License are in [THIRD_PARTY_NOTICES.m
 
 - TypeScript and React for typed extension and reader UI code
 - Vite for development and production bundling
-- Chrome Manifest V3
+- Chrome and Firefox Manifest V3 builds from one generated manifest model
 - `@crxjs/vite-plugin` for a lightweight Vite-to-MV3 build pipeline
 - DOMPurify for maintained browser-side HTML sanitization
 - Highlight.js core with a deliberately registered language subset for local syntax highlighting
@@ -197,6 +197,9 @@ npm run typecheck # TypeScript validation without output
 npm run lint      # ESLint checks
 npm run test      # Unit tests in jsdom
 npm run build     # Clean production build in dist/
+npm run build:chrome  # Chrome production build in dist-chrome/
+npm run build:firefox # Firefox production build in dist-firefox/
+npm run release       # Build, validate, package, and checksum both targets
 ```
 
 The development command runs Vite's extension-aware development workflow. Chrome still needs an unpacked extension directory loaded; follow terminal guidance from the Vite/CRXJS process and reload the extension when Chrome does not pick up a change automatically.
@@ -217,17 +220,36 @@ After rebuilding, use the reload control on the ReadBooster card in `chrome://ex
 
 ## Chrome Web Store packaging
 
-Version 0.5.3 is prepared as a submission candidate, but this repository does not publish or submit it automatically. The production archive must contain the contents of `dist/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a `dist/` directory.
+Version 0.5.3 is prepared as a submission candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
 
 The release workflow is:
 
 1. Run the complete typecheck, lint, test, build, formatting, audit, and diff gate.
-2. Inspect `dist/manifest.json`, including permissions, host permissions, content-script matches, and web-accessible-resource matches.
-3. Create `readbooster-0.5.3-chrome.zip` from inside `dist/` with metadata-stripping options where available.
+2. Inspect `dist-chrome/manifest.json`, including permissions, host permissions, content-script matches, and web-accessible-resource matches.
+3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.5.3.zip` with `manifest.json` at the archive root.
 4. Inspect the ZIP root and exclude repository sources, tests, fixtures, dependencies, secrets, `.DS_Store`, and `__MACOSX` metadata.
 5. Keep publication deferred until the website privacy/support handoff and live Chrome acceptance are complete.
 
 Reusable dashboard text and reviewer steps are in [docs/chrome-web-store-submission.md](docs/chrome-web-store-submission.md). The website-ready draft privacy text is in [docs/privacy-policy-draft.md](docs/privacy-policy-draft.md); its effective date and contact placeholders must be resolved before publication.
+
+## Chrome and Firefox release packaging
+
+The cross-browser release pipeline uses the shared source and generated manifest with an explicit browser target:
+
+```bash
+npm run build:chrome
+npm run build:firefox
+npm run verify:chrome
+npm run verify:firefox
+npm run lint:firefox
+npm run release
+```
+
+Chrome output is `dist-chrome/`; Firefox output is `dist-firefox/`. The complete release workflow creates browser upload ZIPs, a Mozilla source-review ZIP, and `release/SHA256SUMS.txt`. Each extension archive has `manifest.json` at its ZIP root.
+
+Firefox uses the stable Gecko ID `contact@avicloud.ch`, minimum Firefox 142.0, and the explicit no-data-collection declaration required by current AMO tooling. Firefox 142 is the first release where that declaration is supported consistently by Mozilla's desktop and Android validators; ReadBooster's prepared build is currently targeted and documented for desktop testing. The Firefox package remains unsigned until Mozilla signs it. Test it temporarily from `about:debugging` by loading `dist-firefox/manifest.json`; temporary loading is not a permanent public installation.
+
+Build and review details are in [release-builds.md](docs/release-builds.md), [Firefox submission notes](docs/firefox-submission.md), and the [Firefox listing draft](docs/firefox-listing-draft.md). Firefox support is prepared for testing and AMO submission; it is not claimed as published.
 
 ## Manual acceptance test
 

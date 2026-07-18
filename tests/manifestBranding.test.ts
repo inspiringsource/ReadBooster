@@ -6,7 +6,10 @@ import packageJson from "../package.json";
 import { FAST_READING_FONT_PATH } from "../src/shared/assets";
 import {
   ACTION_ICONS,
+  createManifest,
   EXTENSION_ICONS,
+  FIREFOX_EXTENSION_ID,
+  FIREFOX_MINIMUM_VERSION,
   HOMEPAGE_URL,
   MANIFEST_DESCRIPTION,
   SUPPORTED_HOST_MATCHES,
@@ -35,6 +38,25 @@ describe("extension branding package", () => {
     expect(manifestSource).not.toMatch(
       /claude\.ai|mistral\.ai|<all_urls>|activeTab|\btabs\b|\bscripting\b|webRequest|update_url/,
     );
+  });
+
+  it("generates explicit and separate Chrome and Firefox manifests", () => {
+    const chromeManifest = createManifest("chrome");
+    const firefoxManifest = createManifest("firefox");
+
+    expect(chromeManifest).not.toHaveProperty("browser_specific_settings");
+    expect(firefoxManifest.browser_specific_settings).toEqual({
+      gecko: {
+        id: "contact@avicloud.ch",
+        strict_min_version: "142.0",
+        data_collection_permissions: { required: ["none"] },
+      },
+    });
+    expect(FIREFOX_EXTENSION_ID).toBe("contact@avicloud.ch");
+    expect(FIREFOX_MINIMUM_VERSION).toBe("142.0");
+    expect(firefoxManifest.permissions).toEqual(chromeManifest.permissions);
+    expect(firefoxManifest.host_permissions).toEqual(chromeManifest.host_permissions);
+    expect(firefoxManifest.content_scripts).toEqual(chromeManifest.content_scripts);
   });
 
   it("declares exact PNG icon sizes and action icons backed by runtime public assets", () => {

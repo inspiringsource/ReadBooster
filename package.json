@@ -6,6 +6,17 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "node scripts/build.mjs",
+    "build:chrome": "node scripts/build.mjs chrome",
+    "build:firefox": "node scripts/build.mjs firefox",
+    "verify:chrome": "node scripts/verify-build.mjs --target chrome --dist dist-chrome",
+    "verify:firefox": "node scripts/verify-build.mjs --target firefox --dist dist-firefox",
+    "lint:firefox": "web-ext lint --source-dir dist-firefox --no-input",
+    "run:firefox": "web-ext run --source-dir dist-firefox",
+    "package:chrome": "node scripts/package-release.mjs chrome",
+    "package:firefox": "node scripts/package-release.mjs firefox",
+    "package:source": "node scripts/package-release.mjs source",
+    "verify:archives": "node scripts/verify-release-archives.mjs",
+    "release": "node scripts/release.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
@@ -39,6 +50,9 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0",
     "vite": "^8.1.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "web-ext": "^10.5.0",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
   }
 }

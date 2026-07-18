@@ -1,5 +1,8 @@
 node_modules/
 dist/
+dist-chrome/
+dist-firefox/
+release/
 coverage/
 .vite/
 *.log

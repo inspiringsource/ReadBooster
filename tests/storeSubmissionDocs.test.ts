@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 
 const STORE_DOC = "docs/chrome-web-store-submission.md";
 const PRIVACY_DRAFT = "docs/privacy-policy-draft.md";
+const FIREFOX_SUBMISSION = "docs/firefox-submission.md";
+const FIREFOX_LISTING = "docs/firefox-listing-draft.md";
+const RELEASE_BUILDS = "docs/release-builds.md";
 
 describe("Chrome Web Store release documentation", () => {
   it("provides submission and draft privacy documents without claiming publication", () => {
@@ -17,6 +20,21 @@ describe("Chrome Web Store release documentation", () => {
     expect(`${submission}\n${privacy}`).not.toMatch(
       /ReadBooster (?:is|has been) (?:published|available) (?:in|on) the Chrome Web Store/i,
     );
+  });
+
+  it("documents reproducible Firefox review builds without claiming publication", () => {
+    for (const path of [FIREFOX_SUBMISSION, FIREFOX_LISTING, RELEASE_BUILDS, "LICENSE"]) {
+      expect(existsSync(path)).toBe(true);
+    }
+    const combined = [FIREFOX_SUBMISSION, FIREFOX_LISTING, RELEASE_BUILDS]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+    expect(combined).toContain("contact@avicloud.ch");
+    expect(combined).toContain("Firefox 142");
+    expect(combined).toContain('required: ["none"]');
+    expect(combined).toContain("npm ci");
+    expect(combined).toContain("dist-firefox/manifest.json");
+    expect(combined).not.toMatch(/ReadBooster (?:is|has been) published on AMO/i);
   });
 
   it("documents local storage, Tally, Limited Use, and the exact supported hosts", () => {

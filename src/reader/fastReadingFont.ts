@@ -1,11 +1,13 @@
 import { FAST_READING_FONT_PATH } from "../shared/assets";
+import { getExtensionApi } from "../shared/extensionApi";
 
 export const FAST_READING_FONT_FAMILY = "ReadBooster Fast Sans";
 
 export function extensionAssetUrl(path: string): string {
   try {
-    if (typeof chrome !== "undefined" && typeof chrome.runtime?.getURL === "function") {
-      return chrome.runtime.getURL(path);
+    const extensionApi = getExtensionApi();
+    if (typeof extensionApi?.runtime?.getURL === "function") {
+      return extensionApi.runtime.getURL(path);
     }
   } catch {
     // Unit tests and local browser fixtures intentionally use the stable fallback.

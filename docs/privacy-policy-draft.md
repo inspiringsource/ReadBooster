@@ -10,7 +10,7 @@ No company name, legal address, data-protection officer, or support email is ass
 
 ## 1. Product and scope
 
-ReadBooster is a Chrome extension that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.5.3 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.5.3 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`.
@@ -27,7 +27,7 @@ Where supported response markup already references an image, the browser may loa
 
 ## 3. Information stored locally
 
-ReadBooster uses Chrome local storage for:
+ReadBooster uses browser-managed local extension storage for:
 
 - validated reader preferences, such as appearance, text size, spacing, code appearance, and initial document position;
 - user-created custom section-title overrides;
@@ -60,18 +60,18 @@ Tally is an external service and its own terms and privacy practices apply to in
 
 Users can remove ReadBooster’s locally stored preferences and custom section titles by:
 
-1. uninstalling ReadBooster in Chrome, subject to Chrome’s extension-storage behavior; or
-2. opening Chrome’s extension/site-data management tools and clearing ReadBooster’s extension storage.
+1. uninstalling ReadBooster, subject to the browser’s extension-storage behavior; or
+2. opening the browser’s extension/data management tools and clearing ReadBooster’s extension storage.
 
-Chrome interface wording can change between releases. Users may open `chrome://extensions`, locate ReadBooster, and use the available extension-data or removal controls. Because ReadBooster does not maintain a backend or user account, there is no separate ReadBooster server-side conversation archive to delete.
+Browser interface wording can change between releases. Chrome users may open `chrome://extensions`; Firefox users may open `about:addons`. Locate ReadBooster and use the available extension-data or removal controls. Because ReadBooster does not maintain a backend or user account, there is no separate ReadBooster server-side conversation archive to delete.
 
-Uninstalling the extension removes the installed extension. Chrome controls the final deletion and synchronization behavior of browser-managed local extension data.
+Uninstalling the extension removes the installed extension. The browser controls the final deletion and synchronization behavior of browser-managed local extension data.
 
 ## 7. Security approach
 
 ReadBooster minimizes access and data handling by:
 
-- requesting only the `storage` Chrome permission;
+- requesting only the `storage` extension permission;
 - limiting host access to ChatGPT and Google Gemini;
 - processing conversation content locally;
 - using a conservative HTML sanitizer before rendering extracted content;
