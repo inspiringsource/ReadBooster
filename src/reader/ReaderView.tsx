@@ -75,6 +75,7 @@ const SOURCE_LABELS: Record<ConversationDocument["source"], string> = {
   chatgpt: "ChatGPT",
   claude: "Claude",
   gemini: "Gemini",
+  mistral: "Mistral",
 };
 
 async function copyText(text: string): Promise<void> {
@@ -1071,13 +1072,12 @@ export function ReaderView({
                     <p>Version {READER_VERSION} Beta</p>
                     <p>ReadBooster processes content locally in your browser.</p>
                     <p>
-                      ReadBooster currently supports ChatGPT and Google Gemini. Gemini live manual
-                      verification remains pending.
+                      ReadBooster currently supports ChatGPT, Google Gemini, and Mistral. Gemini and
+                      Mistral live manual verification remain pending.
                     </p>
                     <p>
-                      Mistral AI and Claude support are planned for future development milestones.
-                      These platforms are not currently enabled and ReadBooster does not request
-                      access to them.
+                      Claude support is planned for a future development milestone. Claude is not
+                      currently enabled and ReadBooster does not request access to it.
                     </p>
                   </section>
                 ) : null}

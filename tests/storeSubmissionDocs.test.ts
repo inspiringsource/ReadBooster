@@ -44,13 +44,14 @@ describe("Chrome Web Store release documentation", () => {
 
     expect(submission).toContain("https://chatgpt.com/*");
     expect(submission).toContain("https://gemini.google.com/*");
+    expect(submission).toContain("https://chat.mistral.ai/*");
     expect(submission).toContain("No, ReadBooster does not use remote executable code.");
     expect(combined).toContain("section-title");
     expect(combined).toContain("Tally");
     expect(combined).toContain("Limited Use");
     expect(combined).toContain("does not persist complete conversations");
     expect(combined).not.toContain("https://claude.ai/*");
-    expect(combined).not.toContain("https://mistral.ai/*");
+    expect(combined).not.toContain("Access to https://mistral.ai/*");
   });
 
   it("keeps website publication details as explicit user-supplied placeholders", () => {

@@ -42,7 +42,6 @@ describe("Popup", () => {
     ["Claude", "https://claude.ai/chat/1"],
     ["Claude subdomain", "https://chat.claude.ai/chat/1"],
     ["Mistral", "https://mistral.ai/"],
-    ["Mistral chat", "https://chat.mistral.ai/chat/1"],
   ])("treats %s as unsupported without messaging a content script", async (_name, url) => {
     const sendMessage = installChromeMock(url, () => null);
 
@@ -61,6 +60,30 @@ describe("Popup", () => {
       ok: true,
       supported: true,
       source: "gemini",
+      implemented: true,
+      manuallyVerified: false,
+      canExtractResponses: true,
+      responseAvailable: true,
+    }));
+    const close = vi.spyOn(window, "close").mockImplementation(() => undefined);
+
+    render(<Popup />);
+
+    expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
+    const optimize = screen.getByRole("button", {
+      name: "Optimize latest response",
+    }) as HTMLButtonElement;
+    expect(optimize.disabled).toBe(false);
+    fireEvent.click(optimize);
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(sendMessage).toHaveBeenLastCalledWith(7, { type: "READBOOSTER_OPTIMIZE_LATEST" });
+  });
+
+  it("enables optimization for an available Mistral response", async () => {
+    const sendMessage = installChromeMock("https://chat.mistral.ai/work/fixture", () => ({
+      ok: true,
+      supported: true,
+      source: "mistral",
       implemented: true,
       manuallyVerified: false,
       canExtractResponses: true,

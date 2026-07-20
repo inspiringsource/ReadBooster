@@ -1,10 +1,10 @@
 # ReadBooster
 
-ReadBooster 0.5.3 is a local-first browser extension that renders normalized ChatGPT and Gemini conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.6.1 is a local-first browser extension that renders normalized ChatGPT, Gemini, and Mistral conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
-This repository contains the first MVP. ChatGPT and Gemini extraction are implemented and covered by compact DOM fixtures. ChatGPT is manually verified; Gemini live Chrome verification remains required because neither platform's conversation DOM is a public or stable API.
+This repository contains the first MVP. ChatGPT, Gemini, and Mistral extraction are implemented and covered by compact DOM fixtures. ChatGPT is manually verified; Gemini and Mistral live browser verification remain required because their authenticated conversation DOMs are not public or stable APIs.
 
 Public homepage: <https://inspiringsource.github.io/ReadBooster/>
 
@@ -15,7 +15,7 @@ Chrome Web Store preparation material is maintained in [Chrome Web Store submiss
 - Detect configured AI conversation sites.
 - Inject one idempotent **Optimize Reading** control.
 - Serialize optimization requests so rapid repeated activation cannot create duplicate readers.
-- Extract and sanitize ChatGPT and Gemini prompts and assistant responses into one platform-neutral conversation model.
+- Extract and sanitize ChatGPT, Gemini, and Mistral prompts and assistant responses into one platform-neutral conversation model.
 - Open in continuous Document mode by default, with every valid assistant response rendered chronologically.
 - Preserve the 0.3.1 single-response experience as Focus mode, including Previous and Next navigation.
 - Provide a grouped conversation outline in Document mode and the existing active-response outline in Focus mode.
@@ -132,6 +132,20 @@ A qualifying wrapper becomes an inert semantic `<figure><img></figure>` in its o
 
 The HTTPS image reference remains only in the active normalized reader document. ReadBooster does not fetch, proxy, upload, log, diagnose with, or persist the URL or its query parameters, and 0.5.1 adds no permissions. The browser may render the referenced image normally; availability can still depend on the source URL and browser access policy. Interactive Gemini media, canvas, iframe, arbitrary SVG, and shadow-root-only output remain unsupported.
 
+### Mistral conversation support in 0.6.0
+
+Mistral uses the same `ConversationAdapter` → normalized `ConversationDocument` → shared reader pipeline as ChatGPT and Gemini. The production router activates only on the exact `chat.mistral.ai` hostname and conversation routes. The adapter derives conversation identity from a `/work/{conversation-id}` or compatible `/chat/{conversation-id}` URL segment first, then a stable conversation DOM attribute; titles are never used as identity. Stable message attributes drive refresh merging, Focus navigation, response-local controls, and provider-scoped custom-title ownership. When no stable message identity exists, the exact DOM node receives a conservative identity for the current adapter session only; visible text, markup, position, and generic test IDs are not used to collapse messages, and the custom title deliberately remains session-only.
+
+The adapter's maintenance-sensitive selector families are centralized in `MistralAdapter.ts`. They favor semantic role/message attributes, message-content markers, accessible state, and bounded conversation relationships over generated styling classes. Compact sanitized fixtures cover chronological user/assistant pairing, assistant-only responses, headings, nested lists, blockquotes, tables, labelled code, citations, safe response images, visible file references, hidden alternatives, incomplete responses, duplicate SPA nodes, native response controls, and malformed neighbors. The shared sanitizer removes scripts, handlers, unsafe links and images, host buttons, menus, audio/copy/share/regenerate controls, decorative SVG, citation favicons, and tracking counters.
+
+Refresh uses the existing bounded source scanner only when mounted Mistral messages share a validated vertically overflowing conversation scroller. Otherwise it returns an honest single-window snapshot. A debounced page observer handles relevant DOM changes plus history/hash navigation and restores the injected control when a usable response exists; it does not re-open the reader, poll, click Mistral controls, or call private APIs.
+
+### Mistral production compatibility in 0.6.1
+
+Authenticated production inspection established that normal conversations use `/work/{conversation-id}` and that assistant answer content is exposed through `[data-message-part-type="answer"]` and `[data-testid="text-message-part"]`. These are now the adapter's primary assistant and response-content selectors; the earlier semantic-role selectors remain bounded compatibility fallbacks. A stable response ID may be inherited from the nearest wrapper only when that wrapper contains exactly one matching assistant candidate. The page observer watches the host body so client-side navigation can replace the conversation root without orphaning ReadBooster's control lifecycle.
+
+The editable Mistral Canvas surface (`.tiptap.ProseMirror.markdown-editor.markdown-container-style`) is deliberately excluded from message extraction in 0.6.1. The production route and assistant shape are based on authenticated evidence, but full end-to-end Chrome and Firefox acceptance, current user-message structure, streaming completion signals, and source-scroller behavior still require the live checklist below. `manuallyVerified` therefore remains `false`.
+
 ## Document and Focus modes
 
 Document mode remains the default. It renders all assistant responses as restrained chapters within one paper-like reading surface labelled `Section 1`, `Section 2`, and so on. Section titles use the first meaningful response heading, then a shortened user prompt, then `Response 1`, `Response 2`, and so on. ReadBooster normalizes repeated whitespace and conservative leading numbering or bullets in its derived titles while leaving the original response heading unchanged. Titles are local, deterministic, and limited to approximately 80 characters. The grouped conversation outline contains one top-level destination per response, including responses without headings. Response headings remain nested within their own group and never inherit hierarchy from another response.
@@ -172,14 +186,14 @@ To replace the icons later, begin with a square high-resolution source, preserve
 
 ## Website and adapter status
 
-| Website                      | Release status                            | Production access and behavior                                                  | Verification                                     |
-| ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------ |
-| ChatGPT (`chatgpt.com`)      | Supported                                 | Host access, content script, normalized Document and Focus reader               | Implemented and manually verified                |
-| Gemini (`gemini.google.com`) | Supported                                 | Host access, content script, normalized Document and Focus reader               | Live full-checklist verification remains pending |
-| Mistral AI                   | Planned for the 0.6 development milestone | No permission, content script, adapter routing, or placeholder control in 0.5.3 | Not enabled                                      |
-| Claude                       | Planned for the 0.7 development milestone | No permission, content script, adapter routing, or placeholder control in 0.5.3 | Not enabled                                      |
+| Website                      | Release status                             | Production access and behavior                                      | Verification                                     |
+| ---------------------------- | ------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------ |
+| ChatGPT (`chatgpt.com`)      | Supported                                  | Host access, normalized Document and Focus reader                   | Implemented and manually verified                |
+| Gemini (`gemini.google.com`) | Supported                                  | Host access, normalized Document and Focus reader                   | Live full-checklist verification remains pending |
+| Mistral (`chat.mistral.ai`)  | Production-route fix in 0.6.1              | Narrow host access, normalized Document and Focus reader            | Full Chrome/Firefox acceptance remains pending   |
+| Claude                       | Planned for a future development milestone | No permission, content script, adapter routing, or injected control | Not enabled                                      |
 
-Gemini's public app-shell elements and selected live-derived response structures were inspected, but its full authenticated checklist and dynamic conversation behavior remain manually unverified. `GeminiAdapter.capabilities.manuallyVerified` therefore remains `false`. The retained Claude source scaffold is isolated from production, reports `configured: false`, and is tree-shaken from the content bundle.
+Gemini's public app-shell elements and selected live-derived response structures were inspected, but its full authenticated checklist and dynamic conversation behavior remain manually unverified. Mistral's `/work` route and assistant answer-part attributes are authenticated production evidence; its full reader, streaming, navigation, and cross-browser checklist remains incomplete. Both adapters therefore retain `manuallyVerified: false`. The retained Claude source scaffold is isolated from production, reports `configured: false`, and is tree-shaken from the content bundle.
 
 ## Install dependencies
 
@@ -211,7 +225,7 @@ The development command runs Vite's extension-aware development workflow. Chrome
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.
 5. Select the generated extension build directory: `dist/`.
-6. Open ChatGPT at `https://chatgpt.com/` or Gemini at `https://gemini.google.com/`.
+6. Open ChatGPT at `https://chatgpt.com/`, Gemini at `https://gemini.google.com/`, or a Mistral conversation at `https://chat.mistral.ai/work/{conversation-id}`.
 7. Refresh the page if necessary.
 8. Open a conversation containing an assistant response.
 9. Click **Optimize Reading**.
@@ -220,13 +234,13 @@ After rebuilding, use the reload control on the ReadBooster card in `chrome://ex
 
 ## Chrome Web Store packaging
 
-Version 0.5.3 is prepared as a submission candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
+Version 0.6.1 is prepared as a build candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
 
 The release workflow is:
 
 1. Run the complete typecheck, lint, test, build, formatting, audit, and diff gate.
 2. Inspect `dist-chrome/manifest.json`, including permissions, host permissions, content-script matches, and web-accessible-resource matches.
-3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.5.3.zip` with `manifest.json` at the archive root.
+3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.6.1.zip` with `manifest.json` at the archive root.
 4. Inspect the ZIP root and exclude repository sources, tests, fixtures, dependencies, secrets, `.DS_Store`, and `__MACOSX` metadata.
 5. Keep publication deferred until the website privacy/support handoff and live Chrome acceptance are complete.
 
@@ -291,7 +305,7 @@ CSS layout and real scrolling dimensions cannot be fully validated by jsdom, so 
 17. Trigger a new or streaming response; after completion, confirm optimizing selects the newest assistant response.
 18. Open the popup on ChatGPT and confirm it reports support and opens the same reader flow.
 19. Open the popup on an unrelated website and confirm it reports that the page is unsupported.
-20. Visit Gemini and confirm its optimization control and popup support are available; visit Claude and Mistral AI and confirm no optimization button is injected and the popup reports each page as unsupported.
+20. Visit Gemini and Mistral and confirm each optimization control and popup flow is available; visit Claude and confirm no optimization button is injected and the popup reports the page as unsupported.
 
 ### 0.2.3 print and PDF checklist
 
@@ -519,6 +533,23 @@ Automated fixtures establish normalized behavior, not compatibility with Gemini'
 27. Close ReadBooster and confirm Gemini scrolling, focus, input, and controls remain usable.
 28. Record the Gemini URL shape, semantic message elements, stable IDs, selected-draft state, source scroller, SPA navigation behavior, and final pass/fail results.
 
+### 0.6.1 Mistral acceptance checklist
+
+Automated fixtures verify the adapter boundary and shared reader behavior but do not establish compatibility with Mistral's current authenticated web application. Keep `manuallyVerified: false` until the same live conversation has been exercised in both browser targets.
+
+1. Load the current Chrome build, sign in, open a `/work/{conversation-id}` conversation with at least three prompt-response turns, and record the URL and visible turn count; repeat a compatible `/chat/{conversation-id}` route if the application exposes one.
+2. Confirm one keyboard-reachable **Optimize Reading** control appears only after a usable assistant response exists; confirm no control appears on the sign-in or empty-chat screen.
+3. Open ReadBooster from the injected control and popup; confirm all currently available assistant responses appear once, chronologically, with associated prompts collapsed.
+4. Verify headings, nested lists, blockquotes, links, citations, source labels, uploaded-file references, safe response images, a wide table, labelled code, long code lines, and mathematical content.
+5. Confirm Mistral copy, feedback, share, audio, model, retry/regenerate, edit, menu, composer, sidebar, loading, and decorative controls are absent.
+6. Test Document and Focus modes, both outlines, Previous/Next boundaries, active-section tracking, Copy, Print/PDF, table modes, code Color/Plain and exact Copy code, all reading styles, and Feedback.
+7. Rename a Mistral section, close and reopen ReadBooster, and confirm it follows the same stable response without appearing in another conversation or provider; restore its automatic title.
+8. Generate a new response, inspect behavior while it streams, then use **Refresh conversation** and confirm the completed matching response updates without duplication or scroll reset.
+9. Navigate between two conversations through Mistral's sidebar without reloading; confirm one control remains, stale content is not retained, and returning restores the correct source conversation.
+10. Record whether Mistral virtualizes turns. If scanning occurs, start near both ends and confirm the same available turns are accumulated and the original source scroll position is restored after success, cancellation, and reader close.
+11. Repeat the integration checks with `dist-firefox/manifest.json` loaded temporarily through Firefox `about:debugging`, including locally bundled Fast Reading, persistence, narrow widths, light/dark appearance, and zoom.
+12. Record the actual role/content selectors, stable conversation and message IDs, streaming signal, source scroller, button-injection target, generated-media shapes, and any failed checks before changing `manuallyVerified`.
+
 ### 0.5.1 Gemini image acceptance checklist
 
 Automated fixtures verify the normalized live-derived structure, but final acceptance requires the actual Gemini response in Chrome.
@@ -555,15 +586,15 @@ Automated tests verify preference normalization, persistence, scoped styling, bu
 
 ## Security and content handling
 
-- Manifest host access is limited to ChatGPT and Google Gemini.
-- The only requested Chrome permission is `storage`; content scripts and their generated web-accessible resources use only the same two supported host patterns.
-- Claude and Mistral AI receive no production host permission, content script, adapter routing, or injected control in 0.5.3.
+- Manifest host access is limited to ChatGPT, Google Gemini, and the Mistral chat application at `chat.mistral.ai`.
+- The only requested Chrome permission is `storage`; content scripts and generated web-accessible resources use only those three supported host patterns.
+- Claude receives no production host permission, content script, adapter routing, or injected control in 0.6.1.
 - Extraction clones user prompts and assistant responses into an in-memory normalized document; it does not mutate the host conversation.
 - Host controls are removed before DOMPurify applies a conservative element and attribute allowlist.
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
 - Extracted response HTML and text remain in memory for the active reader session and are not written to storage.
 - `chrome.storage.local` contains validated reader preferences and optional `sectionTitleOverrides:v1` entries with stable conversation/response association keys plus user-created title text only.
-- ChatGPT and Gemini extraction reads only the currently rendered page DOM; it does not call platform APIs, private conversation endpoints, intercept network traffic, or add authentication.
+- ChatGPT, Gemini, and Mistral extraction reads only the currently rendered page DOM; it does not call platform APIs, private conversation endpoints, intercept network traffic, read cookies, or add authentication.
 - No remote executable code is loaded into the extension execution context, and no telemetry or automatic Tally request is used. After explicit activation, the Tally web application runs only inside its isolated iframe; ReadBooster does not load Tally's widget script or inspect the iframe's submitted content.
 
 ## Project structure
@@ -587,6 +618,8 @@ src/
 │   │   ├── ClaudeAdapter.ts
 │   │   ├── GeminiAdapter.ts
 │   │   ├── geminiSourceScanner.ts
+│   │   ├── MistralAdapter.ts
+│   │   ├── mistralSourceScanner.ts
 │   │   └── getActiveAdapter.ts
 │   ├── conversationDomScanner.ts
 │   ├── index.ts
@@ -631,8 +664,9 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 ## Known limitations
 
-- ChatGPT and Gemini DOM structures are private and can change. ChatGPT is manually verified; Gemini's authenticated message selectors and behavior remain live-manual acceptance work.
-- Claude and Mistral AI are not enabled and receive no site access. The isolated Claude source scaffold is retained only for possible future development and reports `configured: false`.
+- ChatGPT, Gemini, and Mistral DOM structures are private and can change. ChatGPT is manually verified; Gemini and Mistral dynamic behavior remains live-manual acceptance work.
+- Mistral 0.6.1 routing and primary assistant selectors use authenticated production evidence, but the full extension flow has not yet been accepted in Chrome and Firefox. User-message selectors, injected-control placement, streaming completion, source-scroller selection, visible citations/files/media, and SPA navigation remain maintenance-sensitive until that checklist passes.
+- Claude is not enabled and receives no site access. Its isolated source scaffold is retained only for possible future development and reports `configured: false`.
 - ReadBooster scans mounted windows a supported platform exposes only after validating a shared overflowing source scroller. It cannot manufacture turns the platform never mounts, and it does not retrieve missing turns through private APIs. A single-snapshot fallback or bounded termination is not proof that no additional responses exist.
 - Gemini alternative drafts are limited to the explicitly selected visible response. Version 0.5.1 preserves the confirmed host-wrapped hero/licensed raster-image structure, but interactive artifacts, canvases, arbitrary SVG, embedded applications, and shadow-root-only output are not captured.
 - The automatic bounded scan runs once per reader opening. A response mounted or completed later can be accumulated with **Actions → Refresh conversation**; there is no polling or permanent background observer.
@@ -644,12 +678,12 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
 - Fast Sans is one static Regular face rather than a variable family. Browser-synthesized bold may differ from a dedicated bold face, and unsupported characters fall back to the reader's local sans-serif stack. Live Chrome checks remain necessary for multilingual glyph appearance and Chromium contextual-alternate behavior.
-- ReadBooster 0.5.3 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Mistral or Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.6.1 does not provide search, bookmarks, annotations, response or prompt editing, AI revisions, code execution, selective print/export, Claude extraction, Mistral Canvas extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
 ## Roadmap
 
-Mistral AI is planned for the 0.6 development milestone. Claude is planned for the 0.7 development milestone. These are current roadmap intentions rather than contractual guarantees; each integration still requires live DOM evidence, a separate permission review, compact fixtures, and manual acceptance before it can be enabled.
+Mistral's production route and assistant selectors are corrected in 0.6.1, but full Chrome and Firefox acceptance remains pending. Claude is planned for a future development milestone; this is a roadmap intention rather than a contractual guarantee and still requires live DOM evidence, a separate permission review, compact fixtures, and manual acceptance before it can be enabled.
 
-Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.5.3.
+Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.6.1.

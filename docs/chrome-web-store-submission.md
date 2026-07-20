@@ -5,14 +5,14 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.5.3
+- Submission candidate: 0.6.1
 - Manifest: Version 3
-- Currently supported websites: ChatGPT and Google Gemini
+- Currently supported websites: ChatGPT, Google Gemini, and Mistral
 - Requested Chrome permission: `storage`
-- Requested host access: `https://chatgpt.com/*` and `https://gemini.google.com/*`
+- Requested host access: `https://chatgpt.com/*`, `https://gemini.google.com/*`, and `https://chat.mistral.ai/*`
 - Public homepage: <https://inspiringsource.github.io/ReadBooster/>
 
-Mistral AI is planned for the 0.6 development milestone. Claude is planned for the 0.7 development milestone. These are current roadmap intentions, not guarantees. Neither platform is enabled in 0.5.3, and ReadBooster requests no access to either platform.
+Mistral's authenticated production route and primary assistant selectors are corrected in 0.6.1, while full Chrome and Firefox acceptance remains pending. Claude is planned for a future development milestone, is not enabled, and receives no host access.
 
 ## Single-purpose statement
 
@@ -32,7 +32,11 @@ Mistral AI is planned for the 0.6 development milestone. Claude is planned for t
 
 > Access to https://gemini.google.com/* is required to detect and locally extract the AI conversation selected by the user, inject the Optimize Reading control, and render the conversation in ReadBooster’s reader interface. Conversation content is not sent to ReadBooster servers.
 
-No Claude, Mistral AI, `<all_urls>`, `activeTab`, `tabs`, `scripting`, `webRequest`, or other permission is requested.
+### Mistral host access
+
+> Access to https://chat.mistral.ai/* is required to detect and locally extract the AI conversation selected by the user, inject the Optimize Reading control, and render the conversation in ReadBooster’s reader interface. Conversation content is not sent to ReadBooster servers.
+
+No Claude, broad `mistral.ai`, `<all_urls>`, `activeTab`, `tabs`, `scripting`, `webRequest`, or other permission is requested.
 
 ## Remote-code declaration
 
@@ -72,12 +76,12 @@ ReadBooster does not claim to use a Google API. Gemini content is read from the 
 
 ## Reviewer test instructions
 
-> ReadBooster works on ChatGPT and Google Gemini.
+> ReadBooster works on ChatGPT, Google Gemini, and Mistral.
 >
 > No ReadBooster account or credentials are required. Reviewers may use their own test account for the supported third-party platform.
 >
 > 1. Install ReadBooster.
-> 2. Open https://chatgpt.com/ or https://gemini.google.com/.
+> 2. Open https://chatgpt.com/, https://gemini.google.com/, or a Mistral conversation at `https://chat.mistral.ai/work/{conversation-id}`.
 > 3. Sign in using a reviewer-controlled account if required.
 > 4. Open or create a conversation containing at least one AI response.
 > 5. Refresh the page once after installing the extension.
@@ -98,13 +102,13 @@ This is a recommendation for the future dashboard configuration only. Publicatio
 
 ## Website handoff checklist
 
-The website is maintained separately and is not changed by the 0.5.3 extension task. A later website update should:
+The website is maintained separately and is not changed by the 0.6.1 extension task. A later website update should:
 
-- show current extension version 0.5.3;
+- show current extension version 0.6.1;
 - show ChatGPT support;
 - show Google Gemini support;
-- describe Mistral AI as planned for the 0.6 development milestone;
-- describe Claude as planned for the 0.7 development milestone;
+- show Mistral support with an honest live-verification status;
+- describe Claude as planned for a future development milestone;
 - explain local conversation processing and local preference/custom-title storage;
 - disclose the optional user-initiated external Tally feedback form;
 - publish a reviewed privacy-policy page;

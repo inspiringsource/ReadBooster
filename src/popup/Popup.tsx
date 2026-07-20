@@ -14,7 +14,8 @@ function isConfiguredUrl(url: string | undefined): boolean {
     return (
       hostname === "chatgpt.com" ||
       hostname.endsWith(".chatgpt.com") ||
-      hostname === "gemini.google.com"
+      hostname === "gemini.google.com" ||
+      hostname === "chat.mistral.ai"
     );
   } catch {
     return false;

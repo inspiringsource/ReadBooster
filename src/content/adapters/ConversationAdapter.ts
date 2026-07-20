@@ -11,6 +11,7 @@ export interface ConversationAdapter {
   readonly source: ExtractedResponseSource;
   readonly capabilities: AdapterCapabilities;
   isSupportedPage(): boolean;
+  shouldInjectControl?(): boolean;
   getConversationDocument(): ConversationDocument | null;
   scanConversationDocument?(options?: ConversationScanOptions): Promise<ConversationScanResult>;
   hasLatestAssistantResponse(): boolean;

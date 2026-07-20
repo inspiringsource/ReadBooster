@@ -1,4 +1,4 @@
-export type ExtractedResponseSource = "chatgpt" | "claude" | "gemini";
+export type ExtractedResponseSource = "chatgpt" | "claude" | "gemini" | "mistral";
 
 export interface ExtractedResponse {
   id: string;

@@ -1,6 +1,6 @@
 # ReadBooster browser release builds
 
-ReadBooster 0.5.3 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
+ReadBooster 0.6.1 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
 
 ## Requirements
 
@@ -43,9 +43,9 @@ npm run release
 It creates:
 
 ```text
-release/readbooster-chrome-0.5.3.zip
-release/readbooster-firefox-0.5.3.zip
-release/readbooster-source-0.5.3.zip
+release/readbooster-chrome-0.6.1.zip
+release/readbooster-firefox-0.6.1.zip
+release/readbooster-source-0.6.1.zip
 release/SHA256SUMS.txt
 ```
 
@@ -53,7 +53,7 @@ The extension ZIPs contain `manifest.json` at their root. The source ZIP include
 
 ## Browser manifest differences
 
-Both targets use Manifest V3, the `storage` permission, the same ChatGPT and Gemini host patterns, popup, content script, icons, and narrowly scoped web-accessible resources. The Firefox build alone adds:
+Both targets use Manifest V3, the `storage` permission, the same ChatGPT, Gemini, and `chat.mistral.ai` host patterns, popup, content script, icons, and narrowly scoped web-accessible resources. The Firefox build alone adds:
 
 ```json
 "browser_specific_settings": {

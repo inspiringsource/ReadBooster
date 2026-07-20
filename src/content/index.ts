@@ -8,6 +8,7 @@ import { CONTROL_HOST_ID, injectOptimizeButton } from "./injectButton";
 import { createContentMessageListener } from "./messages";
 import { createOptimizationService } from "./optimization";
 import { getExtensionApi } from "../shared/extensionApi";
+import { shouldShowOptimizeControl } from "./controlVisibility";
 
 declare global {
   interface Window {
@@ -47,13 +48,15 @@ async function mountConversationDocument(
 
 const optimizationService = createOptimizationService(adapter, mountConversationDocument);
 
-function ensureButton(): void {
-  if (
-    disposed ||
-    !adapter?.isSupportedPage() ||
-    !adapter.capabilities.canExtractResponses ||
-    document.getElementById(CONTROL_HOST_ID)
-  ) {
+function syncButton(): void {
+  const shouldShow = shouldShowOptimizeControl(adapter, disposed);
+
+  if (!shouldShow) {
+    buttonCleanup?.();
+    buttonCleanup = null;
+    return;
+  }
+  if (document.getElementById(CONTROL_HOST_ID)) {
     return;
   }
   buttonCleanup = injectOptimizeButton(document, optimizationService.optimizeLatest);
@@ -64,9 +67,9 @@ const messageListener = createContentMessageListener(optimizationService.handleM
 );
 
 extensionApi.runtime.onMessage.addListener(messageListener);
-ensureButton();
+syncButton();
 const stopObserving = adapter?.capabilities.canExtractResponses
-  ? adapter.observePageChanges(ensureButton)
+  ? adapter.observePageChanges(syncButton)
   : () => undefined;
 
 window.__readBoosterCleanup = () => {

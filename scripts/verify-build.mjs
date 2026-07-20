@@ -7,7 +7,11 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const expectedSizes = { 16: 16, 32: 32, 48: 48, 128: 128 };
-const expectedHosts = ["https://chatgpt.com/*", "https://gemini.google.com/*"];
+const expectedHosts = [
+  "https://chatgpt.com/*",
+  "https://gemini.google.com/*",
+  "https://chat.mistral.ai/*",
+];
 const expectedDescription = "Turn AI conversations into readable, navigable documents.";
 const expectedHomepage = "https://inspiringsource.github.io/ReadBooster/";
 const expectedFirefoxId = "contact@avicloud.ch";
@@ -32,7 +36,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const thirdPartyNoticesPath = join(dist, "THIRD_PARTY_NOTICES.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.5.3", "release version is not 0.5.3");
+  assert(manifest.version === "0.6.1", "release version is not 0.6.1");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -55,7 +59,8 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   );
   for (const resourceGroup of manifest.web_accessible_resources ?? []) {
     assert(
-      JSON.stringify(resourceGroup.matches) === JSON.stringify(expectedHosts),
+      JSON.stringify([...resourceGroup.matches].sort()) ===
+        JSON.stringify([...expectedHosts].sort()),
       "web-accessible-resource matches changed",
     );
     for (const resource of resourceGroup.resources ?? []) {
@@ -86,10 +91,8 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   );
   assert(/MIT License/.test(thirdPartyNotices), "Fast Font MIT license is missing");
   const manifestText = JSON.stringify(manifest);
-  assert(
-    !/claude\.ai|mistral\.ai|<all_urls>/i.test(manifestText),
-    "unused host access was shipped",
-  );
+  assert(!/claude\.ai|<all_urls>/i.test(manifestText), "unused host access was shipped");
+  assert(!manifestText.includes("https://mistral.ai/*"), "broad Mistral host access was shipped");
   assert(
     !/(?:activeTab|tabs|scripting|webRequest)/.test(JSON.stringify(manifest.permissions)),
     "an unnecessary Chrome permission was shipped",

@@ -10,12 +10,13 @@ No company name, legal address, data-protection officer, or support email is ass
 
 ## 1. Product and scope
 
-ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.5.3 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.6.1 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
-- Google Gemini at `https://gemini.google.com/*`.
+- Google Gemini at `https://gemini.google.com/*`;
+- Mistral at `https://chat.mistral.ai/*`.
 
-Mistral AI and Claude are future roadmap integrations and are not enabled in this release. ReadBooster does not request access to those websites.
+Claude is a future roadmap integration and is not enabled in this release. ReadBooster does not request access to Claude or to unrelated Mistral marketing, documentation, account, or API pages.
 
 ## 2. Website and conversation content
 
@@ -72,7 +73,7 @@ Uninstalling the extension removes the installed extension. The browser controls
 ReadBooster minimizes access and data handling by:
 
 - requesting only the `storage` extension permission;
-- limiting host access to ChatGPT and Google Gemini;
+- limiting host access to ChatGPT, Google Gemini, and the Mistral chat application;
 - processing conversation content locally;
 - using a conservative HTML sanitizer before rendering extracted content;
 - stripping host controls, scripts, event handlers, and unsafe markup;

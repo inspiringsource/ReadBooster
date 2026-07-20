@@ -1,6 +1,7 @@
 import { ChatGPTAdapter } from "./ChatGPTAdapter";
 import type { ConversationAdapter } from "./ConversationAdapter";
 import { GeminiAdapter } from "./GeminiAdapter";
+import { MistralAdapter } from "./MistralAdapter";
 
 export function getActiveAdapter(
   hostname: string = window.location.hostname,
@@ -13,6 +14,9 @@ export function getActiveAdapter(
   }
   if (normalized === "gemini.google.com") {
     return new GeminiAdapter(doc, normalized);
+  }
+  if (normalized === "chat.mistral.ai") {
+    return new MistralAdapter(doc, normalized);
   }
   return null;
 }

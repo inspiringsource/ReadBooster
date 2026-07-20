@@ -1,0 +1,161 @@
+<main role="main" data-testid="conversation" data-conversation-id="fixture-mistral-conversation">
+  <h1 data-testid="conversation-title">Fixture Mistral conversation</h1>
+  <section data-testid="conversation-thread">
+    <article data-message-role="user" data-message-id="mistral-user-1">
+      <div data-testid="message-content">
+        <p>Fixture prompt about a structured response.</p>
+      </div>
+    </article>
+
+    <article data-response-id="mistral-assistant-1">
+      <div
+        dir="auto"
+        data-message-part-type="answer"
+        data-testid="text-message-part"
+        class="markdown-container-style fixture-irrelevant-class"
+      >
+        <h2>Mistral overview</h2>
+        <p>
+          A semantic response with <strong>structured content</strong> and
+          <span data-testid="citation-source">
+            <a href="https://example.test/reference?utm_source=vibe&amp;item=1">
+              <img
+                alt=""
+                width="128"
+                height="128"
+                src="https://www.google.com/s2/favicons?domain=example.test&amp;sz=128"
+              />
+              <span>Example source</span>
+              <span>+1</span>
+            </a>
+          </span>
+          .
+        </p>
+        <h3>Nested points</h3>
+        <ul>
+          <li>First point</li>
+          <li>
+            Second point
+            <ol>
+              <li>Nested detail</li>
+            </ol>
+          </li>
+        </ul>
+        <blockquote>Visible quotation.</blockquote>
+        <p>Formula: <span aria-label="x squared plus y squared">x² + y²</span></p>
+        <table>
+          <caption>
+            Wide comparison
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Long URL</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Alpha</th>
+              <td>https://example.test/a/very/long/table/value</td>
+              <td>One</td>
+            </tr>
+          </tbody>
+        </table>
+        <div data-testid="code-block">
+          <div data-testid="code-header" data-language="Python">
+            Python
+            <button aria-label="Copy code">Copy</button>
+          </div>
+          <pre><code><span>def</span> answer():
+    return 42</code></pre>
+        </div>
+        <figure data-testid="response-image">
+          <img
+            src="https://example.test/generated-image.png"
+            alt="Generated Mistral diagram"
+            width="640"
+            height="320"
+          />
+          <figcaption>Generated Mistral diagram</figcaption>
+        </figure>
+        <button data-testid="attachment-card" data-file-name="report.pdf">
+          <svg aria-hidden="true"></svg>
+          report.pdf
+        </button>
+        <details open>
+          <summary>Visible explanation</summary>
+          <p>User-facing expanded detail.</p>
+        </details>
+        <div data-testid="response-actions">
+          <button aria-label="Copy response">Copy</button>
+          <button aria-label="Share response">Share</button>
+          <button aria-label="Read aloud">Listen</button>
+          <button aria-label="Regenerate response">Retry</button>
+        </div>
+        <script>
+          window.fixtureMustNotRun = true;
+        </script>
+      </div>
+    </article>
+
+    <article data-message-role="user" data-message-id="mistral-user-2">
+      <div data-testid="message-content"><p>Second fixture prompt.</p></div>
+    </article>
+    <article data-response-id="mistral-assistant-2">
+      <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
+        <p>A response without a heading remains eligible.</p>
+        <div data-code-block>
+          <div data-code-language="TypeScript">TypeScript</div>
+          <pre><code>const value: number = 2;</code></pre>
+        </div>
+        <img src="javascript:alert(1)" alt="Unsafe image" width="800" height="400" />
+        <button aria-label="Copy"><img src="https://example.test/copy.png" alt="" /></button>
+      </div>
+    </article>
+
+    <article data-response-id="mistral-assistant-only">
+      <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
+        <h3>Assistant-only response</h3>
+        <p>This response has no mounted prompt.</p>
+      </div>
+    </article>
+
+    <article data-response-id="mistral-hidden-alternative" aria-hidden="true">
+      <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
+        <p>Hidden alternative response.</p>
+      </div>
+    </article>
+
+    <article data-message-role="user" data-message-id="mistral-user-3">
+      <div data-testid="message-content"><p>Streaming prompt.</p></div>
+    </article>
+    <article data-response-id="mistral-assistant-3" aria-busy="true">
+      <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
+        <p>Currently available partial response.</p>
+      </div>
+    </article>
+
+    <article data-response-id="mistral-malformed">
+      <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
+        <script>
+          alert("ignored");
+        </script>
+      </div>
+    </article>
+  </section>
+
+  <form data-testid="composer"><textarea>Composer content</textarea></form>
+
+  <aside data-testid="canvas-panel">
+    <div class="tiptap ProseMirror markdown-editor markdown-container-style">
+      <h2>Editable Canvas document</h2>
+      <p>This content must not be extracted as a conversation answer.</p>
+    </div>
+  </aside>
+</main>
+<aside data-testid="sidebar">
+  <div data-message-role="assistant" data-message-id="sidebar-preview">
+    Sidebar preview that must remain outside the bounded conversation root.
+  </div>
+</aside>

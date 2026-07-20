@@ -1,13 +1,13 @@
 # Firefox AMO submission notes
 
-These notes prepare ReadBooster 0.5.3 for testing and AMO review. They do not claim submission, approval, signing, or publication.
+These notes prepare ReadBooster 0.6.1 for testing and AMO review. They do not claim submission, approval, signing, or publication.
 
 ## Add-on identity and compatibility
 
 - Gecko ID: `contact@avicloud.ch`
 - Minimum Firefox version: 142.0
 - Manifest: Manifest V3
-- Supported sites: `https://chatgpt.com/*` and `https://gemini.google.com/*`
+- Supported sites: `https://chatgpt.com/*`, `https://gemini.google.com/*`, and `https://chat.mistral.ai/*`
 - Required extension permission: `storage`
 - Data-collection declaration: `required: ["none"]`
 
@@ -36,7 +36,7 @@ The original-source archive is generated with `npm run package:source`. Full ins
 ## Reviewer behavior notes
 
 1. Load `dist-firefox/manifest.json` temporarily through `about:debugging`.
-2. Open ChatGPT or Google Gemini with a reviewer-controlled account.
+2. Open ChatGPT, Google Gemini, or a Mistral `/work/{conversation-id}` conversation with a reviewer-controlled account.
 3. Open a conversation containing at least one assistant response.
 4. Reload the platform page after installing the temporary add-on.
 5. Select **Optimize Reading** or use the popup's **Optimize latest response** action.
