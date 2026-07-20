@@ -114,14 +114,16 @@ describe("MistralAdapter", () => {
     ).toBeUndefined();
   });
 
-  it("does not treat the editable Mistral Canvas surface as a conversation response", () => {
+  it("does not treat an unassociated editable Mistral Canvas surface as a conversation response", () => {
     const canvasOnly = adapter(
       fixtureDocument(`
         <main>
-          <div class="tiptap ProseMirror markdown-editor markdown-container-style">
-            <h2>Canvas title</h2>
-            <div data-testid="text-message-part">
-              <p>Editable Canvas content.</p>
+          <div data-message-quote-boundary="canvas">
+            <div class="tiptap ProseMirror markdown-editor markdown-container-style">
+              <h2>Canvas title</h2>
+              <div data-testid="text-message-part">
+                <p>Editable Canvas content.</p>
+              </div>
             </div>
           </div>
         </main>`),
@@ -136,7 +138,68 @@ describe("MistralAdapter", () => {
       adapter()
         .getConversationDocument()
         ?.turns.flatMap((turn) => turn.response?.text ?? []),
-    ).not.toContain("This content must not be extracted as a conversation answer.");
+    ).not.toContain(
+      "This Canvas must not be extracted because it is outside an assistant boundary.",
+    );
+  });
+
+  it("uses an assistant-bound Canvas document instead of reasoning or its short answer", () => {
+    const current = adapter(
+      fixtureDocument(`
+        <main data-testid="conversation">
+          <div data-message-author-role="user" data-message-id="canvas-user">
+            <div data-testid="message-content"><p>Create a document.</p></div>
+          </div>
+          <div data-message-author-role="assistant" data-message-id="canvas-assistant">
+            <div data-message-part-type="reasoning" data-testid="text-message-part">
+              <p>Private Canvas reasoning.</p>
+            </div>
+            <div data-message-part-type="answer" data-testid="text-message-part">
+              <p>Canvas created successfully.</p>
+            </div>
+            <div data-message-quote-boundary="canvas">
+              <div class="tiptap ProseMirror markdown-editor" contenteditable="true">
+                <h1>Canvas report</h1>
+                <p>Complete visible Canvas document.</p>
+                <button aria-label="Edit Canvas">Edit</button>
+              </div>
+            </div>
+          </div>
+        </main>`),
+      "chat.mistral.ai",
+      "https://chat.mistral.ai/work/canvas-document",
+    );
+    const conversation = current.getConversationDocument()!;
+    const response = conversation.turns[0].response!;
+
+    expect(current.shouldInjectControl()).toBe(true);
+    expect(conversation.turns[0].prompt?.text).toBe("Create a document.");
+    expect(response.id).toBe("canvas-assistant");
+    expect(response.html).toContain("<h1");
+    expect(response.text).toContain("Canvas report");
+    expect(response.text).toContain("Complete visible Canvas document.");
+    expect(response.text).not.toContain("Canvas created successfully.");
+    expect(response.text).not.toContain("Private Canvas reasoning.");
+    expect(response.html).not.toMatch(/contenteditable|<button|Edit Canvas/);
+  });
+
+  it("does not treat a reasoning-only assistant boundary as a completed response", () => {
+    const reasoningOnly = adapter(
+      fixtureDocument(`
+        <main>
+          <div data-message-author-role="assistant" data-message-id="reasoning-only">
+            <div data-message-part-type="reasoning" data-testid="text-message-part">
+              <p>Still reasoning.</p>
+            </div>
+          </div>
+        </main>`),
+      "chat.mistral.ai",
+      "https://chat.mistral.ai/work/reasoning-only",
+    );
+
+    expect(reasoningOnly.hasLatestAssistantResponse()).toBe(false);
+    expect(reasoningOnly.shouldInjectControl()).toBe(false);
+    expect(reasoningOnly.getConversationDocument()).toBeNull();
   });
 
   it("extracts all eligible turns chronologically with stable Mistral provenance", () => {
@@ -164,6 +227,7 @@ describe("MistralAdapter", () => {
       sourceMessageId: "mistral-assistant-1",
     });
     expect(sectionTitleOverrideIdentity(conversation, first)).toMatchObject({ persistable: true });
+    expect(conversation.turns[0].prompt?.text).toBe("Fixture prompt about a structured response.");
     expect(conversation.turns.flatMap((turn) => turn.response?.text ?? [])).not.toContain(
       "Sidebar preview that must remain outside the bounded conversation root.",
     );
@@ -191,6 +255,40 @@ describe("MistralAdapter", () => {
       /<button|<svg|<script|Copy response|Share response|Listen|Retry/,
     );
     expect(response.html).not.toContain("Composer content");
+    expect(response.text).not.toContain("Private reasoning that must never be extracted.");
+    expect(response.text).not.toContain("Visual Alpha");
+  });
+
+  it("reconstructs a semantic table from a role grid only when rich HTML is unavailable", () => {
+    const current = adapter(
+      fixtureDocument(`
+        <main>
+          <div data-message-author-role="assistant" data-message-id="fallback-table">
+            <div data-message-part-type="answer" data-testid="text-message-part">
+              <div role="table">
+                <div role="row">
+                  <div role="columnheader">Name</div>
+                  <div role="columnheader">Value</div>
+                </div>
+                <div role="row">
+                  <div role="rowheader">Alpha</div>
+                  <div role="cell">One <button>Menu</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>`),
+      "chat.mistral.ai",
+      "https://chat.mistral.ai/work/fallback-table",
+    );
+    const response = current.getLatestAssistantResponse()!;
+    const output = fixtureDocument(`<div>${response.html}</div>`);
+
+    expect(output.querySelectorAll("table")).toHaveLength(1);
+    expect(output.querySelectorAll("thead th[scope='col']")).toHaveLength(2);
+    expect(output.querySelector("tbody th")?.getAttribute("scope")).toBe("row");
+    expect(output.querySelector("tbody td")?.textContent).toBe("One ");
+    expect(response.html).not.toMatch(/role="table"|<button|Menu/);
   });
 
   it("normalizes citations, images, file references, and their semantic order", () => {
@@ -263,7 +361,7 @@ describe("MistralAdapter", () => {
     const current = adapter(doc);
     const initial = current.getConversationDocument()!;
     doc.querySelector(
-      '[data-response-id="mistral-assistant-3"] [data-message-part-type="answer"]',
+      '[data-message-id="mistral-assistant-3"] [data-message-part-type="answer"]',
     )!.innerHTML = "<p>Currently available partial response with a completed conclusion.</p>";
     const merged = mergeConversationDocuments(initial, current.getConversationDocument()!);
 
@@ -356,7 +454,8 @@ describe("MistralAdapter", () => {
 
     const thread = doc.querySelector('[data-testid="conversation-thread"]')!;
     const response = doc.createElement("article");
-    response.setAttribute("data-response-id", "mistral-assistant-4");
+    response.setAttribute("data-message-author-role", "assistant");
+    response.setAttribute("data-message-id", "mistral-assistant-4");
     response.innerHTML =
       '<div data-message-part-type="answer" data-testid="text-message-part"><p>New response after opening.</p></div>';
     thread.append(response);
@@ -380,7 +479,8 @@ describe("MistralAdapter", () => {
     expect(callback).not.toHaveBeenCalled();
 
     const response = doc.createElement("article");
-    response.setAttribute("data-response-id", "new-response");
+    response.setAttribute("data-message-author-role", "assistant");
+    response.setAttribute("data-message-id", "new-response");
     response.innerHTML =
       '<div data-message-part-type="answer" data-testid="text-message-part"><p>Completed response</p></div>';
     thread.append(response);

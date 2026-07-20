@@ -19,6 +19,31 @@ function conversation() {
   ).getConversationDocument()!;
 }
 
+function canvasConversation() {
+  const doc = new DOMParser().parseFromString(
+    `<main>
+      <div data-message-author-role="assistant" data-message-id="canvas-response">
+        <div data-message-part-type="answer" data-testid="text-message-part">
+          <p>Canvas created.</p>
+        </div>
+        <div data-message-quote-boundary="canvas">
+          <div class="tiptap ProseMirror markdown-editor">
+            <h1>Canvas report</h1>
+            <h2>Findings</h2>
+            <p>Complete Canvas content.</p>
+          </div>
+        </div>
+      </div>
+    </main>`,
+    "text/html",
+  );
+  return new MistralAdapter(
+    doc,
+    "chat.mistral.ai",
+    "https://chat.mistral.ai/work/canvas-reader",
+  ).getConversationDocument()!;
+}
+
 function shadowRoot(): ShadowRoot {
   return document.getElementById(READER_HOST_ID)!.shadowRoot!;
 }
@@ -30,6 +55,21 @@ function button(shadow: ShadowRoot, label: string): HTMLButtonElement {
 }
 
 describe("Mistral reader integration", () => {
+  it("renders Canvas headings through the existing Document and outline navigation", async () => {
+    await act(async () => mountReader(canvasConversation()));
+    const shadow = shadowRoot();
+
+    expect(shadow.querySelectorAll(".rb-document-section")).toHaveLength(1);
+    expect(shadow.querySelector(".rb-document-section")?.textContent).toContain("Canvas report");
+    expect(shadow.querySelector(".rb-document-section")?.textContent).toContain(
+      "Complete Canvas content.",
+    );
+    expect(shadow.querySelector(".rb-document-section")?.textContent).not.toContain(
+      "Canvas created.",
+    );
+    expect(shadow.querySelector(".rb-outline")?.textContent).toContain("Findings");
+  });
+
   it("uses the shared Document, Focus, outline, prompt, table, code, image, and feedback UI", async () => {
     await act(async () => mountReader(conversation()));
     const shadow = shadowRoot();

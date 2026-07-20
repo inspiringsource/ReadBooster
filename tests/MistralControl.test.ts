@@ -18,7 +18,7 @@ describe("Mistral Optimize Reading eligibility", () => {
   it("injects exactly one control for a production /work answer part", () => {
     const adapter = new MistralAdapter(
       mistralDocument(`
-        <section data-response-id="production-response">
+        <section data-message-author-role="assistant" data-message-id="production-response">
           <div data-message-part-type="answer" data-testid="text-message-part">
             <p>Production response.</p>
           </div>
@@ -39,8 +39,10 @@ describe("Mistral Optimize Reading eligibility", () => {
   it("does not inject on unsupported, empty, or Canvas-only pages", () => {
     const canvas = new MistralAdapter(
       mistralDocument(`
-        <div class="tiptap ProseMirror markdown-editor markdown-container-style">
-          <div data-testid="text-message-part"><p>Editable Canvas content.</p></div>
+        <div data-message-quote-boundary="canvas">
+          <div class="tiptap ProseMirror markdown-editor markdown-container-style">
+            <div data-testid="text-message-part"><p>Editable Canvas content.</p></div>
+          </div>
         </div>`),
       "chat.mistral.ai",
       "https://chat.mistral.ai/work/canvas",
@@ -66,5 +68,25 @@ describe("Mistral Optimize Reading eligibility", () => {
 
     expect(document.getElementById(CONTROL_HOST_ID)).toBeNull();
     expect(injection).not.toHaveBeenCalled();
+  });
+
+  it("injects for a Canvas document bounded by an assistant message", () => {
+    const canvas = new MistralAdapter(
+      mistralDocument(`
+        <div data-message-author-role="assistant" data-message-id="canvas-response">
+          <div data-message-part-type="answer" data-testid="text-message-part">
+            Canvas created.
+          </div>
+          <div data-message-quote-boundary="canvas">
+            <div class="tiptap ProseMirror markdown-editor"><h1>Canvas report</h1></div>
+          </div>
+        </div>`),
+      "chat.mistral.ai",
+      "https://chat.mistral.ai/work/canvas-response",
+    );
+
+    expect(shouldShowOptimizeControl(canvas)).toBe(true);
+    syncTestControl(canvas);
+    expect(document.getElementById(CONTROL_HOST_ID)).not.toBeNull();
   });
 });

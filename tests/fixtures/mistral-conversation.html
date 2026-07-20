@@ -1,13 +1,18 @@
 <main role="main" data-testid="conversation" data-conversation-id="fixture-mistral-conversation">
   <h1 data-testid="conversation-title">Fixture Mistral conversation</h1>
   <section data-testid="conversation-thread">
-    <article data-message-role="user" data-message-id="mistral-user-1">
+    <article data-message-author-role="user" data-message-id="mistral-user-1">
       <div data-testid="message-content">
         <p>Fixture prompt about a structured response.</p>
+        <time data-testid="message-timestamp">12:34</time>
+        <button aria-label="Edit message">Edit</button>
       </div>
     </article>
 
-    <article data-response-id="mistral-assistant-1">
+    <article data-message-author-role="assistant" data-message-id="mistral-assistant-1">
+      <div data-message-part-type="reasoning" data-testid="text-message-part">
+        <p>Private reasoning that must never be extracted.</p>
+      </div>
       <div
         dir="auto"
         data-message-part-type="answer"
@@ -43,25 +48,21 @@
         </ul>
         <blockquote>Visible quotation.</blockquote>
         <p>Formula: <span aria-label="x squared plus y squared">x² + y²</span></p>
-        <table>
-          <caption>
-            Wide comparison
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Long URL</th>
-              <th scope="col">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Alpha</th>
-              <td>https://example.test/a/very/long/table/value</td>
-              <td>One</td>
-            </tr>
-          </tbody>
-        </table>
+        <div
+          role="table"
+          data-rich-table-inner-html='&lt;table onclick="alert(1)"&gt;&lt;caption&gt;Wide comparison&lt;/caption&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope="col"&gt;Name&lt;/th&gt;&lt;th scope="col"&gt;Long URL&lt;/th&gt;&lt;th scope="col"&gt;Value&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;th scope="row"&gt;Alpha&lt;/th&gt;&lt;td&gt;https://example.test/a/very/long/table/value&lt;/td&gt;&lt;td&gt;One&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;/table&gt;'
+        >
+          <div role="row">
+            <div role="columnheader">Visual Name</div>
+            <div role="columnheader">Visual URL</div>
+            <div role="columnheader">Visual Value</div>
+          </div>
+          <div role="row">
+            <div role="cell">Visual Alpha</div>
+            <div role="cell">Visual link</div>
+            <div role="cell">Visual One</div>
+          </div>
+        </div>
         <div data-testid="code-block">
           <div data-testid="code-header" data-language="Python">
             Python
@@ -99,10 +100,10 @@
       </div>
     </article>
 
-    <article data-message-role="user" data-message-id="mistral-user-2">
+    <article data-message-author-role="user" data-message-id="mistral-user-2">
       <div data-testid="message-content"><p>Second fixture prompt.</p></div>
     </article>
-    <article data-response-id="mistral-assistant-2">
+    <article data-message-author-role="assistant" data-message-id="mistral-assistant-2">
       <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
         <p>A response without a heading remains eligible.</p>
         <div data-code-block>
@@ -114,29 +115,37 @@
       </div>
     </article>
 
-    <article data-response-id="mistral-assistant-only">
+    <article data-message-author-role="assistant" data-message-id="mistral-assistant-only">
       <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
         <h3>Assistant-only response</h3>
         <p>This response has no mounted prompt.</p>
       </div>
     </article>
 
-    <article data-response-id="mistral-hidden-alternative" aria-hidden="true">
+    <article
+      data-message-author-role="assistant"
+      data-message-id="mistral-hidden-alternative"
+      aria-hidden="true"
+    >
       <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
         <p>Hidden alternative response.</p>
       </div>
     </article>
 
-    <article data-message-role="user" data-message-id="mistral-user-3">
+    <article data-message-author-role="user" data-message-id="mistral-user-3">
       <div data-testid="message-content"><p>Streaming prompt.</p></div>
     </article>
-    <article data-response-id="mistral-assistant-3" aria-busy="true">
+    <article
+      data-message-author-role="assistant"
+      data-message-id="mistral-assistant-3"
+      aria-busy="true"
+    >
       <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
         <p>Currently available partial response.</p>
       </div>
     </article>
 
-    <article data-response-id="mistral-malformed">
+    <article data-message-author-role="assistant" data-message-id="mistral-malformed">
       <div dir="auto" data-message-part-type="answer" data-testid="text-message-part">
         <script>
           alert("ignored");
@@ -147,10 +156,10 @@
 
   <form data-testid="composer"><textarea>Composer content</textarea></form>
 
-  <aside data-testid="canvas-panel">
+  <aside data-testid="canvas-panel" data-message-quote-boundary="canvas">
     <div class="tiptap ProseMirror markdown-editor markdown-container-style">
-      <h2>Editable Canvas document</h2>
-      <p>This content must not be extracted as a conversation answer.</p>
+      <h2>Unassociated Canvas document</h2>
+      <p>This Canvas must not be extracted because it is outside an assistant boundary.</p>
     </div>
   </aside>
 </main>

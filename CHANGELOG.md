@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.2
+
+### Added
+
+- Added read-only extraction for visible Mistral Canvas documents associated with assistant messages.
+- Added sanitized conversion of Mistral rich-table HTML and conservative semantic reconstruction for role-based table grids.
+
+### Fixed
+
+- Made stable Mistral user and assistant role/message elements the primary conversation boundaries.
+- Preferred final answer parts over reasoning and excluded reasoning from normalized output.
+- Preserved the existing `/work/{conversation-id}` and compatible `/chat/{conversation-id}` activation routes.
+
+### Compatibility
+
+- Reused the shared ConversationDocument, sanitizer, reader, table controls, Copy, and Print paths without changing ChatGPT or Gemini extraction.
+
 ## 0.6.1
 
 ### Fixed

@@ -1,6 +1,6 @@
 # ReadBooster browser release builds
 
-ReadBooster 0.6.1 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
+ReadBooster 0.6.2 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
 
 ## Requirements
 
@@ -43,9 +43,9 @@ npm run release
 It creates:
 
 ```text
-release/readbooster-chrome-0.6.1.zip
-release/readbooster-firefox-0.6.1.zip
-release/readbooster-source-0.6.1.zip
+release/readbooster-chrome-0.6.2.zip
+release/readbooster-firefox-0.6.2.zip
+release/readbooster-source-0.6.2.zip
 release/SHA256SUMS.txt
 ```
 

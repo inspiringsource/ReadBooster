@@ -5,14 +5,14 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.6.1
+- Submission candidate: 0.6.2
 - Manifest: Version 3
 - Currently supported websites: ChatGPT, Google Gemini, and Mistral
 - Requested Chrome permission: `storage`
 - Requested host access: `https://chatgpt.com/*`, `https://gemini.google.com/*`, and `https://chat.mistral.ai/*`
 - Public homepage: <https://inspiringsource.github.io/ReadBooster/>
 
-Mistral's authenticated production route and primary assistant selectors are corrected in 0.6.1, while full Chrome and Firefox acceptance remains pending. Claude is planned for a future development milestone, is not enabled, and receives no host access.
+Mistral's production role boundaries, Canvas extraction, and rich-table normalization are improved in 0.6.2, while full Chrome and Firefox acceptance remains pending. Claude is planned for a future development milestone, is not enabled, and receives no host access.
 
 ## Single-purpose statement
 
@@ -102,9 +102,9 @@ This is a recommendation for the future dashboard configuration only. Publicatio
 
 ## Website handoff checklist
 
-The website is maintained separately and is not changed by the 0.6.1 extension task. A later website update should:
+The website is maintained separately and is not changed by the 0.6.2 extension task. A later website update should:
 
-- show current extension version 0.6.1;
+- show current extension version 0.6.2;
 - show ChatGPT support;
 - show Google Gemini support;
 - show Mistral support with an honest live-verification status;

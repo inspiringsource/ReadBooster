@@ -27,11 +27,17 @@ import {
 
 const HOSTNAME = "chat.mistral.ai";
 
-// Authenticated production inspection confirmed that normal Mistral answers are rendered as
-// text-message parts on /work/:conversationId routes. Keep these semantic answer-part attributes
-// first; the older role families remain narrow compatibility fallbacks for other mounted shapes.
+// Current Mistral conversations expose stable role/message boundaries. Content-part selectors are
+// intentionally separate: an answer or Canvas belongs to one assistant message, while reasoning
+// is host-only material and must never become an independent response.
+const PRIMARY_ROLE_CONTAINER_SELECTORS: Record<ConversationRole, string> = {
+  user: '[data-message-author-role="user"][data-message-id]',
+  assistant: '[data-message-author-role="assistant"][data-message-id]',
+};
+
 const ROLE_CONTAINER_SELECTORS: Record<ConversationRole, readonly string[]> = {
   user: [
+    PRIMARY_ROLE_CONTAINER_SELECTORS.user,
     '[data-message-author-role="user"]',
     '[data-message-role="user"]',
     '[data-role="user"][data-message-id]',
@@ -39,8 +45,7 @@ const ROLE_CONTAINER_SELECTORS: Record<ConversationRole, readonly string[]> = {
     '[data-testid="user-message"]',
   ],
   assistant: [
-    '[data-message-part-type="answer"]',
-    '[data-testid="text-message-part"]',
+    PRIMARY_ROLE_CONTAINER_SELECTORS.assistant,
     '[data-message-author-role="assistant"]',
     '[data-message-author-role="model"]',
     '[data-message-role="assistant"]',
@@ -51,6 +56,8 @@ const ROLE_CONTAINER_SELECTORS: Record<ConversationRole, readonly string[]> = {
     'article[data-role="model"]',
     '[data-testid="assistant-message"]',
     '[data-testid="model-message"]',
+    '[data-message-part-type="answer"]',
+    '[data-testid="text-message-part"]',
   ],
 };
 
@@ -59,9 +66,13 @@ const ALL_ROLE_SELECTOR = [
   ...ROLE_CONTAINER_SELECTORS.assistant,
 ].join(",");
 
+const ASSISTANT_ANSWER_SELECTOR =
+  '[data-message-part-type="answer"][data-testid="text-message-part"]';
+const ANSWER_PART_SELECTOR = '[data-message-part-type="answer"]';
+const REASONING_PART_SELECTOR = '[data-message-part-type="reasoning"]';
+const TEXT_MESSAGE_PART_SELECTOR =
+  '[data-testid="text-message-part"]:not([data-message-part-type="reasoning"])';
 const CONTENT_ROOT_SELECTORS = [
-  '[data-message-part-type="answer"]',
-  '[data-testid="text-message-part"]',
   '[data-testid="message-content"]',
   "[data-message-content]",
   '[data-testid="assistant-message-content"]',
@@ -97,11 +108,13 @@ const HOST_UI_SELECTORS = [
   "textarea",
   "select",
   "audio",
+  "time",
   "svg",
   '[role="menu"]',
   '[role="toolbar"]',
   '[contenteditable="true"]',
   '[data-testid*="actions" i]',
+  '[data-testid*="timestamp" i]',
   '[data-testid*="copy" i]',
   '[data-testid*="feedback" i]',
   '[data-testid*="share" i]',
@@ -112,6 +125,7 @@ const HOST_UI_SELECTORS = [
   '[aria-label*="share" i]',
   '[aria-label*="regenerate" i]',
   '[aria-label*="retry" i]',
+  '[aria-label*="edit" i]',
   '[aria-label*="read aloud" i]',
   '[aria-label*="audio" i]',
   '[aria-label*="menu" i]',
@@ -170,7 +184,10 @@ const SOURCE_MESSAGE_ID_ATTRIBUTES: Record<ConversationRole, readonly string[]> 
   assistant: ["data-message-id", "data-response-id", "data-turn-id"],
 };
 
-const CANVAS_SELECTOR = ".tiptap.ProseMirror.markdown-editor.markdown-container-style";
+const CANVAS_BOUNDARY_SELECTOR = '[data-message-quote-boundary="canvas"]';
+const CANVAS_EDITOR_SELECTOR = ".tiptap.ProseMirror.markdown-editor";
+const CANVAS_SELECTOR = `${CANVAS_BOUNDARY_SELECTOR} ${CANVAS_EDITOR_SELECTOR}`;
+const RICH_TABLE_SELECTOR = "[data-rich-table-inner-html]";
 
 interface MessageCandidate {
   element: Element;
@@ -241,7 +258,10 @@ export class MistralAdapter implements ConversationAdapter {
         if (!this.isActiveCandidate(candidate) || this.isCanvasCandidate(candidate)) {
           return false;
         }
-        const root = this.findContentRoot(candidate);
+        const root = this.findContentRoot(candidate, "assistant");
+        if (!root) {
+          return false;
+        }
         return Boolean(
           normalizedText(root.textContent) || root.querySelector("img, figure, pre, table"),
         );
@@ -518,6 +538,10 @@ export class MistralAdapter implements ConversationAdapter {
   }
 
   private canonicalizeCandidate(candidate: Element, role: ConversationRole): Element {
+    const primaryBoundary = candidate.closest(PRIMARY_ROLE_CONTAINER_SELECTORS[role]);
+    if (primaryBoundary) {
+      return primaryBoundary;
+    }
     const selector = ROLE_CONTAINER_SELECTORS[role].join(",");
     return candidate.matches(selector) ? candidate : (candidate.closest(selector) ?? candidate);
   }
@@ -539,11 +563,42 @@ export class MistralAdapter implements ConversationAdapter {
   }
 
   private isCanvasCandidate(candidate: Element): boolean {
-    return candidate.matches(CANVAS_SELECTOR) || Boolean(candidate.closest(CANVAS_SELECTOR));
+    return (
+      candidate.matches(CANVAS_EDITOR_SELECTOR) ||
+      Boolean(candidate.closest(CANVAS_EDITOR_SELECTOR))
+    );
   }
 
-  private findContentRoot(container: Element): Element {
-    return container.querySelector(CONTENT_ROOT_SELECTORS) ?? container;
+  private findSelfOrDescendant(container: Element, selector: string): Element | null {
+    return container.matches(selector) ? container : container.querySelector(selector);
+  }
+
+  private findContentRoot(container: Element, role: ConversationRole): Element | null {
+    if (role === "assistant") {
+      // Canvas is the complete user-facing document for this response. Prefer it to the short
+      // adjacent answer acknowledgement, but only when it is bounded by the assistant message.
+      const canvas = this.findSelfOrDescendant(container, CANVAS_SELECTOR);
+      if (canvas) {
+        return canvas;
+      }
+      for (const selector of [
+        ASSISTANT_ANSWER_SELECTOR,
+        ANSWER_PART_SELECTOR,
+        TEXT_MESSAGE_PART_SELECTOR,
+      ]) {
+        const answer = this.findSelfOrDescendant(container, selector);
+        if (answer) {
+          return answer;
+        }
+      }
+      if (
+        container.matches(REASONING_PART_SELECTOR) ||
+        container.matches(PRIMARY_ROLE_CONTAINER_SELECTORS.assistant)
+      ) {
+        return null;
+      }
+    }
+    return this.findSelfOrDescendant(container, CONTENT_ROOT_SELECTORS) ?? container;
   }
 
   private extractBlock(
@@ -556,8 +611,14 @@ export class MistralAdapter implements ConversationAdapter {
     if (this.isCanvasCandidate(container)) {
       return null;
     }
-    const contentRoot = this.findContentRoot(container).cloneNode(true) as Element;
+    const sourceRoot = this.findContentRoot(container, role);
+    if (!sourceRoot) {
+      return null;
+    }
+    const contentRoot = sourceRoot.cloneNode(true) as Element;
     contentRoot.querySelectorAll(INACTIVE_SELECTOR).forEach((element) => element.remove());
+    contentRoot.querySelectorAll(REASONING_PART_SELECTOR).forEach((element) => element.remove());
+    this.normalizeMistralTables(contentRoot);
     this.preserveHostCodeLanguages(contentRoot);
     this.normalizeCitations(contentRoot, sourceUrl);
     this.normalizeAttachments(contentRoot);
@@ -635,6 +696,148 @@ export class MistralAdapter implements ConversationAdapter {
     const id = `mistral-${role}-session-${this.fallbackMessageCounter}`;
     this.fallbackMessageIds.set(container, id);
     return id;
+  }
+
+  private normalizeMistralTables(root: Element): void {
+    this.normalizeRichTables(root);
+    const roleTables = [
+      ...(root.matches('[role="table"]') ? [root as HTMLElement] : []),
+      ...Array.from(root.querySelectorAll<HTMLElement>('[role="table"]')),
+    ];
+    for (const grid of roleTables) {
+      if (grid.tagName === "TABLE" || grid.closest("table")) {
+        continue;
+      }
+      const table = this.reconstructRoleTable(grid);
+      if (table) {
+        if (grid === root) {
+          grid.replaceChildren(table);
+          grid.removeAttribute("role");
+        } else {
+          grid.replaceWith(table);
+        }
+      }
+    }
+  }
+
+  private normalizeRichTables(root: Element): void {
+    const candidates = [
+      ...(root.matches(RICH_TABLE_SELECTOR) ? [root] : []),
+      ...Array.from(root.querySelectorAll(RICH_TABLE_SELECTOR)),
+    ];
+    candidates.forEach((candidate, index) => {
+      const encodedTable = candidate.getAttribute("data-rich-table-inner-html")?.trim();
+      if (!encodedTable) {
+        return;
+      }
+      try {
+        // getAttribute() has already decoded the attribute's HTML entities. Parse it as an inert
+        // document, then run the shared sanitizer before importing one semantic table back into
+        // the cloned response.
+        const parser = new DOMParser();
+        const decodedDocument = parser.parseFromString(encodedTable, "text/html");
+        const staging = this.doc.createElement("div");
+        for (const child of Array.from(decodedDocument.body.childNodes)) {
+          staging.append(this.doc.importNode(child, true));
+        }
+        const sanitized = sanitizeResponseHtml(staging, `mistral-rich-table-${index}`);
+        const sanitizedDocument = parser.parseFromString(sanitized.html, "text/html");
+        const tables = sanitizedDocument.body.querySelectorAll("table");
+        if (tables.length === 1) {
+          const table = this.doc.importNode(tables[0], true);
+          if (candidate === root) {
+            candidate.replaceChildren(table);
+            candidate.removeAttribute("data-rich-table-inner-html");
+            candidate.removeAttribute("role");
+          } else {
+            candidate.replaceWith(table);
+          }
+        }
+      } catch {
+        // Leave the visible role-based representation in place for the conservative fallback.
+      }
+    });
+  }
+
+  private reconstructRoleTable(grid: HTMLElement): HTMLTableElement | null {
+    const rows = Array.from(grid.querySelectorAll<HTMLElement>('[role="row"]')).filter(
+      (row) => row.closest('[role="table"]') === grid,
+    );
+    if (rows.length > 0) {
+      const table = this.doc.createElement("table");
+      const head = this.doc.createElement("thead");
+      const body = this.doc.createElement("tbody");
+      for (const sourceRow of rows) {
+        const sourceCells = Array.from(
+          sourceRow.querySelectorAll<HTMLElement>(
+            ':scope > [role="columnheader"], :scope > [role="rowheader"], :scope > [role="cell"]',
+          ),
+        );
+        if (sourceCells.length === 0) {
+          continue;
+        }
+        const row = this.createSemanticTableRow(sourceCells);
+        const isHeaderRow = sourceCells.every(
+          (cell) => cell.getAttribute("role") === "columnheader",
+        );
+        (isHeaderRow ? head : body).append(row);
+      }
+      if (head.childElementCount > 0) {
+        table.append(head);
+      }
+      if (body.childElementCount > 0) {
+        table.append(body);
+      }
+      return table.querySelector("th, td") ? table : null;
+    }
+
+    const headers = Array.from(grid.querySelectorAll<HTMLElement>('[role="columnheader"]')).filter(
+      (cell) => cell.closest('[role="table"]') === grid && !cell.closest('[role="row"]'),
+    );
+    const cells = Array.from(grid.querySelectorAll<HTMLElement>('[role="cell"]')).filter(
+      (cell) => cell.closest('[role="table"]') === grid && !cell.closest('[role="row"]'),
+    );
+    if (headers.length === 0 || cells.length === 0 || cells.length % headers.length !== 0) {
+      return null;
+    }
+
+    const table = this.doc.createElement("table");
+    const head = this.doc.createElement("thead");
+    head.append(this.createSemanticTableRow(headers));
+    table.append(head);
+    const body = this.doc.createElement("tbody");
+    for (let offset = 0; offset < cells.length; offset += headers.length) {
+      body.append(this.createSemanticTableRow(cells.slice(offset, offset + headers.length)));
+    }
+    table.append(body);
+    return table;
+  }
+
+  private createSemanticTableRow(sourceCells: HTMLElement[]): HTMLTableRowElement {
+    const row = this.doc.createElement("tr");
+    for (const sourceCell of sourceCells) {
+      const role = sourceCell.getAttribute("role");
+      const cell = this.doc.createElement(role === "cell" ? "td" : "th");
+      if (role === "columnheader") {
+        cell.scope = "col";
+      } else if (role === "rowheader") {
+        cell.scope = "row";
+      }
+      for (const [sourceAttribute, targetAttribute] of [
+        ["aria-colspan", "colspan"],
+        ["aria-rowspan", "rowspan"],
+      ] as const) {
+        const value = sourceCell.getAttribute(sourceAttribute) ?? "";
+        if (/^[1-9]\d{0,2}$/.test(value)) {
+          cell.setAttribute(targetAttribute, value);
+        }
+      }
+      for (const child of Array.from(sourceCell.childNodes)) {
+        cell.append(child.cloneNode(true));
+      }
+      row.append(cell);
+    }
+    return row;
   }
 
   private preserveHostCodeLanguages(root: Element): void {

@@ -36,7 +36,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const thirdPartyNoticesPath = join(dist, "THIRD_PARTY_NOTICES.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.6.1", "release version is not 0.6.1");
+  assert(manifest.version === "0.6.2", "release version is not 0.6.2");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
