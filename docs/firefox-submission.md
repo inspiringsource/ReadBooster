@@ -1,6 +1,6 @@
 # Firefox AMO submission notes
 
-These notes prepare ReadBooster 0.6.2 for testing and AMO review. They do not claim submission, approval, signing, or publication.
+These notes prepare ReadBooster 0.6.7 for testing and AMO review. They do not claim submission, approval, signing, or publication.
 
 ## Add-on identity and compatibility
 
@@ -11,7 +11,7 @@ These notes prepare ReadBooster 0.6.2 for testing and AMO review. They do not cl
 - Required extension permission: `storage`
 - Data-collection declaration: `required: ["none"]`
 
-Firefox 142 is selected as the unified minimum because Firefox desktop introduced the built-in manifest declaration for data collection and transmission in version 140, while Mozilla's validator requires version 142 for the same declaration on Firefox for Android. ReadBooster's prepared build is currently targeted and documented for desktop testing; Android has not been manually accepted. ReadBooster declares no collected or externally transmitted extension data. Conversation processing remains local; preferences and custom section titles remain in browser-managed local extension storage.
+Firefox 142 is selected as the unified minimum because Firefox desktop introduced the built-in manifest declaration for data collection and transmission in version 140, while Mozilla's validator requires version 142 for the same declaration on Firefox for Android. ReadBooster's prepared build is currently targeted and documented for desktop testing; Android has not been manually accepted. ReadBooster declares no collected or externally transmitted extension data. Conversation processing remains local; preferences, custom section titles, and private section Stickers remain in browser-managed local extension storage.
 
 ## Reviewer build steps
 
@@ -40,7 +40,7 @@ The original-source archive is generated with `npm run package:source`. Full ins
 3. Open a conversation containing at least one assistant response.
 4. Reload the platform page after installing the temporary add-on.
 5. Select **Optimize Reading** or use the popup's **Optimize latest response** action.
-6. Test Document and Focus modes, outline navigation, Reading settings, Copy, Print, tables, code blocks, custom section titles, and conversation refresh.
+6. Test Document and Focus modes, outline navigation, Reading settings, Copy, Print, tables, code blocks, custom section titles, local section Stickers, and conversation refresh.
 
 ReadBooster has no account, backend, analytics, advertising, payment system, private AI-platform API use, or remote executable code. Conversation bodies are not persisted. The optional Tally feedback form is loaded only after explicit activation and receives only information the user deliberately enters.
 

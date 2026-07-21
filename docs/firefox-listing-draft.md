@@ -34,7 +34,8 @@ ReadBooster turns supported AI conversations into calm, structured reading docum
 - Table controls provide Fit, Wide, Fullscreen, Compact text, and Reset modes.
 - Reading styles include Default, Serif, Dyslexia-friendly, and optional Fast Reading.
 - ChatGPT, Google Gemini, and Mistral are supported.
-- Reader preferences and user-created section titles are stored locally.
+- Reader preferences, user-created section titles, and private section Stickers are stored locally.
+- Stickers support short notes, pinning, collapsing, and section-relative placement without appearing in Copy or Print output.
 - Conversation bodies are processed locally and are not persisted by ReadBooster.
 - ReadBooster has no backend, analytics, advertising, or account system.
 - Feedback is user initiated and opens an external Tally form inside a ReadBooster modal.

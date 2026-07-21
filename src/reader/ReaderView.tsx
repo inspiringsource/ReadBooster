@@ -8,6 +8,18 @@ import {
   saveSectionTitleOverride,
 } from "../shared/storage";
 import {
+  removeSticker,
+  saveSticker,
+  type StickerPersistenceResult,
+} from "../shared/stickerRepository";
+import {
+  createSticker,
+  normalizeStickerText,
+  stickerSectionIdentity,
+  type Sticker,
+  type StickerPosition,
+} from "../shared/stickers";
+import {
   normalizeCustomSectionTitle,
   sectionTitleOverrideIdentity,
 } from "../shared/sectionTitleOverrides";
@@ -29,12 +41,15 @@ import { ConversationOutline } from "./ConversationOutline";
 import { FeedbackModal } from "./FeedbackModal";
 import { FocusResponseView } from "./FocusResponseView";
 import type { OutlineItem } from "./outline";
+import { StickerMenuPortalContext } from "./stickers/StickerMenuPortalContext";
+import { StickerNavigation } from "./stickers/StickerNavigation";
 import {
   conversationCopyText,
   applySectionTitleOverrides,
   deriveConversationOutline,
   deriveConversationSections,
   type ConversationOutlineGroup,
+  type ConversationSection,
   type ReaderMode,
 } from "./presentation";
 
@@ -43,8 +58,10 @@ interface ReaderViewProps {
   initialResponseId?: string;
   initialPreferences: ReaderPreferences;
   initialSectionTitleOverrides: ReadonlyMap<string, string>;
+  initialStickers: readonly Sticker[];
+  initialStickerPersistenceWarning?: string;
   refreshConversation?: RefreshConversation;
-  onClose: () => void;
+  onClose: () => void | Promise<void>;
 }
 
 type HeaderPanel = "actions" | "reading-settings";
@@ -102,6 +119,8 @@ export function ReaderView({
   initialResponseId,
   initialPreferences,
   initialSectionTitleOverrides,
+  initialStickers,
+  initialStickerPersistenceWarning,
   refreshConversation,
   onClose,
 }: ReaderViewProps) {
@@ -109,6 +128,14 @@ export function ReaderView({
   const accumulatedConversationRef = useRef(conversation);
   const [sectionTitleOverrides, setSectionTitleOverrides] = useState(
     () => new Map(initialSectionTitleOverrides),
+  );
+  const [stickers, setStickers] = useState<Sticker[]>(() => [...initialStickers]);
+  const [activeStickerEditorId, setActiveStickerEditorId] = useState<string | null>(null);
+  const [expandedStickerId, setExpandedStickerId] = useState<string | null>(
+    () =>
+      [...initialStickers]
+        .filter((sticker) => !sticker.isCollapsed)
+        .sort((left, right) => right.updatedAt - left.updatedAt)[0]?.id ?? null,
   );
   const automaticSections = useMemo(
     () => deriveConversationSections(accumulatedConversation),
@@ -135,9 +162,11 @@ export function ReaderView({
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [stickerMenuPortal, setStickerMenuPortal] = useState<HTMLDivElement | null>(null);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>("idle");
   const [refreshMessage, setRefreshMessage] = useState("");
   const [sectionTitleStatus, setSectionTitleStatus] = useState("");
+  const [stickerStatus, setStickerStatus] = useState(initialStickerPersistenceWarning ?? "");
   const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(
@@ -160,6 +189,7 @@ export function ReaderView({
   const scanAbortControllerRef = useRef<AbortController | null>(null);
   const refreshStatusTimerRef = useRef<number | undefined>(undefined);
   const sectionTitleStatusTimerRef = useRef<number | undefined>(undefined);
+  const stickerStatusTimerRef = useRef<number | undefined>(undefined);
   const readerMountedRef = useRef(true);
   const pendingRefreshAnchorRef = useRef<PendingRefreshAnchor | null>(null);
   const modeRef = useRef(mode);
@@ -169,6 +199,7 @@ export function ReaderView({
     activeClose: null,
   }));
   const response = responses[currentResponseIndex];
+  const focusedSection = sections[currentResponseIndex];
   const documentTitle = accumulatedConversation.title?.trim() || "Conversation document.";
 
   useLayoutEffect(() => {
@@ -183,6 +214,7 @@ export function ReaderView({
       scanAbortControllerRef.current = null;
       window.clearTimeout(refreshStatusTimerRef.current);
       window.clearTimeout(sectionTitleStatusTimerRef.current);
+      window.clearTimeout(stickerStatusTimerRef.current);
       refreshInFlightRef.current = false;
       pendingRefreshAnchorRef.current = null;
     },
@@ -271,15 +303,18 @@ export function ReaderView({
       if (fullscreenTable) {
         return;
       }
+      const eventPath = event.composedPath();
+      const stickerUiInPath = eventPath.some(
+        (target) =>
+          target instanceof Element &&
+          target.matches("[data-rb-sticker-ui], [data-rb-sticker-editor], .rb-sticker-menu"),
+      );
 
       if (event.key === "Escape") {
-        const sectionTitleEditorInPath = event
-          .composedPath()
-          .some(
-            (target) =>
-              target instanceof Element && target.matches("[data-rb-section-title-editor]"),
-          );
-        if (sectionTitleEditorInPath) {
+        const sectionTitleEditorInPath = eventPath.some(
+          (target) => target instanceof Element && target.matches("[data-rb-section-title-editor]"),
+        );
+        if (sectionTitleEditorInPath || stickerUiInPath) {
           return;
         }
         event.preventDefault();
@@ -301,7 +336,7 @@ export function ReaderView({
         const isTableViewport =
           target instanceof Element && Boolean(target.closest(".rb-table-scroll"));
         const scrollArea = scrollAreaRef.current;
-        if (!isFormControl && !isTableViewport && scrollArea) {
+        if (!isFormControl && !isTableViewport && !stickerUiInPath && scrollArea) {
           const pageDistance = Math.max(120, scrollArea.clientHeight * 0.85);
           const scrollCommands: Partial<Record<string, () => void>> = {
             PageDown: () => scrollArea.scrollBy({ top: pageDistance }),
@@ -442,6 +477,301 @@ export function ReaderView({
       }
     }, 5000);
   }, []);
+
+  const announceStickerStatus = useCallback((message: string): void => {
+    if (!readerMountedRef.current) {
+      return;
+    }
+    window.clearTimeout(stickerStatusTimerRef.current);
+    setStickerStatus(message);
+    stickerStatusTimerRef.current = window.setTimeout(() => {
+      if (readerMountedRef.current) {
+        setStickerStatus("");
+      }
+    }, 5000);
+  }, []);
+
+  const stickersBySectionId = useMemo(() => {
+    const groups = new Map<string, Sticker[]>();
+    for (const section of sections) {
+      const identity = stickerSectionIdentity(accumulatedConversation, section.response);
+      groups.set(
+        section.id,
+        stickers.filter(
+          (sticker) =>
+            sticker.conversationKey === identity.conversationKey &&
+            sticker.sectionKey === identity.sectionKey,
+        ),
+      );
+    }
+    return groups;
+  }, [accumulatedConversation, sections, stickers]);
+
+  const visibleStickers = useMemo(
+    () =>
+      mode === "document"
+        ? sections.flatMap((section) => stickersBySectionId.get(section.id) ?? [])
+        : focusedSection
+          ? (stickersBySectionId.get(focusedSection.id) ?? [])
+          : [],
+    [focusedSection, mode, sections, stickersBySectionId],
+  );
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+    const placedStickerIds = new Set(
+      Array.from(stickersBySectionId.values()).flatMap((sectionStickers) =>
+        sectionStickers.map((sticker) => sticker.id),
+      ),
+    );
+    const orphanedCount = stickers.filter((sticker) => !placedStickerIds.has(sticker.id)).length;
+    if (orphanedCount > 0) {
+      console.warn(`[ReadBooster] ${orphanedCount} Sticker record(s) have no rendered section.`);
+    }
+  }, [stickers, stickersBySectionId]);
+
+  const sectionForSticker = useCallback(
+    (sticker: Sticker): ConversationSection | undefined =>
+      sections.find((section) => {
+        const identity = stickerSectionIdentity(
+          accumulatedConversationRef.current,
+          section.response,
+        );
+        return (
+          identity.conversationKey === sticker.conversationKey &&
+          identity.sectionKey === sticker.sectionKey
+        );
+      }),
+    [sections],
+  );
+
+  const focusStickerOrAnchor = useCallback((stickerId: string, sectionId?: string): void => {
+    queueMicrotask(() => {
+      const sticker = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>("[data-rb-sticker-id]") ?? [],
+      ).find((candidate) => candidate.dataset.rbStickerId === stickerId);
+      if (sticker) {
+        sticker.querySelector<HTMLButtonElement>(".rb-sticker-menu-trigger")?.focus();
+        return;
+      }
+      const anchor = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLButtonElement>("[data-rb-sticker-anchor]") ?? [],
+      ).find((candidate) => candidate.dataset.rbStickerAnchor === sectionId);
+      anchor?.focus();
+    });
+  }, []);
+
+  const persistSticker = useCallback(
+    async (sticker: Sticker): Promise<StickerPersistenceResult> => {
+      const section = sectionForSticker(sticker);
+      const persistable = section
+        ? stickerSectionIdentity(accumulatedConversationRef.current, section.response).persistable
+        : false;
+      const result = await saveSticker(sticker, persistable);
+      if (result === "not-persistable") {
+        announceStickerStatus(
+          "This Sticker is temporary because this conversation could not be identified reliably.",
+        );
+      } else if (result !== "saved") {
+        announceStickerStatus(
+          "Your Sticker could not be saved locally. Keep ReadBooster open and try again.",
+        );
+      }
+      return result;
+    },
+    [announceStickerStatus, sectionForSticker],
+  );
+
+  const setExclusiveStickerExpansion = useCallback(
+    (stickerId: string | null): void => {
+      const now = Date.now();
+      const updates: Sticker[] = [];
+      const next = stickers.map((sticker) => {
+        const isCollapsed = sticker.id !== stickerId;
+        if (sticker.isCollapsed === isCollapsed) {
+          return sticker;
+        }
+        const updated = { ...sticker, isCollapsed, updatedAt: now };
+        updates.push(updated);
+        return updated;
+      });
+      setStickers(next);
+      setExpandedStickerId(stickerId);
+      for (const updated of updates) {
+        if (updated.text) {
+          void persistSticker(updated);
+        }
+      }
+    },
+    [persistSticker, stickers],
+  );
+
+  const beginStickerEdit = useCallback(
+    (stickerId: string): void => {
+      setExclusiveStickerExpansion(stickerId);
+      setActiveStickerEditorId(stickerId);
+    },
+    [setExclusiveStickerExpansion],
+  );
+
+  const addSticker = useCallback(
+    (section: ConversationSection): void => {
+      const identity = stickerSectionIdentity(accumulatedConversationRef.current, section.response);
+      if (!identity.persistable) {
+        announceStickerStatus(
+          "This Sticker is temporary because this conversation could not be identified reliably.",
+        );
+      }
+      const sectionStickers = stickers.filter(
+        (sticker) =>
+          sticker.conversationKey === identity.conversationKey &&
+          sticker.sectionKey === identity.sectionKey,
+      );
+      const sticker = createSticker(identity, {
+        xRatio: 1,
+        yRatio: Math.min(0.92, 0.03 + sectionStickers.length * 0.2),
+      });
+      const now = Date.now();
+      const collapsedUpdates: Sticker[] = [];
+      const collapsed = stickers.map((existing) => {
+        if (existing.isCollapsed) {
+          return existing;
+        }
+        const updated = { ...existing, isCollapsed: true, updatedAt: now };
+        collapsedUpdates.push(updated);
+        return updated;
+      });
+      setStickers([...collapsed, sticker]);
+      setExpandedStickerId(sticker.id);
+      setActiveStickerEditorId(sticker.id);
+      for (const updated of collapsedUpdates) {
+        if (updated.text) {
+          void persistSticker(updated);
+        }
+      }
+    },
+    [announceStickerStatus, persistSticker, stickers],
+  );
+
+  const saveStickerText = useCallback(
+    (stickerId: string, text: string): void => {
+      const normalized = normalizeStickerText(text);
+      if (!normalized) {
+        return;
+      }
+      const existing = stickers.find((sticker) => sticker.id === stickerId);
+      if (!existing) {
+        return;
+      }
+      const updated: Sticker = { ...existing, text: normalized, updatedAt: Date.now() };
+      setStickers((current) =>
+        current.map((sticker) => (sticker.id === stickerId ? updated : sticker)),
+      );
+      setActiveStickerEditorId(null);
+      void persistSticker(updated).then((result) => {
+        if (result === "saved") {
+          announceStickerStatus("Sticker saved locally.");
+        }
+      });
+      focusStickerOrAnchor(updated.id);
+    },
+    [announceStickerStatus, focusStickerOrAnchor, persistSticker, stickers],
+  );
+
+  const cancelStickerEdit = useCallback(
+    (stickerId: string): void => {
+      const sticker = stickers.find((candidate) => candidate.id === stickerId);
+      const section = sticker ? sectionForSticker(sticker) : undefined;
+      if (sticker && !sticker.text) {
+        setStickers((current) => current.filter((candidate) => candidate.id !== stickerId));
+        setExpandedStickerId((current) => (current === stickerId ? null : current));
+      }
+      setActiveStickerEditorId(null);
+      focusStickerOrAnchor(stickerId, section?.id);
+    },
+    [focusStickerOrAnchor, sectionForSticker, stickers],
+  );
+
+  const updateSticker = useCallback(
+    (
+      stickerId: string,
+      patch: Partial<Pick<Sticker, "isCollapsed" | "isPinned" | "position">>,
+    ): void => {
+      const existing = stickers.find((sticker) => sticker.id === stickerId);
+      if (!existing) {
+        return;
+      }
+      const updated: Sticker = { ...existing, ...patch, updatedAt: Date.now() };
+      setStickers((current) =>
+        current.map((sticker) => (sticker.id === stickerId ? updated : sticker)),
+      );
+      if (updated.text) {
+        void persistSticker(updated);
+      }
+    },
+    [persistSticker, stickers],
+  );
+
+  const toggleStickerCollapsed = useCallback(
+    (stickerId: string): void => {
+      if (stickers.some((candidate) => candidate.id === stickerId)) {
+        setExclusiveStickerExpansion(expandedStickerId === stickerId ? null : stickerId);
+      }
+    },
+    [expandedStickerId, setExclusiveStickerExpansion, stickers],
+  );
+
+  const toggleStickerPinned = useCallback(
+    (stickerId: string): void => {
+      const sticker = stickers.find((candidate) => candidate.id === stickerId);
+      if (sticker) {
+        updateSticker(stickerId, { isPinned: !sticker.isPinned });
+        announceStickerStatus(
+          sticker.isPinned ? "Sticker unpinned." : "Sticker pinned to section.",
+        );
+      }
+    },
+    [announceStickerStatus, stickers, updateSticker],
+  );
+
+  const moveSticker = useCallback(
+    (stickerId: string, position: StickerPosition): void => {
+      const previous = stickers.find((sticker) => sticker.id === stickerId);
+      updateSticker(stickerId, { position, isPinned: true });
+      const direction = previous && position.yRatio < previous.position.yRatio ? "higher" : "lower";
+      announceStickerStatus(`Sticker moved ${direction} within section.`);
+    },
+    [announceStickerStatus, stickers, updateSticker],
+  );
+
+  const deleteSticker = useCallback(
+    (stickerId: string): void => {
+      const sticker = stickers.find((candidate) => candidate.id === stickerId);
+      if (!sticker) {
+        return;
+      }
+      const section = sectionForSticker(sticker);
+      const persistable = section
+        ? stickerSectionIdentity(accumulatedConversationRef.current, section.response).persistable
+        : false;
+      setStickers((current) => current.filter((candidate) => candidate.id !== stickerId));
+      setActiveStickerEditorId((current) => (current === stickerId ? null : current));
+      setExpandedStickerId((current) => (current === stickerId ? null : current));
+      void removeSticker(sticker.conversationKey, sticker.id, persistable).then((result) => {
+        if (result !== "removed" && result !== "not-persistable") {
+          announceStickerStatus(
+            "Sticker deleted for this session, but the saved copy could not be removed.",
+          );
+        } else {
+          announceStickerStatus("Sticker deleted.");
+        }
+      });
+      focusStickerOrAnchor(stickerId, section?.id);
+    },
+    [announceStickerStatus, focusStickerOrAnchor, sectionForSticker, stickers],
+  );
 
   const renameSection = useCallback(
     async (group: ConversationOutlineGroup, value: string): Promise<void> => {
@@ -733,6 +1063,8 @@ export function ReaderView({
       className="rb-reader"
       data-appearance={preferences.appearance}
       data-reading-style={preferences.readingFont}
+      data-text-size={preferences.textSize}
+      data-spacing={preferences.spacing}
       data-mode={mode}
       data-code-appearance={preferences.codeAppearance}
       role="dialog"
@@ -851,6 +1183,11 @@ export function ReaderView({
             aria-live="polite"
           >
             {refreshMessage}
+          </p>
+        ) : null}
+        {stickerStatus ? (
+          <p className="rb-sticker-status" aria-live="polite" aria-atomic="true">
+            {stickerStatus}
           </p>
         ) : null}
 
@@ -1101,46 +1438,80 @@ export function ReaderView({
         </p>
       </header>
 
-      <div
-        className="rb-reader-body"
-        data-outline-open={outlineOpen ? "true" : "false"}
-        data-narrow={isNarrow ? "true" : "false"}
-        inert={feedbackOpen ? true : undefined}
-        aria-hidden={feedbackOpen ? "true" : undefined}
-      >
-        {mode === "document" ? (
-          <>
-            <ConversationOutline
-              groups={outlineGroups}
-              activeSectionId={activeSectionId}
-              activeHeadingId={activeHeadingId}
-              open={outlineOpen}
-              onSelectGroup={selectGroup}
-              onSelectHeading={selectHeading}
-              onRenameSection={renameSection}
-              onRestoreAutomaticTitle={restoreAutomaticSectionTitle}
-              titleStatus={sectionTitleStatus}
-            />
-            <ContinuousDocumentView
-              sections={sections}
+      <StickerMenuPortalContext.Provider value={stickerMenuPortal}>
+        <div
+          className="rb-reader-body"
+          data-outline-open={outlineOpen ? "true" : "false"}
+          data-narrow={isNarrow ? "true" : "false"}
+          inert={feedbackOpen ? true : undefined}
+          aria-hidden={feedbackOpen ? "true" : undefined}
+        >
+          {mode === "document" ? (
+            <>
+              <ConversationOutline
+                groups={outlineGroups}
+                activeSectionId={activeSectionId}
+                activeHeadingId={activeHeadingId}
+                open={outlineOpen}
+                onSelectGroup={selectGroup}
+                onSelectHeading={selectHeading}
+                onRenameSection={renameSection}
+                onRestoreAutomaticTitle={restoreAutomaticSectionTitle}
+                titleStatus={sectionTitleStatus}
+              />
+              <ContinuousDocumentView
+                sections={sections}
+                stickersBySectionId={stickersBySectionId}
+                activeStickerEditorId={activeStickerEditorId}
+                expandedStickerId={expandedStickerId}
+                onAddSticker={addSticker}
+                onBeginEdit={beginStickerEdit}
+                onSave={saveStickerText}
+                onCancelEdit={cancelStickerEdit}
+                onToggleCollapsed={toggleStickerCollapsed}
+                onTogglePinned={toggleStickerPinned}
+                onDelete={deleteSticker}
+                onMove={moveSticker}
+                scrollAreaRef={scrollAreaRef}
+                tableSessionStates={tableSessionStates}
+                fullscreenCoordinator={fullscreenCoordinator}
+                onActiveChange={handleActiveDocumentChange}
+                codeAppearance={preferences.codeAppearance}
+              />
+            </>
+          ) : focusedSection ? (
+            <FocusResponseView
+              section={focusedSection}
+              stickers={stickersBySectionId.get(focusedSection.id) ?? []}
+              activeStickerEditorId={activeStickerEditorId}
+              expandedStickerId={expandedStickerId}
+              onAddSticker={() => addSticker(focusedSection)}
+              onBeginEdit={beginStickerEdit}
+              onSave={saveStickerText}
+              onCancelEdit={cancelStickerEdit}
+              onToggleCollapsed={toggleStickerCollapsed}
+              onTogglePinned={toggleStickerPinned}
+              onDelete={deleteSticker}
+              onMove={moveSticker}
               scrollAreaRef={scrollAreaRef}
+              outlineOpen={outlineOpen}
               tableSessionStates={tableSessionStates}
               fullscreenCoordinator={fullscreenCoordinator}
-              onActiveChange={handleActiveDocumentChange}
               codeAppearance={preferences.codeAppearance}
             />
-          </>
-        ) : (
-          <FocusResponseView
-            response={response}
+          ) : null}
+          <StickerNavigation
             scrollAreaRef={scrollAreaRef}
-            outlineOpen={outlineOpen}
-            tableSessionStates={tableSessionStates}
-            fullscreenCoordinator={fullscreenCoordinator}
-            codeAppearance={preferences.codeAppearance}
+            stickers={visibleStickers}
+            hidden={expandedStickerId !== null}
           />
-        )}
-      </div>
+        </div>
+      </StickerMenuPortalContext.Provider>
+      <div
+        ref={setStickerMenuPortal}
+        className="rb-sticker-menu-portal rb-print-hidden"
+        data-rb-sticker-menu-portal="true"
+      />
       {feedbackOpen ? <FeedbackModal onClose={closeFeedback} /> : null}
     </div>
   );

@@ -47,6 +47,7 @@ describe("Chrome Web Store release documentation", () => {
     expect(submission).toContain("https://chat.mistral.ai/*");
     expect(submission).toContain("No, ReadBooster does not use remote executable code.");
     expect(combined).toContain("section-title");
+    expect(combined).toContain("Sticker");
     expect(combined).toContain("Tally");
     expect(combined).toContain("Limited Use");
     expect(combined).toContain("does not persist complete conversations");

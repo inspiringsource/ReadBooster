@@ -36,6 +36,9 @@
   .rb-prompt-disclosure,
   .rb-block-toolbar,
   .rb-table-fullscreen-close,
+  .rb-sticker-layer,
+  .rb-sticker,
+  .rb-sticker-anchor,
   .rb-visually-hidden {
     display: none !important;
   }
@@ -108,7 +111,12 @@
 
   .rb-document-section {
     break-inside: auto;
+    display: block !important;
     page-break-inside: auto;
+  }
+
+  .rb-focus-section {
+    display: block !important;
   }
 
   .rb-document-section + .rb-document-section {

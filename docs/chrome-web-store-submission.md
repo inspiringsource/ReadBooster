@@ -5,7 +5,7 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.6.2
+- Submission candidate: 0.6.7
 - Manifest: Version 3
 - Currently supported websites: ChatGPT, Google Gemini, and Mistral
 - Requested Chrome permission: `storage`
@@ -22,7 +22,7 @@ Mistral's production role boundaries, Canvas extraction, and rich-table normaliz
 
 ### Storage
 
-> The storage permission is used to save reader preferences and user-created custom section titles locally in Chrome. ReadBooster does not use this permission to store complete prompt or response bodies.
+> The storage permission is used to save reader preferences, user-created custom section titles, and user-created section Stickers locally in Chrome. ReadBooster does not use this permission to store complete prompt or response bodies.
 
 ### ChatGPT host access
 
@@ -64,7 +64,7 @@ ReadBooster does not collect or use:
 
 ReadBooster has no account system, analytics, advertising, payment system, or backend. It does not use OpenAI, Gemini, Claude, or Mistral APIs or private AI-platform endpoints. It does not execute code contained in AI responses.
 
-Reader preferences and user-created custom section titles are stored locally in Chrome. Custom titles use minimal stable local association keys where the supported platform exposes suitable identifiers. Complete prompts, responses, tables, charts, code, signed image URLs, and other conversation bodies are not written to storage.
+Reader preferences, user-created custom section titles, and user-created Sticker notes are stored locally in Chrome. Titles and Stickers use minimal stable local association keys where the supported platform exposes suitable identifiers. Complete prompts, responses, tables, charts, code, signed image URLs, and other conversation bodies are not written to storage.
 
 The optional Feedback action loads `https://tally.so/r/QKWqjp` only after direct user activation. ReadBooster does not automatically attach conversation content, identifiers, titles, source URLs, selected text, screenshots, or account data. Tally receives only information the user deliberately enters or uploads in its form.
 
@@ -87,7 +87,7 @@ ReadBooster does not claim to use a Google API. Gemini content is read from the 
 > 5. Refresh the page once after installing the extension.
 > 6. Click the ReadBooster “Optimize Reading” control, or open the extension popup and select “Optimize latest response.”
 > 7. Confirm the conversation opens in Continuous Document Mode.
-> 8. Test Document and Focus modes, outline navigation, reading settings, Copy, Print, tables, code blocks, and custom section titles.
+> 8. Test Document and Focus modes, outline navigation, reading settings, Copy, Print, tables, code blocks, custom section titles, and local section Stickers.
 > 9. The optional Feedback action opens a Tally form only after explicit activation. No conversation content is attached automatically.
 >
 > ReadBooster processes conversation content locally. It has no backend, ReadBooster login, analytics, payment, or advertising system.
@@ -102,14 +102,14 @@ This is a recommendation for the future dashboard configuration only. Publicatio
 
 ## Website handoff checklist
 
-The website is maintained separately and is not changed by the 0.6.2 extension task. A later website update should:
+The website is maintained separately and is not changed by the 0.6.7 extension task. A later website update should:
 
-- show current extension version 0.6.2;
+- show current extension version 0.6.7;
 - show ChatGPT support;
 - show Google Gemini support;
 - show Mistral support with an honest live-verification status;
 - describe Claude as planned for a future development milestone;
-- explain local conversation processing and local preference/custom-title storage;
+- explain local conversation processing and local preference/custom-title/Sticker storage;
 - disclose the optional user-initiated external Tally feedback form;
 - publish a reviewed privacy-policy page;
 - publish a support/contact page with user-approved contact details;

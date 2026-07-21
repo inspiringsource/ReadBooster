@@ -36,7 +36,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const thirdPartyNoticesPath = join(dist, "THIRD_PARTY_NOTICES.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.6.2", "release version is not 0.6.2");
+  assert(manifest.version === "0.6.7", "release version is not 0.6.7");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -169,6 +169,32 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   assert(
     /data-reading-style/.test(shippedText) && !/data-reading-font/.test(shippedText),
     "built reader does not use the unified Reading style attribute",
+  );
+  assert(
+    shippedText.includes("Beta · v") && shippedText.includes(packageJson.version),
+    "built Reader version label is stale or missing",
+  );
+  assert(shippedText.includes("stickers:v1"), "built Sticker storage integration is missing");
+  assert(
+    shippedText.includes(":fingerprint:") &&
+      shippedText.includes(
+        "This Sticker is temporary because this conversation could not be identified reliably.",
+      ),
+    "built Sticker persistence fallback is stale or missing",
+  );
+  assert(
+    shippedText.includes("pathname.match(/^\\/app\\/") && shippedText.includes("gemini.google.com"),
+    "built Gemini conversation-route identity is stale or missing",
+  );
+  assert(
+    shippedText.includes("writeQueue") && shippedText.includes(".flush()"),
+    "built Sticker repository flush behavior is stale or missing",
+  );
+  assert(
+    shippedText.includes("Sticker navigation") &&
+      shippedText.includes("data-rb-sticker-navigation") &&
+      shippedText.includes("data-rb-sticker-highlighted"),
+    "built Sticker navigation indicators are stale or missing",
   );
   assert(!/MyWebSite|MySite/.test(shippedText), "generic website placeholder metadata was shipped");
   assert(

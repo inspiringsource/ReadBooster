@@ -7,9 +7,16 @@ import { flattenOutline } from "./outline";
 import type { ConversationSection } from "./presentation";
 import { PromptDisclosure } from "./PromptDisclosure";
 import { ResponseContent } from "./ResponseContent";
+import type { Sticker } from "../shared/stickers";
+import { StickerAnchor } from "./stickers/StickerAnchor";
+import { StickerLayer, type StickerActions } from "./stickers/StickerLayer";
 
-interface ContinuousDocumentViewProps {
+interface ContinuousDocumentViewProps extends StickerActions {
   sections: readonly ConversationSection[];
+  stickersBySectionId: ReadonlyMap<string, readonly Sticker[]>;
+  activeStickerEditorId: string | null;
+  expandedStickerId: string | null;
+  onAddSticker: (section: ConversationSection) => void;
   scrollAreaRef: RefObject<HTMLElement | null>;
   tableSessionStates: Map<string, TableDisplayState>;
   fullscreenCoordinator: TableFullscreenCoordinator;
@@ -24,6 +31,17 @@ export function ContinuousDocumentView({
   fullscreenCoordinator,
   onActiveChange,
   codeAppearance,
+  stickersBySectionId,
+  activeStickerEditorId,
+  expandedStickerId,
+  onAddSticker,
+  onBeginEdit,
+  onSave,
+  onCancelEdit,
+  onToggleCollapsed,
+  onTogglePinned,
+  onDelete,
+  onMove,
 }: ContinuousDocumentViewProps) {
   if (import.meta.env.DEV) {
     recordConversationPipelineDiagnostics({ renderedDocumentSections: sections.length });
@@ -107,17 +125,39 @@ export function ContinuousDocumentView({
             tabIndex={-1}
             aria-labelledby={`${section.id}-title`}
           >
-            <header className="rb-document-section-header">
-              <span className="rb-section-indicator">Section {section.index + 1}</span>
-              <h2 id={`${section.id}-title`}>{section.title}</h2>
-            </header>
-            {section.prompt ? <PromptDisclosure prompt={section.prompt} /> : null}
-            <ResponseContent
-              response={section.response}
-              tableSessionStates={tableSessionStates}
-              fullscreenCoordinator={fullscreenCoordinator}
-              variant="document"
-              codeAppearance={codeAppearance}
+            <div className="rb-section-reading-column">
+              <header className="rb-document-section-header">
+                <div>
+                  <span className="rb-section-indicator">Section {section.index + 1}</span>
+                  <h2 id={`${section.id}-title`}>{section.title}</h2>
+                </div>
+                <StickerAnchor
+                  sectionId={section.id}
+                  sectionTitle={section.title}
+                  onAdd={() => onAddSticker(section)}
+                />
+              </header>
+              {section.prompt ? <PromptDisclosure prompt={section.prompt} /> : null}
+              <ResponseContent
+                response={section.response}
+                tableSessionStates={tableSessionStates}
+                fullscreenCoordinator={fullscreenCoordinator}
+                variant="document"
+                codeAppearance={codeAppearance}
+              />
+            </div>
+            <StickerLayer
+              stickers={stickersBySectionId.get(section.id) ?? []}
+              sectionTitle={section.title}
+              activeEditorId={activeStickerEditorId}
+              expandedStickerId={expandedStickerId}
+              onBeginEdit={onBeginEdit}
+              onSave={onSave}
+              onCancelEdit={onCancelEdit}
+              onToggleCollapsed={onToggleCollapsed}
+              onTogglePinned={onTogglePinned}
+              onDelete={onDelete}
+              onMove={onMove}
             />
           </section>
         ))}

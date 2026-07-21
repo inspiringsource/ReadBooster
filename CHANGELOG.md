@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.6.7
+
+### Added
+
+- Added compact upward and downward Sticker navigation indicators for long Reader documents.
+- Added directional Sticker counts, nearest-destination scrolling, and a brief destination highlight.
+- Scoped navigation to all rendered sections in Document mode and the focused response in Focus mode.
+- Kept navigation outside the reading column, keyboard accessible, and respectful of reduced-motion preferences.
+
+## 0.6.6
+
+### Fixed
+
+- Made Stickers persist across Reader close and reopen when a supported conversation has a stable route but its response lacks a source message ID.
+- Added a conversation-scoped deterministic response-fingerprint fallback without storing conversation bodies or HTML.
+- Flushed queued Sticker writes before closing or remounting the Reader and surfaced local-storage failures visibly.
+- Added restoration coverage for ChatGPT, Gemini, and Mistral, including delayed writes, state changes, movement, and deletion.
+
+## 0.6.5
+
+### Fixed
+
+- Moved Sticker action menus into a Reader-level overlay so cards and constrained drawers cannot clip actions.
+- Added viewport-aware menu placement that flips upward near the lower edge and remains within horizontal bounds.
+- Kept all four Sticker actions readable with consistent row sizing, visible keyboard focus, and Escape focus restoration.
+- Restored explicit light and dark foreground colors for portaled Sticker menu actions.
+
+## 0.6.4
+
+### Changed
+
+- Replaced ambiguous circular Sticker pins with compact, accessible saved-note controls.
+- Positioned new Sticker pins below section controls without narrowing the reading column.
+- Added section-relative vertical dragging for collapsed pins and expanded cards, with keyboard movement and local persistence.
+- Added collision-aware margin placement so multiple pins remain separated within their owning section.
+- Kept constrained layouts on the existing temporary Sticker drawer.
+
+## 0.6.3
+
+### Added
+
+- Introduced local Stickers for attaching short notes to ReadBooster document sections.
+- Added editing, section-relative movement, pinning, collapsing, and protected deletion.
+- Restored Stickers for stable ChatGPT, Gemini, and Mistral conversation/response identities.
+- Kept Stickers attached when sections are renamed and filtered them to the active response in Focus mode.
+
+### Privacy
+
+- Sticker text is stored only in browser-managed local extension storage and is excluded from Copy and Print output.
+
 ## 0.6.2
 
 ### Added

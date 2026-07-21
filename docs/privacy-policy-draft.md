@@ -10,7 +10,7 @@ No company name, legal address, data-protection officer, or support email is ass
 
 ## 1. Product and scope
 
-ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.6.2 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.6.7 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`;
@@ -32,7 +32,8 @@ ReadBooster uses browser-managed local extension storage for:
 
 - validated reader preferences, such as appearance, text size, spacing, code appearance, and initial document position;
 - user-created custom section-title overrides;
-- minimal stable local association keys needed to match a custom title to the correct supported conversation response where suitable identifiers are available.
+- user-created Sticker notes, their collapsed/pinned state, and section-relative position;
+- minimal stable local association keys needed to match a custom title or Sticker to the correct supported conversation response where suitable identifiers are available.
 
 ReadBooster does not use storage to retain complete prompts, assistant responses, response HTML, tables, charts, code blocks, signed media URLs, or complete conversation documents.
 
@@ -59,7 +60,7 @@ Tally is an external service and its own terms and privacy practices apply to in
 
 ## 6. Data deletion
 
-Users can remove ReadBooster’s locally stored preferences and custom section titles by:
+Users can remove ReadBooster’s locally stored preferences, custom section titles, and Stickers by:
 
 1. uninstalling ReadBooster, subject to the browser’s extension-storage behavior; or
 2. opening the browser’s extension/data management tools and clearing ReadBooster’s extension storage.

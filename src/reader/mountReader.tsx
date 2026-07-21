@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 
 import { loadReaderPreferences, loadSectionTitleOverrides } from "../shared/storage";
+import { flushStickerWrites, loadStickersWithStatus } from "../shared/stickerRepository";
 import type {
   ConversationDocument,
   ConversationTurn,
@@ -178,6 +179,12 @@ export async function mountReader(
   const responses = assistantBlocks(conversation);
   const initialResponseId = selectedBlockId(conversation, initialSelection);
   const requestId = ++mountRequestId;
+  // Explicit Sticker saves are queued to serialize storage.local updates. A remount must observe
+  // every prior write instead of loading a stale snapshot while the previous Reader closes.
+  await flushStickerWrites();
+  if (requestId !== mountRequestId) {
+    return () => undefined;
+  }
   cleanupActiveReader(true);
   removeOrphanArtifacts();
 
@@ -186,9 +193,10 @@ export async function mountReader(
   }
 
   const previouslyFocused = getDeepActiveElement();
-  const [preferences, sectionTitleOverrides] = await Promise.all([
+  const [preferences, sectionTitleOverrides, stickerLoad] = await Promise.all([
     loadReaderPreferences(),
     loadSectionTitleOverrides(conversation),
+    loadStickersWithStatus(conversation),
   ]);
   const fastReadingFont = registerFastReadingFont();
 
@@ -265,8 +273,16 @@ export async function mountReader(
         initialResponseId={initialResponseId}
         initialPreferences={preferences}
         initialSectionTitleOverrides={sectionTitleOverrides}
+        initialStickers={stickerLoad.stickers}
+        initialStickerPersistenceWarning={
+          stickerLoad.status === "failed" || stickerLoad.status === "unavailable"
+            ? "Saved Stickers could not be loaded from local storage."
+            : undefined
+        }
         refreshConversation={refreshConversation}
-        onClose={() => queueMicrotask(cleanup)}
+        onClose={() => {
+          void flushStickerWrites().finally(() => queueMicrotask(cleanup));
+        }}
       />,
     );
   } catch (error) {

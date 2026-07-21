@@ -1,8 +1,8 @@
 # ReadBooster
 
-ReadBooster 0.6.2 is a local-first browser extension that renders normalized ChatGPT, Gemini, and Mistral conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.6.7 is a local-first browser extension that renders normalized ChatGPT, Gemini, and Mistral conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
-> **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences and user-created section-title overrides, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
+> **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences, user-created section-title overrides, and private section Stickers, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
 This repository contains the first MVP. ChatGPT, Gemini, and Mistral extraction are implemented and covered by compact DOM fixtures. ChatGPT is manually verified; Gemini and Mistral live browser verification remain required because their authenticated conversation DOMs are not public or stable APIs.
 
@@ -25,10 +25,11 @@ Chrome Web Store preparation material is maintained in [Chrome Web Store submiss
 - Preserve paragraphs, headings, lists, links, blockquotes, verified safe response images, the tested ChatGPT Estuary chart-card structure, code, tables, emphasis, and preformatted text through the shared reader.
 - Add response-local code toolbars with language labels, exact Copy code, and optional locally bundled syntax color.
 - Give tables Fit, Wide, Fullscreen, Compact text, and Reset display controls for the current reader session.
+- Attach private local Stickers to stable response sections, with editing, pinning, collapsing, section-relative movement, Focus-mode filtering, and compact directional navigation in long documents.
 - Organize reader controls into direct mode, outline, and close controls plus compact Reading settings and Actions panels.
 - Offer a discreet, user-initiated **Feedback** action that displays the published Tally form in an accessible modal without changing the reader.
 - Offer light, dark, and system appearance; text-size and spacing controls; Default, Serif, Dyslexia-friendly, and optional locally bundled Fast Reading styles; independent Color/Plain code appearance; a Latest section/Beginning opening preference; mode-specific copy and print; concise About/version information; visible focus; and Escape-key closing.
-- Store only validated reader preferences and minimal section-title override metadata in `chrome.storage.local`.
+- Store only validated reader preferences, minimal section-title override metadata, and user-created Sticker records in `chrome.storage.local`.
 - Open immediately from the current platform DOM window, then use the shared bounded source-page scanner when a verified overflowing conversation scroller exists.
 - Provide a small popup that reports page support and calls the same content-script operation as the injected button.
 
@@ -53,6 +54,18 @@ The single **Reading style** selector contains Default, Serif, Dyslexia-friendly
 The fixation-guided explanation appears contextually below the complete settings grid only while Fast Reading is selected. It does not occupy one grid cell or appear for Default and Serif, so both desktop columns retain aligned labels and controls; the grid switches to one column at narrow effective viewport widths.
 
 Fast Font attribution and its complete MIT License are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The production build also includes that notice alongside the font.
+
+### Stickers in 0.6.7
+
+Each assistant-response section exposes a subtle **Add sticker** action. A Sticker is a private short note attached to that response rather than its visible title or outline position. Collapsed Stickers use recognizable note-shaped controls in the outer right margin, beginning below the section header with protected spacing from **Add sticker**. Multiple pins stack with collision-aware spacing. Opening one shows a single floating card near its pin without narrowing the reading column; constrained layouts use a temporary dismissible drawer instead.
+
+Drag a collapsed pin or the expanded card's handle vertically to place the note beside more relevant material in its current section. Arrow Up/Down move it by a smaller step, and Shift uses a larger step. The normalized section-relative position is saved only after movement completes and adapts when reading style, text size, spacing, outline visibility, or width changes. Movement never reassigns the Sticker to another section; an explicit cross-section move command remains future work. New empty drafts are discarded, and notes are limited to 1,000 characters so the feature remains a reading aid rather than a second document editor.
+
+Document mode shows Stickers for every rendered section. Focus mode uses the same records but shows only Stickers for the focused response. Renaming a section, inserting earlier or later responses during Refresh, switching reading styles, and moving between Document and Focus modes do not change ownership. Stickers persist under the versioned `stickers:v1` storage key for the exact ChatGPT, Gemini, or Mistral conversation. A stable source message ID is preferred; when a supported conversation has a stable public identity but a response has no message ID, ReadBooster uses its normalized response fingerprint plus same-fingerprint occurrence as a conservative recovery identity. If the conversation itself cannot be identified reliably, ReadBooster visibly warns that a new Sticker would be temporary instead of silently promising persistence. Missing sections leave their stored records untouched and hidden for possible future recovery.
+
+Sticker text, pin/collapse state, normalized section-relative position, timestamps, and opaque association keys are stored in browser-managed local extension storage. Prompts, assistant responses, response HTML, source URLs, and complete conversations are not copied into Sticker storage. Sticker content is excluded from Document Copy and hidden from Print/PDF output. ReadBooster has no Sticker analytics, cloud synchronization, collaboration, or automatic upload.
+
+When persisted Stickers fall above or below the visible Reader area, compact directional controls show the number in each direction. Activating a control scrolls the Reader—not the source AI page—to the nearest Sticker and briefly highlights its existing pin or card. Document mode orders all rendered destinations by section and section-relative position; Focus mode considers only the focused response. These controls are overlays, so they do not reserve a sidebar or change the main reading width.
 
 ## Technology stack
 
@@ -240,13 +253,13 @@ After rebuilding, use the reload control on the ReadBooster card in `chrome://ex
 
 ## Chrome Web Store packaging
 
-Version 0.6.2 is prepared as a build candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
+Version 0.6.7 is prepared as a build candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
 
 The release workflow is:
 
 1. Run the complete typecheck, lint, test, build, formatting, audit, and diff gate.
 2. Inspect `dist-chrome/manifest.json`, including permissions, host permissions, content-script matches, and web-accessible-resource matches.
-3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.6.2.zip` with `manifest.json` at the archive root.
+3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.6.7.zip` with `manifest.json` at the archive root.
 4. Inspect the ZIP root and exclude repository sources, tests, fixtures, dependencies, secrets, `.DS_Store`, and `__MACOSX` metadata.
 5. Keep publication deferred until the website privacy/support handoff and live Chrome acceptance are complete.
 
@@ -487,6 +500,24 @@ Automated storage and reader fixtures verify schema validation and UI behavior, 
 15. At a narrow or touch-sized layout, confirm Rename and Restore remain discoverable without hover.
 16. Inspect `chrome.storage.local` and confirm `sectionTitleOverrides:v1` contains only association keys and custom title text, never prompt or response bodies.
 
+### 0.6.7 Stickers acceptance checklist
+
+Automated tests cover stable identity, local persistence, Document/Focus filtering, section renaming, keyboard movement, Copy exclusion, and Print exclusion. Final interaction quality and cross-browser pointer behavior still require the unpacked extensions.
+
+1. Open the same multi-response conversation in ChatGPT, Gemini, and Mistral where available; add a Sticker to two different sections.
+2. Confirm each **Add sticker** control is subtle during ordinary reading, keyboard reachable, and labelled with its section title.
+3. Enter a note, save with Ctrl/Cmd+Enter, edit it again, cancel with Escape, and confirm an abandoned empty draft disappears.
+4. Collapse the Sticker and confirm its note-shaped pin begins at least 16px below **Add sticker**. Drag the pin vertically beside a lower paragraph, then use Arrow Up/Down and Shift+Arrow Up/Down; confirm it remains in the owning section and does not open accidentally after a drag.
+5. Pin and unpin it, collapse and expand it, then close and reopen ReadBooster. Reload the platform tab and reopen again. Confirm the note, position, pin state, and collapse state restore for the same conversation/response after each lifecycle boundary.
+6. Rename the section, refresh or scan the conversation, and insert earlier/later responses; confirm the Sticker remains with the same response rather than the visible title or index.
+7. In Document mode, confirm all current-section Stickers appear. In Focus mode, navigate first/middle/final responses and confirm only the focused response's Stickers appear.
+8. Delete a non-empty Sticker through its confirmation, reopen the Reader and reload the tab, and confirm it remains deleted. Restart the browser where practical and repeat the same-conversation restoration check.
+9. Test outline visible/hidden, every Reading style, small through extra-large text, compact through roomy spacing, narrow width, touch input where available, light/dark appearance, 100%–200% zoom, visible focus, menu keyboard access, and screen-reader labels. Confirm multiple pins never overlap and the reading column width does not change.
+10. Copy Document and Focus content and confirm private Sticker text is absent. Print and Save as PDF and confirm no Sticker cards or anchors appear.
+11. Inspect `chrome.storage.local`: `stickers:v1` may contain Sticker text, pin/collapse state, normalized position, timestamps, and opaque association keys, but no prompts, responses, HTML, source URLs, or complete documents.
+12. Simulate unavailable extension storage and confirm the in-memory Sticker remains usable with a non-blocking session-only warning.
+13. In a long document with at least four Stickers, verify the upward/downward counts, navigate repeatedly to the nearest destination, and confirm the destination highlight, Focus-mode filtering, restored-Sticker participation, reduced-motion behavior, and unchanged reading width.
+
 ### 0.4.10 feedback-modal acceptance checklist
 
 Automated tests simulate iframe load and failure events and mock the fallback new-tab opening. They do not load or submit the external form. Final acceptance requires the live extension and Tally.
@@ -597,12 +628,12 @@ Automated tests verify preference normalization, persistence, scoped styling, bu
 
 - Manifest host access is limited to ChatGPT, Google Gemini, and the Mistral chat application at `chat.mistral.ai`.
 - The only requested Chrome permission is `storage`; content scripts and generated web-accessible resources use only those three supported host patterns.
-- Claude receives no production host permission, content script, adapter routing, or injected control in 0.6.2.
+- Claude receives no production host permission, content script, adapter routing, or injected control in 0.6.7.
 - Extraction clones user prompts and assistant responses into an in-memory normalized document; it does not mutate the host conversation.
 - Host controls are removed before DOMPurify applies a conservative element and attribute allowlist.
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
 - Extracted response HTML and text remain in memory for the active reader session and are not written to storage.
-- `chrome.storage.local` contains validated reader preferences and optional `sectionTitleOverrides:v1` entries with stable conversation/response association keys plus user-created title text only.
+- `chrome.storage.local` contains validated reader preferences, optional `sectionTitleOverrides:v1` entries, and optional `stickers:v1` records with stable conversation/response association keys plus user-created title or Sticker text only.
 - ChatGPT, Gemini, and Mistral extraction reads only the currently rendered page DOM; it does not call platform APIs, private conversation endpoints, intercept network traffic, read cookies, or add authentication.
 - No remote executable code is loaded into the extension execution context, and no telemetry or automatic Tally request is used. After explicit activation, the Tally web application runs only inside its isolated iframe; ReadBooster does not load Tally's widget script or inspect the iframe's submitted content.
 
@@ -657,6 +688,10 @@ src/
 │   ├── ResponseOutline.tsx
 │   ├── ResponseContent.tsx
 │   ├── ReaderView.tsx
+│   ├── stickers/
+│   │   ├── StickerAnchor.tsx
+│   │   ├── StickerCard.tsx
+│   │   └── StickerLayer.tsx
 │   ├── syntaxHighlight.ts
 │   └── reader.css
 └── shared/
@@ -664,6 +699,8 @@ src/
     ├── developmentDiagnostics.ts
     ├── preferences.ts
     ├── sectionTitleOverrides.ts
+    ├── stickerRepository.ts
+    ├── stickers.ts
     ├── storage.ts
     └── types.ts
 tests/
@@ -687,7 +724,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
 - Fast Sans is one static Regular face rather than a variable family. Browser-synthesized bold may differ from a dedicated bold face, and unsupported characters fall back to the reader's local sans-serif stack. Live Chrome checks remain necessary for multilingual glyph appearance and Chromium contextual-alternate behavior.
-- ReadBooster 0.6.2 does not provide search, bookmarks, annotations, response or prompt editing, Canvas editing or synchronization, AI revisions, code execution, selective print/export, Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.6.7 does not provide search, bookmarks, exact text-range annotations, collaborative notes, response or prompt editing, Canvas editing or synchronization, AI revisions, code execution, Sticker export, selective print/export, Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -695,4 +732,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 Mistral's role-boundary, Canvas, and rich-table extraction are improved in 0.6.2, but full Chrome and Firefox acceptance remains pending. Claude is planned for a future development milestone; this is a roadmap intention rather than a contractual guarantee and still requires live DOM evidence, a separate permission review, compact fixtures, and manual acceptance before it can be enabled.
 
-Later roadmap candidates include search, bookmarks, annotations, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.6.2.
+Later roadmap candidates include search, bookmarks, text-range anchoring, Sticker reattachment/export, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.6.7.

@@ -292,6 +292,17 @@
   min-height: 1.45em;
 }
 
+.rb-sticker-status {
+  background: color-mix(in srgb, var(--rb-accent) 10%, var(--rb-panel));
+  border: 1px solid color-mix(in srgb, var(--rb-accent) 32%, var(--rb-border));
+  border-radius: 8px;
+  color: var(--rb-text);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 7px 10px;
+}
+
 .rb-action-status {
   color: var(--rb-muted);
   font-size: 12px;
@@ -842,9 +853,15 @@
 }
 
 .rb-document-section {
+  container-type: inline-size;
   min-width: 0;
   outline: none;
+  position: relative;
   scroll-margin-top: 16px;
+}
+
+.rb-section-reading-column {
+  min-width: 0;
 }
 
 .rb-document-section + .rb-document-section {
@@ -859,8 +876,16 @@
 }
 
 .rb-document-section-header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
   margin: 0 auto 18px;
   max-width: 72ch;
+}
+
+.rb-document-section-header > div {
+  min-width: 0;
 }
 
 .rb-section-indicator {
@@ -881,6 +906,414 @@
   font-weight: 700;
   line-height: 1.3;
   margin: 0;
+}
+
+.rb-focus-section {
+  container-type: inline-size;
+  margin: 0 auto;
+  max-width: 100%;
+  min-height: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.rb-focus-sticker-anchor {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 auto -14px;
+  max-width: 72ch;
+  padding: 18px clamp(28px, 6vw, 64px) 0;
+}
+
+.rb-sticker-anchor {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--rb-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font:
+    700 11px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  gap: 4px;
+  min-height: 30px;
+  opacity: 0.28;
+  padding: 5px 7px;
+}
+
+.rb-document-section:hover .rb-sticker-anchor,
+.rb-document-section:focus-within .rb-sticker-anchor,
+.rb-focus-section:hover .rb-sticker-anchor,
+.rb-focus-section:focus-within .rb-sticker-anchor,
+.rb-sticker-anchor:focus-visible {
+  opacity: 1;
+}
+
+.rb-sticker-anchor:hover {
+  background: var(--rb-background);
+  border-color: var(--rb-border);
+  color: var(--rb-accent);
+}
+
+.rb-sticker-anchor:focus-visible,
+.rb-sticker button:focus-visible,
+.rb-sticker textarea:focus-visible,
+.rb-sticker-menu button:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+.rb-sticker-layer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 6;
+}
+
+.rb-sticker {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-left: 3px solid var(--rb-accent);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(32, 36, 43, 0.12);
+  color: var(--rb-text);
+  font:
+    500 13px/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  max-width: min(22rem, calc(100cqw - 16px));
+  min-width: 10rem;
+  overflow: visible;
+  pointer-events: auto;
+  position: absolute;
+  width: 16rem;
+  z-index: 8;
+}
+
+.rb-sticker--collapsed {
+  background: var(--rb-surface);
+  border-left-width: 1px;
+  border-radius: 9px;
+  box-shadow: 0 4px 14px rgba(32, 36, 43, 0.16);
+  min-width: 0;
+  overflow: hidden;
+  width: 40px;
+  z-index: 7;
+}
+
+.rb-sticker--dragging {
+  cursor: grabbing;
+  opacity: 0.88;
+  transition: none;
+}
+
+.rb-sticker-header {
+  align-items: center;
+  border-bottom: 1px solid var(--rb-border);
+  display: flex;
+  min-height: 30px;
+  padding: 2px 4px;
+}
+
+.rb-sticker button {
+  appearance: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.rb-sticker-drag,
+.rb-sticker-menu-trigger {
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  min-height: 26px;
+  min-width: 28px;
+  padding: 3px 6px;
+}
+
+.rb-sticker-drag {
+  cursor: grab;
+  touch-action: none;
+}
+
+.rb-sticker-drag:active {
+  cursor: grabbing;
+}
+
+.rb-sticker-menu-trigger {
+  margin-left: auto;
+}
+
+.rb-sticker-drag:hover,
+.rb-sticker-menu-trigger:hover {
+  background: var(--rb-background);
+}
+
+.rb-sticker-pin-state {
+  color: var(--rb-accent);
+  font-size: 9px;
+  line-height: 1;
+  padding-left: 3px;
+}
+
+.rb-sticker-text,
+.rb-sticker-collapsed-content {
+  background: transparent;
+  border: 0;
+  border-radius: 0 0 7px 7px;
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 10px 11px 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  width: 100%;
+}
+
+.rb-sticker-collapsed-content {
+  align-items: center;
+  cursor: grab;
+  display: flex;
+  border-radius: 8px;
+  height: 38px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  touch-action: none;
+  width: 38px;
+}
+
+.rb-sticker-collapsed-content:active {
+  cursor: grabbing;
+}
+
+.rb-sticker-note-icon {
+  fill: color-mix(in srgb, var(--rb-accent) 12%, transparent);
+  height: 21px;
+  stroke: var(--rb-accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 21px;
+}
+
+.rb-sticker-saved-dot {
+  background: var(--rb-accent);
+  border: 2px solid var(--rb-surface);
+  border-radius: 50%;
+  height: 8px;
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 8px;
+}
+
+.rb-sticker-collapsed-content span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rb-sticker-editor {
+  padding: 9px;
+}
+
+.rb-sticker-editor label {
+  display: block;
+  font-size: 11px;
+  font-weight: 750;
+  margin-bottom: 5px;
+}
+
+.rb-sticker-editor textarea {
+  background: var(--rb-background);
+  border: 1px solid var(--rb-border);
+  border-radius: 6px;
+  color: var(--rb-text);
+  font:
+    500 13px/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  min-height: 7.5rem;
+  padding: 8px;
+  resize: vertical;
+  width: 100%;
+}
+
+.rb-sticker-editor-actions {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.rb-sticker-editor-actions span {
+  color: var(--rb-muted);
+  font-size: 10px;
+  margin-right: auto;
+}
+
+.rb-sticker-editor-actions button,
+.rb-sticker-menu button,
+.rb-sticker-delete-confirm button {
+  background: var(--rb-background);
+  border: 1px solid var(--rb-border);
+  border-radius: 5px;
+  min-height: 27px;
+  padding: 4px 7px;
+}
+
+.rb-sticker-menu .rb-sticker-menu-item {
+  -webkit-text-fill-color: currentColor;
+  color: var(--rb-text);
+  opacity: 1;
+}
+
+.rb-sticker-editor p {
+  color: #b42318;
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+
+.rb-sticker-menu {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(32, 36, 43, 0.2);
+  display: grid;
+  color: var(--rb-text);
+  font:
+    500 13px/1.35 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  gap: 4px;
+  max-width: calc(100vw - 16px);
+  min-width: 11rem;
+  padding: 7px;
+  pointer-events: auto;
+  position: fixed;
+  z-index: 82;
+}
+
+.rb-sticker-menu-portal {
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 82;
+}
+
+.rb-sticker-drawer-backdrop {
+  display: none;
+}
+
+.rb-sticker-menu > button {
+  background: transparent;
+  min-height: 38px;
+  padding: 7px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.rb-sticker-menu button:hover {
+  background: var(--rb-background);
+  border-color: var(--rb-accent);
+}
+
+.rb-sticker-menu button:active {
+  background: var(--rb-code);
+}
+
+.rb-sticker-menu .rb-sticker-menu-delete {
+  color: #b42318;
+}
+
+.rb-sticker-navigation {
+  display: grid;
+  gap: 6px;
+  pointer-events: none;
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 18;
+}
+
+.rb-sticker-navigation button {
+  align-items: center;
+  appearance: none;
+  background: color-mix(in srgb, var(--rb-surface) 94%, transparent);
+  border: 1px solid var(--rb-border);
+  border-radius: 9px;
+  box-shadow: 0 5px 16px rgba(32, 36, 43, 0.16);
+  color: var(--rb-text);
+  cursor: pointer;
+  display: inline-flex;
+  font:
+    750 13px/1 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  gap: 5px;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 48px;
+  padding: 7px 9px;
+  pointer-events: auto;
+}
+
+.rb-sticker-navigation button:hover {
+  background: var(--rb-background);
+  border-color: var(--rb-accent);
+  color: var(--rb-accent);
+}
+
+.rb-sticker-navigation button:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+[data-rb-sticker-highlighted="true"] {
+  animation: rb-sticker-destination-highlight 1.6s ease-out;
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 4px;
+}
+
+@keyframes rb-sticker-destination-highlight {
+  0%,
+  30% {
+    box-shadow:
+      0 0 0 7px color-mix(in srgb, var(--rb-accent) 24%, transparent),
+      0 8px 24px rgba(32, 36, 43, 0.16);
+  }
+
+  100% {
+    box-shadow: 0 8px 24px rgba(32, 36, 43, 0.12);
+  }
+}
+
+.rb-reader[data-appearance="dark"] .rb-sticker-menu .rb-sticker-menu-delete {
+  color: #ff9b91;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rb-reader[data-appearance="system"] .rb-sticker-menu .rb-sticker-menu-delete {
+    color: #ff9b91;
+  }
+}
+
+.rb-sticker-delete-confirm {
+  display: grid;
+  gap: 5px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.rb-sticker-delete-confirm p {
+  grid-column: 1 / -1;
+  margin: 2px 3px;
 }
 
 .rb-content--document {
@@ -1441,6 +1874,76 @@
   }
 }
 
+@container (max-width: 68rem) {
+  .rb-sticker-layer:has(.rb-sticker--expanded) {
+    z-index: 60;
+  }
+
+  .rb-sticker-drawer-backdrop {
+    appearance: none;
+    background: rgba(10, 13, 18, 0.42);
+    border: 0;
+    display: block;
+    inset: 0;
+    pointer-events: auto;
+    position: fixed;
+    z-index: 70;
+  }
+
+  .rb-sticker--expanded {
+    left: auto !important;
+    max-height: calc(100dvh - 32px);
+    max-width: calc(100dvw - 32px);
+    overflow: auto;
+    position: fixed;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: min(22rem, calc(100dvw - 32px));
+    z-index: 72;
+  }
+
+  .rb-sticker--expanded .rb-sticker-drag {
+    display: none;
+  }
+}
+
+/* At the largest reading size, use the temporary drawer sooner because the
+   72ch reading column legitimately consumes more of the section margin. */
+@container (max-width: 80rem) {
+  .rb-reader[data-text-size="x-large"] .rb-sticker-layer:has(.rb-sticker--expanded) {
+    z-index: 60;
+  }
+
+  .rb-reader[data-text-size="x-large"] .rb-sticker-drawer-backdrop {
+    appearance: none;
+    background: rgba(10, 13, 18, 0.42);
+    border: 0;
+    display: block;
+    inset: 0;
+    pointer-events: auto;
+    position: fixed;
+    z-index: 70;
+  }
+
+  .rb-reader[data-text-size="x-large"] .rb-sticker--expanded {
+    left: auto !important;
+    max-height: calc(100dvh - 32px);
+    max-width: calc(100dvw - 32px);
+    overflow: auto;
+    position: fixed;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: min(22rem, calc(100dvw - 32px));
+    z-index: 72;
+  }
+
+  .rb-reader[data-text-size="x-large"] .rb-sticker--expanded .rb-sticker-drag {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .rb-toolbar {
     padding: 10px 14px;
@@ -1477,6 +1980,13 @@
     z-index: 10;
   }
 
+  .rb-sticker-navigation {
+    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(8px, env(safe-area-inset-right));
+    top: auto;
+    transform: none;
+  }
+
   .rb-document-surface {
     border-radius: 10px;
     padding: 24px clamp(18px, 5vw, 34px);
@@ -1486,6 +1996,18 @@
     inset: 8px;
     max-height: calc(100dvh - 16px);
     max-width: calc(100dvw - 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-rb-sticker-highlighted="true"] {
+    animation: none;
+  }
+}
+
+@media (hover: none) {
+  .rb-sticker-anchor {
+    opacity: 1;
   }
 }
 
