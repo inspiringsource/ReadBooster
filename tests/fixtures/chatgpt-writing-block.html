@@ -1,0 +1,111 @@
+<main>
+  <article data-message-author-role="assistant" data-message-id="writing-primary">
+    <div class="markdown prose">
+      <p>
+        Introductory <strong>text</strong> with a
+        <a href="https://example.com/introduction">safe link</a>.
+      </p>
+    </div>
+
+    <div
+      data-writing-block="true"
+      data-testid="writing-block-container"
+      data-writing-block-fullscreen-editor-layout="true"
+    >
+      <div data-testid="writing-block-header-surface" role="toolbar">
+        <button type="button">Edit</button>
+        <button type="button" aria-label="Copy">Copy</button>
+        <button type="button" aria-label="Open editor">Open editor</button>
+      </div>
+      <div class="writing-block-editor">
+        <div
+          class="ProseMirror"
+          data-writing-block-fullscreen-editor-region="true"
+          contenteditable="true"
+          aria-disabled="false"
+          spellcheck="true"
+          translate="no"
+          tabindex="0"
+          onclick="window.__fixtureEvent = true"
+        >
+          <h2>Interview questions</h2>
+          <p>Tell me <em>about yourself</em>.</p>
+          <ul>
+            <li>Keep the answer concise.</li>
+            <li>
+              Connect the answer to the role.
+              <ol>
+                <li>Use a concrete example.</li>
+              </ol>
+            </li>
+          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Topic</th>
+                <th scope="col">Goal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Experience</td>
+                <td>Show relevance</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>Use <code>STAR</code> for examples.</p>
+          <pre><code class="language-typescript">const concise = true;</code></pre>
+          <a href="javascript:alert('unsafe')">Unsafe link</a>
+          <script>
+            window.__unsafeFixture = true;
+          </script>
+        </div>
+      </div>
+      <div aria-label="Fullscreen controls"><button>Fullscreen</button></div>
+    </div>
+
+    <div class="markdown prose">
+      <p>Concluding <b>text</b>.</p>
+    </div>
+  </article>
+
+  <article data-message-author-role="assistant" data-message-id="writing-multiple">
+    <div class="markdown"><p>Before the first block.</p></div>
+    <div data-writing-block="true">
+      <header><button>Edit</button></header>
+      <div data-writing-block-fullscreen-editor-region="true" contenteditable="true">
+        <h2>First block</h2>
+        <p>First block content.</p>
+      </div>
+    </div>
+    <div class="markdown"><p>Between the blocks.</p></div>
+    <div data-testid="writing-block-container">
+      <header><button>Copy</button></header>
+      <div class="writing-block-editor">
+        <div class="ProseMirror" contenteditable="true">
+          <h2>Second block</h2>
+          <blockquote>Second block content.</blockquote>
+        </div>
+      </div>
+    </div>
+    <div class="markdown"><p>After the second block.</p></div>
+  </article>
+
+  <article data-message-author-role="assistant" data-message-id="writing-incomplete">
+    <div class="markdown"><p>Before an incomplete block.</p></div>
+    <div data-writing-block="true" data-testid="writing-block-container">
+      <header data-testid="writing-block-header-surface">
+        <button>Edit</button>
+      </header>
+      <div aria-label="Loading writing block">Loading</div>
+    </div>
+    <div class="markdown"><p>After an incomplete block.</p></div>
+  </article>
+
+  <article data-message-author-role="assistant" data-message-id="normal-markdown">
+    <div class="markdown prose">
+      <h2>Ordinary response</h2>
+      <p>Normal ChatGPT Markdown remains available.</p>
+    </div>
+  </article>
+</main>

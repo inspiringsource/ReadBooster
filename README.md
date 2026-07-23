@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster 0.6.7 is a local-first browser extension that renders normalized ChatGPT, Gemini, and Mistral conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
+ReadBooster 0.6.8 is a local-first browser extension that renders normalized ChatGPT, Gemini, and Mistral conversations as calm, continuous documents. Chrome remains the established production target; a Firefox build is prepared for temporary testing and AMO submission. The established single-response reader remains available as Focus mode. Both presentations improve typography and spacing without rewriting, summarizing, reordering, or otherwise semantically editing source content.
 
 > **Privacy:** ReadBooster processes content locally in your browser. It stores reader preferences, user-created section-title overrides, and private section Stickers, but never persists prompt or response bodies. Feedback embeds an external Tally form only after the user selects **Feedback**; ReadBooster does not automatically send chat content, conversation identifiers, or the source URL.
 
@@ -92,6 +92,10 @@ The reader derives a platform-neutral presentation model from this document once
 ### Conversation completeness in 0.4.5
 
 ReadBooster collects candidates from every supported ChatGPT selector family before canonicalization. Individual message containers are kept in DOM order, nested role markers are collapsed to one message, and duplicate SPA representations are removed only when they share the same stable `data-message-id`. Repeated generic `data-testid` values, similar text, and similar markup are not treated as message identity. A missing prompt or one incomplete response does not remove later valid assistant responses.
+
+### ChatGPT editable writing blocks in 0.6.8
+
+ChatGPT may place generated documents inside an interactive writing-block editor between ordinary response paragraphs. The ChatGPT adapter now recognizes semantic writing-block attributes, replaces each editor shell in its cloned response DOM with neutral static document content, and then uses the existing sanitizer and normalized reader pipeline. Headings, lists, tables, code, links, and emphasis retain their original response order; ChatGPT edit, copy, fullscreen, and other host controls are excluded. Incomplete shells are skipped safely, and **Refresh conversation** can capture their completed content later. This support is specific to the verified ChatGPT structure and does not claim support for unrelated editable surfaces on Gemini or Mistral.
 
 There is no response-count cap in the normalized model or presentation. Document mode, its grouped outline, Document Copy, and Document Print consume every derived assistant section. Focus Previous and Next use that same complete response collection, and **Latest section** selects its actual final entry. A development-only, in-memory count helper covers raw user/assistant candidates, canonical and deduplicated candidates, extracted assistant blocks, normalized turns, derived sections, and rendered sections. It records no text, URLs, identifiers, timing, or persistent data.
 
@@ -253,13 +257,13 @@ After rebuilding, use the reload control on the ReadBooster card in `chrome://ex
 
 ## Chrome Web Store packaging
 
-Version 0.6.7 is prepared as a build candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
+Version 0.6.8 is prepared as a build candidate, but this repository does not publish or submit it automatically. The production archive contains the contents of `dist-chrome/` at its root, so `manifest.json`, `icons/`, `assets/`, and `src/` are top-level ZIP entries rather than being nested under a build directory.
 
 The release workflow is:
 
 1. Run the complete typecheck, lint, test, build, formatting, audit, and diff gate.
 2. Inspect `dist-chrome/manifest.json`, including permissions, host permissions, content-script matches, and web-accessible-resource matches.
-3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.6.7.zip` with `manifest.json` at the archive root.
+3. Run `npm run package:chrome` to create `release/readbooster-chrome-0.6.8.zip` with `manifest.json` at the archive root.
 4. Inspect the ZIP root and exclude repository sources, tests, fixtures, dependencies, secrets, `.DS_Store`, and `__MACOSX` metadata.
 5. Keep publication deferred until the website privacy/support handoff and live Chrome acceptance are complete.
 
@@ -628,7 +632,7 @@ Automated tests verify preference normalization, persistence, scoped styling, bu
 
 - Manifest host access is limited to ChatGPT, Google Gemini, and the Mistral chat application at `chat.mistral.ai`.
 - The only requested Chrome permission is `storage`; content scripts and generated web-accessible resources use only those three supported host patterns.
-- Claude receives no production host permission, content script, adapter routing, or injected control in 0.6.7.
+- Claude receives no production host permission, content script, adapter routing, or injected control in 0.6.8.
 - Extraction clones user prompts and assistant responses into an in-memory normalized document; it does not mutate the host conversation.
 - Host controls are removed before DOMPurify applies a conservative element and attribute allowlist.
 - Reader links are given `target="_blank"` and `rel="noopener noreferrer"` after sanitization.
@@ -724,7 +728,7 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 - Table display settings last only for the current reader session and are not persisted across conversations.
 - Custom titles persist only when both stable source conversation and assistant-message identities are available. Otherwise the rename remains intentionally session-only so it cannot be applied to the wrong response later.
 - Fast Sans is one static Regular face rather than a variable family. Browser-synthesized bold may differ from a dedicated bold face, and unsupported characters fall back to the reader's local sans-serif stack. Live Chrome checks remain necessary for multilingual glyph appearance and Chromium contextual-alternate behavior.
-- ReadBooster 0.6.7 does not provide search, bookmarks, exact text-range annotations, collaborative notes, response or prompt editing, Canvas editing or synchronization, AI revisions, code execution, Sticker export, selective print/export, Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
+- ReadBooster 0.6.8 does not provide search, bookmarks, exact text-range annotations, collaborative notes, response or prompt editing, Canvas editing or synchronization, AI revisions, code execution, Sticker export, selective print/export, Claude extraction, persistent conversation bodies, or automatic conversation polling. Search remains a future feature; no placeholder or inactive search control is included.
 - Copy uses the browser clipboard API with a local fallback and may be restricted by unusual browser or enterprise policies.
 - Printing uses Chrome's browser print dialog; final pagination varies with printer settings.
 
@@ -732,4 +736,4 @@ Website extraction, injected controls, reader rendering, preferences, messaging,
 
 Mistral's role-boundary, Canvas, and rich-table extraction are improved in 0.6.2, but full Chrome and Firefox acceptance remains pending. Claude is planned for a future development milestone; this is a roadmap intention rather than a contractual guarantee and still requires live DOM evidence, a separate permission review, compact fixtures, and manual acceptance before it can be enabled.
 
-Later roadmap candidates include search, bookmarks, text-range anchoring, Sticker reattachment/export, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.6.7.
+Later roadmap candidates include search, bookmarks, text-range anchoring, Sticker reattachment/export, response editing, AI-assisted revisions, selective print/export, and safe completion-triggered refresh. These features are not implemented in 0.6.8.

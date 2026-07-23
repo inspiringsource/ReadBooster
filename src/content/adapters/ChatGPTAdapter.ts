@@ -68,6 +68,49 @@ const HOST_UI_SELECTORS = [
   '[aria-label*="menu" i]',
 ].join(",");
 
+// ChatGPT writing blocks are interactive document shells embedded in assistant messages. Their
+// semantic attributes are more stable than generated presentation classes, so normalize the
+// editor region before the generic contenteditable/control cleanup runs.
+const WRITING_BLOCK_SELECTOR = [
+  '[data-writing-block="true"]',
+  '[data-testid="writing-block-container"]',
+].join(",");
+const WRITING_BLOCK_EDITOR_SELECTORS = [
+  '[data-writing-block-fullscreen-editor-region="true"]',
+  '.writing-block-editor [contenteditable="true"]',
+  '.ProseMirror[contenteditable="true"]',
+] as const;
+const NORMALIZED_WRITING_BLOCK_ATTRIBUTE = "data-readbooster-writing-block";
+const WRITING_BLOCK_CONTEXT_ATTRIBUTE = "data-readbooster-writing-block-context";
+const WRITING_BLOCK_CONTROL_SELECTORS = [
+  "button",
+  '[role="button"]',
+  '[role="toolbar"]',
+  '[role="menu"]',
+  "nav",
+  "form",
+  "input",
+  "textarea",
+  "select",
+  "svg",
+  '[data-testid*="copy" i]',
+  '[data-testid*="control" i]',
+  '[data-testid*="toolbar" i]',
+  '[aria-label*="copy" i]',
+  '[aria-label*="open editor" i]',
+  '[aria-label*="fullscreen" i]',
+].join(",");
+const WRITING_BLOCK_EDITING_ATTRIBUTES = [
+  "contenteditable",
+  "aria-disabled",
+  "spellcheck",
+  "translate",
+  "tabindex",
+  "data-writing-block-fullscreen-editor-region",
+  "data-writing-block-fullscreen-editor-layout",
+  "data-writing-block-fullscreen-editor",
+] as const;
+
 // These semantic or host-metadata containers are intentionally narrow. ChatGPT's generated
 // output DOM is private and must be rechecked when its artifact markup changes.
 const VISUAL_RESULT_CONTAINER_SELECTOR = [
@@ -439,8 +482,15 @@ export class ChatGPTAdapter implements ConversationAdapter {
     const sourceContentRoot = this.findContentRoot(container);
     const clonedContentRoot = this.findContentRoot(clone);
     this.preserveVisualContent(sourceContentRoot, clonedContentRoot);
-    this.preserveHostCodeLanguages(clonedContentRoot);
-    this.removeCitationCounters(clonedContentRoot);
+    const normalizedWritingBlocks = this.normalizeWritingBlocks(clone);
+    const preprocessingRoots = [
+      clonedContentRoot,
+      ...normalizedWritingBlocks.filter((block) => !clonedContentRoot.contains(block)),
+    ];
+    preprocessingRoots.forEach((root) => {
+      this.preserveHostCodeLanguages(root);
+      this.removeCitationCounters(root);
+    });
     this.pruneHostOnlyContent(clone);
     const contentRoot = this.findContentRoot(clone);
     const normalizedRoot = this.doc.createElement("div");
@@ -485,8 +535,101 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   private findContentRoot(container: Element): Element {
+    const normalizedWritingBlocks = container.querySelectorAll(
+      `[${NORMALIZED_WRITING_BLOCK_ATTRIBUTE}]`,
+    );
+    if (
+      normalizedWritingBlocks.length === 0 &&
+      !container.hasAttribute(WRITING_BLOCK_CONTEXT_ATTRIBUTE)
+    ) {
+      return this.findPrimaryContentRoot(container);
+    }
+
+    const candidates = Array.from(
+      container.querySelectorAll(
+        `[data-message-content], .markdown, [class*="prose"], [${NORMALIZED_WRITING_BLOCK_ATTRIBUTE}]`,
+      ),
+    ).filter(
+      (candidate) =>
+        candidate.hasAttribute(NORMALIZED_WRITING_BLOCK_ATTRIBUTE) ||
+        !candidate.closest(`[${NORMALIZED_WRITING_BLOCK_ATTRIBUTE}]`),
+    );
+    const outermost = candidates.filter(
+      (candidate) => !candidates.some((other) => other !== candidate && other.contains(candidate)),
+    );
+    if (outermost.length === 1) {
+      return outermost[0];
+    }
+    if (outermost.length === 0) {
+      return container;
+    }
+
+    const combined = this.doc.createElement("div");
+    outermost.forEach((candidate) => combined.append(candidate));
+    return combined;
+  }
+
+  private findPrimaryContentRoot(container: Element): Element {
     return (
       container.querySelector('[data-message-content], .markdown, [class*="prose"]') ?? container
+    );
+  }
+
+  private normalizeWritingBlocks(root: Element): HTMLElement[] {
+    const candidates = Array.from(root.querySelectorAll<HTMLElement>(WRITING_BLOCK_SELECTOR));
+    if (candidates.length > 0) {
+      root.setAttribute(WRITING_BLOCK_CONTEXT_ATTRIBUTE, "true");
+    }
+    const writingBlocks = candidates.filter(
+      (candidate) => !candidate.parentElement?.closest(WRITING_BLOCK_SELECTOR),
+    );
+    const normalized: HTMLElement[] = [];
+
+    for (const writingBlock of writingBlocks) {
+      const editor = WRITING_BLOCK_EDITOR_SELECTORS.map((selector) =>
+        writingBlock.querySelector<HTMLElement>(selector),
+      ).find((candidate): candidate is HTMLElement => candidate !== null);
+      if (!editor) {
+        writingBlock.remove();
+        continue;
+      }
+
+      const editorClone = editor.cloneNode(true) as HTMLElement;
+      editorClone
+        .querySelectorAll(WRITING_BLOCK_CONTROL_SELECTORS)
+        .forEach((control) => control.remove());
+      this.removeWritingBlockEditingAttributes(editorClone);
+
+      const staticContent = this.doc.createElement("div");
+      staticContent.setAttribute(NORMALIZED_WRITING_BLOCK_ATTRIBUTE, "true");
+      staticContent.append(...Array.from(editorClone.childNodes));
+      if (!this.hasMeaningfulWritingBlockContent(staticContent)) {
+        writingBlock.remove();
+        continue;
+      }
+
+      writingBlock.replaceWith(staticContent);
+      normalized.push(staticContent);
+    }
+
+    return normalized;
+  }
+
+  private removeWritingBlockEditingAttributes(root: HTMLElement): void {
+    for (const element of [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))]) {
+      WRITING_BLOCK_EDITING_ATTRIBUTES.forEach((attribute) => element.removeAttribute(attribute));
+      for (const attribute of Array.from(element.attributes)) {
+        if (/^on/i.test(attribute.name)) {
+          element.removeAttribute(attribute.name);
+        }
+      }
+    }
+  }
+
+  private hasMeaningfulWritingBlockContent(root: Element): boolean {
+    return (
+      Boolean((root.textContent ?? "").trim()) ||
+      root.querySelector("img, table, pre, code, figure") !== null
     );
   }
 

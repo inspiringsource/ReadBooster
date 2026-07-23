@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.8
+
+### Fixed
+
+- Fixed missing content from ChatGPT editable writing blocks.
+- Preserved generated writing-block documents in their original response position while removing ChatGPT editing controls and attributes.
+
 ## 0.6.7
 
 ### Added

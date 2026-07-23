@@ -36,7 +36,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const thirdPartyNoticesPath = join(dist, "THIRD_PARTY_NOTICES.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.6.7", "release version is not 0.6.7");
+  assert(manifest.version === "0.6.8", "release version is not 0.6.8");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -195,6 +195,12 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
       shippedText.includes("data-rb-sticker-navigation") &&
       shippedText.includes("data-rb-sticker-highlighted"),
     "built Sticker navigation indicators are stale or missing",
+  );
+  assert(
+    shippedText.includes("data-writing-block") &&
+      shippedText.includes("writing-block-container") &&
+      shippedText.includes("data-writing-block-fullscreen-editor-region"),
+    "built ChatGPT writing-block normalization is stale or missing",
   );
   assert(!/MyWebSite|MySite/.test(shippedText), "generic website placeholder metadata was shipped");
   assert(
