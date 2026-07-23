@@ -22,9 +22,9 @@ function pngDimensions(path: string): { width: number; height: number } {
 }
 
 describe("extension branding package", () => {
-  it("uses package version 0.6.8 and keeps the exact store permission boundary", () => {
+  it("uses package version 0.6.9 and keeps the exact store permission boundary", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.6.8");
+    expect(packageJson.version).toBe("0.6.9");
     expect(manifestSource).toContain("version: packageJson.version");
     expect(manifestSource).toContain('permissions: ["storage"]');
     expect(manifestSource).not.toContain('permissions: ["storage",');

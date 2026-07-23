@@ -1,4 +1,5 @@
 import type { CodeAppearance } from "../shared/types";
+import { writeClipboardText } from "./clipboard";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   bash: "Shell",
@@ -14,24 +15,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 interface CodeEnhancementOptions {
   appearance: CodeAppearance;
-}
-
-async function copyCode(value: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.append(textarea);
-  textarea.select();
-  const copied = document.execCommand("copy");
-  textarea.remove();
-  if (!copied) {
-    throw new Error("Copy was not available");
-  }
 }
 
 function explicitLanguage(code: HTMLElement): string {
@@ -86,7 +69,7 @@ export function enhanceCodeBlocks(
     const handleCopy = async (): Promise<void> => {
       window.clearTimeout(feedbackTimer);
       try {
-        await copyCode(source);
+        await writeClipboardText(source);
         copyButton.textContent = "Copied";
       } catch {
         copyButton.textContent = "Copy failed";

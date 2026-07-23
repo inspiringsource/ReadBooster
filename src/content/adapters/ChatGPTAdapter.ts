@@ -14,6 +14,11 @@ import { pairContentBlocksIntoTurns } from "../../shared/conversation";
 import { scanConversationSource } from "../conversationSourceScanner";
 import { assistantBlocks, toExtractedResponse } from "../../shared/types";
 import {
+  DOCUMENT_CONTENT_BLOCK_KIND,
+  DOCUMENT_CONTENT_BLOCK_SELECTOR,
+  READBOOSTER_CONTENT_BLOCK_ATTRIBUTE,
+} from "../../shared/contentKinds";
+import {
   isKnownFaviconSource,
   isSafeImageSource,
   normalizeSupportedCodeLanguageLabel,
@@ -80,7 +85,6 @@ const WRITING_BLOCK_EDITOR_SELECTORS = [
   '.writing-block-editor [contenteditable="true"]',
   '.ProseMirror[contenteditable="true"]',
 ] as const;
-const NORMALIZED_WRITING_BLOCK_ATTRIBUTE = "data-readbooster-writing-block";
 const WRITING_BLOCK_CONTEXT_ATTRIBUTE = "data-readbooster-writing-block-context";
 const WRITING_BLOCK_CONTROL_SELECTORS = [
   "button",
@@ -479,6 +483,11 @@ export class ChatGPTAdapter implements ConversationAdapter {
     extractedAt: string,
   ): DocumentContentBlock | null {
     const clone = container.cloneNode(true) as Element;
+    clone.removeAttribute(READBOOSTER_CONTENT_BLOCK_ATTRIBUTE);
+    clone.removeAttribute(WRITING_BLOCK_CONTEXT_ATTRIBUTE);
+    clone
+      .querySelectorAll(`[${READBOOSTER_CONTENT_BLOCK_ATTRIBUTE}]`)
+      .forEach((element) => element.removeAttribute(READBOOSTER_CONTENT_BLOCK_ATTRIBUTE));
     const sourceContentRoot = this.findContentRoot(container);
     const clonedContentRoot = this.findContentRoot(clone);
     this.preserveVisualContent(sourceContentRoot, clonedContentRoot);
@@ -510,7 +519,9 @@ export class ChatGPTAdapter implements ConversationAdapter {
       ),
     ].join("|");
     const id = sourceMessageId || `chatgpt-${role}-${index}-${simpleHash(fallbackSeed)}`;
-    const { html, text } = sanitizeResponseHtml(normalizedRoot, id);
+    const { html, text } = sanitizeResponseHtml(normalizedRoot, id, {
+      preserveInternalContentKinds: role === "assistant",
+    });
     const sanitizedContainer = this.doc.createElement("div");
     sanitizedContainer.innerHTML = html;
     if (!text && !sanitizedContainer.querySelector("img, figure")) {
@@ -535,9 +546,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
   }
 
   private findContentRoot(container: Element): Element {
-    const normalizedWritingBlocks = container.querySelectorAll(
-      `[${NORMALIZED_WRITING_BLOCK_ATTRIBUTE}]`,
-    );
+    const normalizedWritingBlocks = container.querySelectorAll(DOCUMENT_CONTENT_BLOCK_SELECTOR);
     if (
       normalizedWritingBlocks.length === 0 &&
       !container.hasAttribute(WRITING_BLOCK_CONTEXT_ATTRIBUTE)
@@ -547,12 +556,12 @@ export class ChatGPTAdapter implements ConversationAdapter {
 
     const candidates = Array.from(
       container.querySelectorAll(
-        `[data-message-content], .markdown, [class*="prose"], [${NORMALIZED_WRITING_BLOCK_ATTRIBUTE}]`,
+        `[data-message-content], .markdown, [class*="prose"], ${DOCUMENT_CONTENT_BLOCK_SELECTOR}`,
       ),
     ).filter(
       (candidate) =>
-        candidate.hasAttribute(NORMALIZED_WRITING_BLOCK_ATTRIBUTE) ||
-        !candidate.closest(`[${NORMALIZED_WRITING_BLOCK_ATTRIBUTE}]`),
+        candidate.matches(DOCUMENT_CONTENT_BLOCK_SELECTOR) ||
+        !candidate.closest(DOCUMENT_CONTENT_BLOCK_SELECTOR),
     );
     const outermost = candidates.filter(
       (candidate) => !candidates.some((other) => other !== candidate && other.contains(candidate)),
@@ -601,7 +610,7 @@ export class ChatGPTAdapter implements ConversationAdapter {
       this.removeWritingBlockEditingAttributes(editorClone);
 
       const staticContent = this.doc.createElement("div");
-      staticContent.setAttribute(NORMALIZED_WRITING_BLOCK_ATTRIBUTE, "true");
+      staticContent.setAttribute(READBOOSTER_CONTENT_BLOCK_ATTRIBUTE, DOCUMENT_CONTENT_BLOCK_KIND);
       staticContent.append(...Array.from(editorClone.childNodes));
       if (!this.hasMeaningfulWritingBlockContent(staticContent)) {
         writingBlock.remove();

@@ -139,9 +139,9 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.6.8 as the manifest source of truth", () => {
+  it("uses package version 0.6.9 as the manifest source of truth", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.6.8");
+    expect(packageJson.version).toBe("0.6.9");
     expect(manifestSource).toContain("version: packageJson.version");
   });
 
@@ -151,5 +151,6 @@ describe("print layout", () => {
     expect(PRINT_CSS).toContain(".rb-code-block");
     expect(PRINT_CSS).toContain(".rb-print-hidden");
     expect(PRINT_CSS).toContain(".rb-block-toolbar");
+    expect(PRINT_CSS).toContain(".rb-document-block");
   });
 });

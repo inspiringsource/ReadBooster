@@ -26,9 +26,13 @@ describe("ChatGPT editable writing blocks", () => {
       .find((candidate) => candidate.id === "writing-primary")!;
     const output = document.createElement("div");
     output.innerHTML = response.html;
+    const documentBlock = output.querySelector<HTMLElement>(
+      '[data-readbooster-content-block="document"]',
+    )!;
 
-    expect(output.querySelector("h2")?.textContent).toBe("Interview questions");
-    expect(output.querySelector("p em")?.textContent).toBe("about yourself");
+    expect(documentBlock).not.toBeNull();
+    expect(documentBlock.querySelector("h2")?.textContent).toBe("Interview questions");
+    expect(documentBlock.querySelector("p em")?.textContent).toBe("about yourself");
     expect(
       Array.from(output.querySelectorAll("li")).map((item) =>
         item.textContent?.replace(/\s+/g, " ").trim(),
@@ -46,6 +50,7 @@ describe("ChatGPT editable writing blocks", () => {
     expect(output.querySelector("strong")?.textContent).toBe("text");
     expect(output.querySelector("b")?.textContent).toBe("text");
     expect(output.querySelector('a[href="https://example.com/introduction"]')).not.toBeNull();
+    expect(documentBlock.contains(output.querySelector("p")!)).toBe(false);
 
     const text = output.textContent ?? "";
     expect(text.indexOf("Introductory text")).toBeLessThan(text.indexOf("Interview questions"));
@@ -82,7 +87,10 @@ describe("ChatGPT editable writing blocks", () => {
       .getAllAssistantResponses()
       .find((candidate) => candidate.id === "writing-multiple")!;
     const text = response.text;
+    const output = document.createElement("div");
+    output.innerHTML = response.html;
 
+    expect(output.querySelectorAll('[data-readbooster-content-block="document"]')).toHaveLength(2);
     expect(countOccurrences(text, "First block content.")).toBe(1);
     expect(countOccurrences(text, "Second block content.")).toBe(1);
     expect(text.indexOf("Before the first block.")).toBeLessThan(text.indexOf("First block"));
@@ -102,6 +110,7 @@ describe("ChatGPT editable writing blocks", () => {
     expect(response.text).toContain("After an incomplete block.");
     expect(response.text).not.toContain("Edit");
     expect(response.text).not.toContain("Loading");
+    expect(response.html).not.toContain("data-readbooster-content-block");
   });
 
   it("leaves ordinary ChatGPT Markdown extraction unchanged", () => {
@@ -115,6 +124,7 @@ describe("ChatGPT editable writing blocks", () => {
     expect(output.querySelector("p")?.textContent).toBe(
       "Normal ChatGPT Markdown remains available.",
     );
+    expect(output.querySelector("[data-readbooster-content-block]")).toBeNull();
   });
 
   it("keeps writing-block headings available to the shared outline builder", () => {

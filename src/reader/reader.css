@@ -33,6 +33,7 @@
   --rb-border: #d9d3c7;
   --rb-accent: #2357d9;
   --rb-code: #ece8df;
+  --rb-document-block-surface: #f9f6ef;
   --rb-table-stripe: #f5f1e8;
   --rb-table-scroll-shadow: rgba(32, 36, 43, 0.28);
   --rb-code-keyword: #8b2bb9;
@@ -73,6 +74,7 @@
   --rb-border: #3b414c;
   --rb-accent: #8aafff;
   --rb-code: #292e37;
+  --rb-document-block-surface: #242932;
   --rb-table-stripe: #242a33;
   --rb-table-scroll-shadow: rgba(0, 0, 0, 0.72);
   --rb-code-keyword: #d8a0ff;
@@ -91,6 +93,7 @@
     --rb-border: #3b414c;
     --rb-accent: #8aafff;
     --rb-code: #292e37;
+    --rb-document-block-surface: #242932;
     --rb-table-stripe: #242a33;
     --rb-table-scroll-shadow: rgba(0, 0, 0, 0.72);
     --rb-code-keyword: #d8a0ff;
@@ -1571,6 +1574,70 @@
 .rb-content pre code {
   background: transparent;
   padding: 0;
+}
+
+.rb-document-block {
+  background: var(--rb-document-block-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 10px;
+  margin-block: 1.4em;
+  max-width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.rb-document-block__header {
+  align-items: center;
+  border-bottom: 1px solid var(--rb-border);
+  display: flex;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 6px 8px 6px 14px;
+}
+
+.rb-document-block__label {
+  color: var(--rb-muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+}
+
+.rb-document-block__copy {
+  appearance: none;
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 5px;
+  color: var(--rb-text);
+  cursor: pointer;
+  font:
+    650 12px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  min-height: 28px;
+  padding: 4px 9px;
+}
+
+.rb-document-block__copy:hover {
+  border-color: var(--rb-accent);
+}
+
+.rb-document-block__copy:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+.rb-document-block__content {
+  min-width: 0;
+  padding: clamp(16px, 3vw, 26px);
+}
+
+.rb-document-block__content > :first-child {
+  margin-top: 0;
+}
+
+.rb-document-block__content > :last-child {
+  margin-bottom: 0;
 }
 
 .rb-code-block {

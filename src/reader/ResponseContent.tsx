@@ -7,6 +7,7 @@ import {
   type TableFullscreenCoordinator,
 } from "./blockControls";
 import { enhanceCodeBlocks } from "./codeControls";
+import { enhanceDocumentBlocks } from "./documentBlockControls";
 
 interface ResponseContentProps {
   response: DocumentContentBlock;
@@ -28,6 +29,13 @@ export const ResponseContent = memo(function ResponseContent({
   codeAppearance,
 }: ResponseContentProps) {
   const contentRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current) {
+      return;
+    }
+    return enhanceDocumentBlocks(contentRef.current);
+  }, [response.html, response.id]);
 
   useLayoutEffect(() => {
     if (!contentRef.current) {

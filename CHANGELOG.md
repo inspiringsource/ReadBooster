@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.9
+
+### Added
+
+- Displayed ChatGPT editable writing blocks as dedicated static document blocks with preserved formatting.
+- Added a document-level Copy action that excludes surrounding responses and reader controls.
+
 ## 0.6.8
 
 ### Fixed

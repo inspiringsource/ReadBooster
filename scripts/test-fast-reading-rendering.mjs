@@ -77,6 +77,7 @@ try {
       rollupOptions: {
         input: {
           fastReading: resolve(root, "tests/browser/fast-reading-harness.html"),
+          documentBlock: resolve(root, "tests/browser/document-block-harness.html"),
           stickerLayout: resolve(root, "tests/browser/sticker-layout-harness.html"),
           stickerNavigation: resolve(root, "tests/browser/sticker-navigation-harness.html"),
         },
@@ -779,6 +780,56 @@ try {
   );
   await navigationPage.close();
 
+  const documentBlockPage = await browser.newPage({
+    viewport: { width: 1280, height: 900 },
+    deviceScaleFactor: 1,
+  });
+  const documentBlockErrors = [];
+  documentBlockPage.on("pageerror", (error) => documentBlockErrors.push(error.message));
+  await documentBlockPage.goto(`http://127.0.0.1:${address.port}/document-block-harness.html`, {
+    waitUntil: "networkidle",
+  });
+  await documentBlockPage.waitForFunction(() => Boolean(window.__DOCUMENT_BLOCK_RESULTS__));
+  const documentBlock = await documentBlockPage.evaluate(() => window.__DOCUMENT_BLOCK_RESULTS__);
+  assert(documentBlockErrors.length === 0, "Document block produced a browser console error");
+  assert(
+    documentBlock.blockTag === "SECTION" && documentBlock.blockCount === 1,
+    "Document marker was not enhanced into one semantic section",
+  );
+  assert(
+    documentBlock.label === "Document" && documentBlock.copyLabel === "Copy document",
+    "Document block header or Copy control is missing",
+  );
+  assert(
+    JSON.stringify(documentBlock.sourceOrder) === JSON.stringify(["before", "document", "after"]),
+    "Document block changed surrounding response order",
+  );
+  assert(documentBlock.hasContentEditable === false, "Document block remained editable");
+  assert(
+    documentBlock.hasCodeToolbar === true && documentBlock.hasTableToolbar === true,
+    "Document block lost inner code or table controls",
+  );
+  assert(
+    Math.abs(documentBlock.widthBeforeEnhancement - documentBlock.widthAfterEnhancement) < 0.5,
+    "Document block changed the response reading width",
+  );
+  assert(
+    documentBlock.contentFontFamily === documentBlock.responseFontFamily,
+    "Document block body does not use normal reader typography",
+  );
+  assert(
+    documentBlock.light.borderStyle !== "none" &&
+      documentBlock.light.background !== documentBlock.dark.background &&
+      contrastRatio(documentBlock.light.labelColor, documentBlock.light.background) >= 4.5 &&
+      contrastRatio(documentBlock.dark.labelColor, documentBlock.dark.background) >= 4.5,
+    "Document block lacks a readable light/dark visual boundary",
+  );
+  assert(
+    documentBlock.contentMaxHeight === "none" && documentBlock.contentOverflow === "visible",
+    "Document block body was constrained into an internal scrolling region",
+  );
+  await documentBlockPage.close();
+
   console.log(
     JSON.stringify(
       {
@@ -794,6 +845,7 @@ try {
           navigated,
           narrow: narrowNavigation,
         },
+        documentBlock,
       },
       null,
       2,

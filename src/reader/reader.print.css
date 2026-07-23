@@ -205,6 +205,33 @@
     color: #222 !important;
   }
 
+  .rb-document-block {
+    background: #fff !important;
+    border: 0.75pt solid #aaa !important;
+    border-radius: 2mm !important;
+    break-inside: auto;
+    margin: 4mm 0 !important;
+    overflow: visible !important;
+    page-break-inside: auto;
+  }
+
+  .rb-document-block__header {
+    border-bottom: 0.5pt solid #bbb !important;
+    break-after: avoid-page;
+    min-height: 0 !important;
+    padding: 2mm 3mm !important;
+    page-break-after: avoid;
+  }
+
+  .rb-document-block__label {
+    color: #444 !important;
+    font-size: 8pt !important;
+  }
+
+  .rb-document-block__content {
+    padding: 3mm !important;
+  }
+
   .rb-table-block,
   .rb-table-block[data-mode="fit"],
   .rb-table-block[data-mode="wide"],
