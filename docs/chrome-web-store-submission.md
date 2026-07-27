@@ -119,7 +119,7 @@ The website is maintained separately and is not changed by the 0.7.1 extension t
 - publish a support/contact page with user-approved contact details;
 - add the Chrome Web Store link only after publication.
 
-Possible future routes, not currently claimed as published:
+Current public privacy route and support contact:
 
 - `https://inspiringsource.github.io/ReadBooster/privacy/`
-- `https://inspiringsource.github.io/ReadBooster/support/`
+- `contact@avicloud.ch`

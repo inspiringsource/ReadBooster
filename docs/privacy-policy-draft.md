@@ -100,9 +100,8 @@ Before publication, replace these placeholders:
 
 - `[EFFECTIVE DATE TO BE PROVIDED]`
 
-Possible future website routes may include:
+The current public privacy route is:
 
 - `https://inspiringsource.github.io/ReadBooster/privacy/`
-- `https://inspiringsource.github.io/ReadBooster/support/`
 
-These routes are suggestions only. This draft does not claim that either route currently exists.
+Use `contact@avicloud.ch` as the support contact unless a dedicated support page is published later.

@@ -6,11 +6,13 @@ grant release access.
 ## Default branch and review
 
 - Protect the default branch and require pull requests.
-- Require type checking, linting, tests, Chrome verification, Firefox verification, and Mozilla lint.
+- Require the read-only CI workflow in `.github/workflows/ci.yml`, including type checking, linting,
+  tests, and Chrome and Firefox build verification. Keep Mozilla lint as a maintainer release check
+  unless it is added to CI deliberately.
 - Require at least one maintainer approval and dismiss approval after material changes.
 - Restrict force pushes and branch deletion.
-- Use CODEOWNERS or equivalent review ownership for manifests, sanitizer, storage, release scripts,
-  and security-sensitive adapter code when the maintainer structure is defined.
+- `.github/CODEOWNERS` assigns the default review owner to `@inspiringsource`. Add narrower ownership
+  rules only when the maintainer structure grows and the distinction improves review quality.
 
 Branch protection secures the official repository. A public open-source repository can be forked;
 forking is expected and must not be confused with write access to the official project.
@@ -25,7 +27,8 @@ forking is expected and must not be confused with write access to the official p
 
 ## Dependencies and contributions
 
-- Enable dependency review and vulnerability alerts without automatic breaking upgrades.
+- Enable dependency review and vulnerability alerts without automatic breaking upgrades. The
+  checked-in Dependabot configuration groups npm updates into one conservative weekly update.
 - Review purpose, maintenance, licence, install scripts, and runtime impact before adding dependencies.
 - Give outside contributors only the repository permission they need.
 - Close malicious or low-quality submissions without running untrusted scripts locally.

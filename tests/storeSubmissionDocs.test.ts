@@ -55,13 +55,14 @@ describe("Chrome Web Store release documentation", () => {
     expect(combined).not.toContain("Access to https://mistral.ai/*");
   });
 
-  it("keeps website publication details as explicit user-supplied placeholders", () => {
+  it("keeps unpublished policy status and verified contact details explicit", () => {
     const privacy = readFileSync(PRIVACY_DRAFT, "utf8");
     const submission = readFileSync(STORE_DOC, "utf8");
 
     expect(privacy).toContain("[EFFECTIVE DATE TO BE PROVIDED]");
     expect(privacy).toContain("contact@avicloud.ch");
-    expect(privacy).toContain("suggestions only");
+    expect(privacy).toContain("https://inspiringsource.github.io/ReadBooster/privacy/");
+    expect(privacy).not.toContain("https://inspiringsource.github.io/ReadBooster/support/");
     expect(submission).toContain("website is maintained separately");
     expect(submission).toContain("add the Chrome Web Store link only after publication");
   });

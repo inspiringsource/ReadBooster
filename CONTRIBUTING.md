@@ -1,7 +1,9 @@
 # Contributing to ReadBooster
 
-ReadBooster is being prepared for public open-source development. These guidelines make the private
-repository ready for collaboration; they are not an invitation to a public contribution channel yet.
+ReadBooster is being prepared for public open-source development. Until repository visibility
+changes, external issue and pull-request channels are not available. Once public collaboration
+opens, reproducible bug reports, focused feature requests, platform adapters, documentation fixes,
+and accessibility improvements will be welcome under these guidelines.
 
 ## Values
 

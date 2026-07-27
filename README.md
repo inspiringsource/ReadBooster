@@ -4,6 +4,8 @@
 
 ReadBooster turns long AI chats into structured, navigable reading documents. It creates a separate Reader rather than rewriting, summarizing, or editing the source conversation. Conversation extraction and rendering happen locally in the browser.
 
+ReadBooster is maintained by AviCloud and licensed under the Mozilla Public License 2.0.
+
 Version 0.7.1 is an unreleased preparation build. It adds responsive full and icon-only forms of the shared Optimize Reading control while retaining the Claude and open-source preparation introduced in 0.7.0. No store submission or public release is performed by the build scripts.
 
 ## Supported platforms
@@ -108,9 +110,17 @@ Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared r
 
 ## Contributing
 
-ReadBooster is being prepared for public open-source development. Contribution guidelines and community templates are included so the repository is ready when public collaboration begins.
+ReadBooster is being prepared for public open-source development. Once the repository opens publicly, reproducible bug reports, focused feature requests, and pull requests will be welcome. New platform adapters, documentation corrections, and accessibility improvements are especially valuable.
 
 Read `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` before preparing changes. Discuss broad features, new permissions, storage migrations, dependencies, or platform support before implementation. Provider changes require sanitized fixtures, extraction regressions, duplicate and streaming coverage, and honest manual-browser verification.
+
+## AviCloud project notes
+
+This repository includes an encrypted `.pwdnote.enc` file created with PWDNote, another AviCloud open-source project.
+
+The file contains encrypted maintainer notes and project-continuity information for planning, development continuity, session recovery, and internal project organisation. It is included intentionally as part of the AviCloud development workflow.
+
+It is not required for building, running, testing, or contributing to ReadBooster, and it is not included in extension or source-review release archives. Its contents and decryption process are private and are not documented here.
 
 ## Licence
 

@@ -110,6 +110,8 @@ for (const required of [
   "docs/adding-a-platform.md",
   "docs/optimize-control-manual-test.md",
   "docs/repository-audit-0.7.0.md",
+  "docs/repository-audit-0.7.1.md",
+  "docs/public-release-checklist.md",
   "docs/repository-maintenance.md",
   "docs/firefox-submission.md",
   "docs/release-builds.md",
@@ -118,6 +120,9 @@ for (const required of [
   "scripts/build.mjs",
   "tests/setup.ts",
   ".github/ISSUE_TEMPLATE/platform_support.yml",
+  ".github/CODEOWNERS",
+  ".github/dependabot.yml",
+  ".github/workflows/ci.yml",
   ".github/pull_request_template.md",
 ]) {
   assert(sourceEntries.includes(required), `source ZIP is missing ${required}`);

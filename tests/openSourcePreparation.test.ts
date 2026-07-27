@@ -20,6 +20,11 @@ describe("open-source preparation", () => {
       "docs/adding-a-platform.md",
       "docs/repository-maintenance.md",
       "docs/repository-audit-0.7.0.md",
+      "docs/repository-audit-0.7.1.md",
+      "docs/public-release-checklist.md",
+      ".github/CODEOWNERS",
+      ".github/dependabot.yml",
+      ".github/workflows/ci.yml",
       ".github/ISSUE_TEMPLATE/bug_report.yml",
       ".github/ISSUE_TEMPLATE/feature_request.yml",
       ".github/ISSUE_TEMPLATE/platform_support.yml",
@@ -35,5 +40,40 @@ describe("open-source preparation", () => {
     expect(readme).toContain("unreleased preparation build");
     expect(changelog).toContain("## [0.7.0] - Unreleased");
     expect(readme).not.toMatch(/0\.7\.0 (?:is|has been) published/i);
+  });
+
+  it("documents the intentional encrypted PWDNote file without making it a build input", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const packageSource = readFileSync("scripts/package-release.mjs", "utf8");
+    const archiveVerifier = readFileSync("scripts/verify-release-archives.mjs", "utf8");
+    expect(existsSync(".pwdnote.enc")).toBe(true);
+    expect(readme).toContain("## AviCloud project notes");
+    expect(readme).toContain("encrypted `.pwdnote.enc`");
+    expect(readme).toContain("not required for building, running, testing, or contributing");
+    expect(packageSource).not.toContain('".pwdnote.enc"');
+    expect(archiveVerifier).toContain(".pwdnote\\.enc");
+  });
+
+  it("keeps public automation read-only and contribution-focused", () => {
+    const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+    const dependabot = readFileSync(".github/dependabot.yml", "utf8");
+    expect(readFileSync(".github/CODEOWNERS", "utf8").trim()).toBe("* @inspiringsource");
+    expect(ci).toContain("contents: read");
+    expect(ci).not.toMatch(/contents:\s*write|packages:\s*write|pull-requests:\s*write/);
+    for (const command of [
+      "npm ci",
+      "npm run typecheck",
+      "npm run lint",
+      "npm run test",
+      "npm run build:chrome",
+      "npm run build:firefox",
+      "npm run verify:chrome",
+      "npm run verify:firefox",
+    ]) {
+      expect(ci).toContain(`run: ${command}`);
+    }
+    expect(dependabot).toContain("package-ecosystem: npm");
+    expect(dependabot).toContain("interval: weekly");
+    expect(dependabot).toContain("npm-dependencies:");
   });
 });
