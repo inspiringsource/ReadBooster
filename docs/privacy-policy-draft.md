@@ -10,7 +10,7 @@ No incorporated-company status, legal address, or data-protection officer is ass
 
 ## 1. Product and scope
 
-ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.7.0 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.7.1 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`;

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.1] - Unreleased
+
+### Improved
+
+- Made the shared injected Optimize Reading control responsive across supported AI platforms.
+- Added an icon-only compact mode for narrow layouts and crowded chat composers.
+- Added measured composer-boundary positioning so ReadBooster avoids obstructing native controls.
+- Added accessible labeling, local icon packaging, hysteresis, and responsive-layout tests.
+
+### Fixed
+
+- Prevented the responsive Optimize Reading control from oscillating between full and compact modes near its width threshold.
+- Isolated full-button measurement and removed self-observation and layout-width transitions that could rapidly alternate the control.
+
 ## [0.7.0] - Unreleased
 
 ### Added

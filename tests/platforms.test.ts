@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -30,5 +31,12 @@ describe("supported platform registry", () => {
     expect(supportedPlatformForHostname("mistral.ai")).toBeNull();
     expect(isSupportedPlatformUrl("https://claude.ai/chat/example")).toBe(true);
     expect(isSupportedPlatformUrl("https://chat.claude.ai/chat/example")).toBe(false);
+  });
+
+  it("routes every supported adapter through one shared responsive injected control", () => {
+    const contentEntry = readFileSync("src/content/index.ts", "utf8");
+    expect(contentEntry.match(/injectOptimizeButton\(/g)).toHaveLength(1);
+    expect(contentEntry).toContain("requestOptimizeButtonLayout(document)");
+    expect(contentEntry).not.toMatch(/adapter\.source\s*===/);
   });
 });

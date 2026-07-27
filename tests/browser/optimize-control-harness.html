@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReadBooster Optimize Reading control harness</title>
+    <style>
+      body {
+        background: #f4f6fa;
+        font-family: system-ui, sans-serif;
+        margin: 0;
+      }
+      .composer {
+        align-items: center;
+        background: white;
+        border: 1px solid #cbd2df;
+        border-radius: 24px;
+        bottom: 28px;
+        display: flex;
+        gap: 8px;
+        height: 72px;
+        left: 140px;
+        padding: 0 12px;
+        position: fixed;
+        right: var(--composer-right, 280px);
+      }
+      textarea {
+        border: 0;
+        flex: 1;
+        font: inherit;
+        height: 40px;
+        resize: none;
+      }
+      .composer button {
+        height: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <form class="composer" aria-label="Test chat composer">
+      <textarea aria-label="Message"></textarea>
+      <button type="button">Attach</button>
+      <button type="button">Send</button>
+    </form>
+    <script type="module" src="./optimize-control-harness.ts"></script>
+  </body>
+</html>

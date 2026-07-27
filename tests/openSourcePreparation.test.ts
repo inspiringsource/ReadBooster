@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 
 import packageJson from "../package.json";
 
-describe("0.7.0 open-source preparation", () => {
+describe("open-source preparation", () => {
   it("uses MPL-2.0 metadata and ships the official license plus project notice", () => {
-    expect(packageJson.version).toBe("0.7.0");
+    expect(packageJson.version).toBe("0.7.1");
     expect(packageJson.license).toBe("MPL-2.0");
     expect(readFileSync("LICENSE", "utf8")).toContain("Mozilla Public License Version 2.0");
     expect(readFileSync("NOTICE.md", "utf8")).toContain("Copyright 2026 Abraham Bobrovsky");

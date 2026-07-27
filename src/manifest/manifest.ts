@@ -1,7 +1,7 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
 import packageJson from "../../package.json";
-import { FAST_READING_FONT_PATH } from "../shared/assets";
+import { FAST_READING_FONT_PATH, READBOOSTER_CONTROL_ICON_PATH } from "../shared/assets";
 import { SUPPORTED_PLATFORM_HOST_MATCHES } from "../shared/platforms";
 
 export const EXTENSION_ICONS = {
@@ -67,7 +67,7 @@ export function createManifest(target: BuildTarget) {
     ],
     web_accessible_resources: [
       {
-        resources: [FAST_READING_FONT_PATH],
+        resources: [FAST_READING_FONT_PATH, READBOOSTER_CONTROL_ICON_PATH],
         matches: [...SUPPORTED_HOST_MATCHES],
       },
     ],

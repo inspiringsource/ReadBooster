@@ -4,7 +4,7 @@ import type {
   RefreshConversation,
 } from "../shared/types";
 import { getActiveAdapter } from "./adapters/getActiveAdapter";
-import { CONTROL_HOST_ID, injectOptimizeButton } from "./injectButton";
+import { CONTROL_HOST_ID, injectOptimizeButton, requestOptimizeButtonLayout } from "./injectButton";
 import { createContentMessageListener } from "./messages";
 import { createOptimizationService } from "./optimization";
 import { getExtensionApi } from "../shared/extensionApi";
@@ -57,6 +57,7 @@ function syncButton(): void {
     return;
   }
   if (document.getElementById(CONTROL_HOST_ID)) {
+    requestOptimizeButtonLayout(document);
     return;
   }
   buttonCleanup = injectOptimizeButton(document, optimizationService.optimizeLatest);

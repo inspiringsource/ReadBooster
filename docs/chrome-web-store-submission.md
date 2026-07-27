@@ -5,7 +5,7 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.7.0 (unreleased preparation build)
+- Submission candidate: 0.7.1 (unreleased preparation build)
 - Manifest: Version 3
 - Currently supported websites: ChatGPT, Google Gemini, Mistral, and Claude
 - Requested Chrome permission: `storage`
@@ -80,7 +80,7 @@ ReadBooster does not claim to use a Google API. Gemini content is read from the 
 
 ## Reviewer test instructions
 
-> ReadBooster works on ChatGPT, Google Gemini, Mistral, and Claude. Claude 0.7.0 requires final authenticated reviewer-flow verification before submission.
+> ReadBooster works on ChatGPT, Google Gemini, Mistral, and Claude. Claude requires final authenticated reviewer-flow verification before submission.
 >
 > No ReadBooster account or credentials are required. Reviewers may use their own test account for the supported third-party platform.
 >
@@ -106,9 +106,9 @@ This is a recommendation for the future dashboard configuration only. Publicatio
 
 ## Website handoff checklist
 
-The website is maintained separately and is not changed by the 0.7.0 extension task. A later website update should:
+The website is maintained separately and is not changed by the 0.7.1 extension task. A later website update should:
 
-- show current extension version 0.7.0 only when that release is ready;
+- show current extension version 0.7.1 only when that release is ready;
 - show ChatGPT support;
 - show Google Gemini support;
 - show Mistral support with an honest live-verification status;

@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import packageJson from "../package.json";
-import { FAST_READING_FONT_PATH } from "../src/shared/assets";
+import { FAST_READING_FONT_PATH, READBOOSTER_CONTROL_ICON_PATH } from "../src/shared/assets";
 import {
   ACTION_ICONS,
   createManifest,
@@ -22,9 +22,9 @@ function pngDimensions(path: string): { width: number; height: number } {
 }
 
 describe("extension branding package", () => {
-  it("uses package version 0.7.0 and keeps the exact store permission boundary", () => {
+  it("uses package version 0.7.1 and keeps the exact store permission boundary", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.7.0");
+    expect(packageJson.version).toBe("0.7.1");
     expect(manifestSource).toContain("version: packageJson.version");
     expect(manifestSource).toContain('permissions: ["storage"]');
     expect(manifestSource).not.toContain('permissions: ["storage",');
@@ -75,6 +75,10 @@ describe("extension branding package", () => {
       expect(existsSync(publicPath)).toBe(true);
       expect(pngDimensions(publicPath)).toEqual({ width: Number(size), height: Number(size) });
     }
+    expect(READBOOSTER_CONTROL_ICON_PATH).toBe(EXTENSION_ICONS["32"]);
+    expect(createManifest("chrome").web_accessible_resources[0].resources).toContain(
+      READBOOSTER_CONTROL_ICON_PATH,
+    );
   });
 
   it("ships the Fast Reading font as the only dedicated reader font asset", () => {
@@ -84,7 +88,7 @@ describe("extension branding package", () => {
     expect(font.subarray(0, 4)).toEqual(Buffer.from([0x00, 0x01, 0x00, 0x00]));
     expect(font.length).toBeGreaterThan(1_000_000);
     expect(readFileSync("src/manifest/manifest.ts", "utf8")).toContain(
-      "resources: [FAST_READING_FONT_PATH]",
+      "resources: [FAST_READING_FONT_PATH, READBOOSTER_CONTROL_ICON_PATH]",
     );
     expect(readFileSync("src/manifest/manifest.ts", "utf8")).toContain(
       "matches: [...SUPPORTED_HOST_MATCHES]",

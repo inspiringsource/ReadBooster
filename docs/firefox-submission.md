@@ -1,6 +1,6 @@
 # Firefox AMO submission notes
 
-These notes prepare unreleased ReadBooster 0.7.0 for testing and AMO review. They do not claim submission, approval, signing, or publication.
+These notes prepare unreleased ReadBooster 0.7.1 for testing and AMO review. They do not claim submission, approval, signing, or publication.
 
 ## Add-on identity and compatibility
 

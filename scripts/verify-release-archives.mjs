@@ -108,6 +108,7 @@ for (const required of [
   "vitest.config.ts",
   "docs/firefox-listing-draft.md",
   "docs/adding-a-platform.md",
+  "docs/optimize-control-manual-test.md",
   "docs/repository-audit-0.7.0.md",
   "docs/repository-maintenance.md",
   "docs/firefox-submission.md",

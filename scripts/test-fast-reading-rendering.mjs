@@ -1,4 +1,4 @@
-/* global console, document, getComputedStyle, HTMLButtonElement, HTMLElement, process, requestAnimationFrame, window */
+/* global console, document, getComputedStyle, HTMLButtonElement, HTMLElement, HTMLImageElement, MutationObserver, process, requestAnimationFrame, window */
 
 import { createServer } from "node:http";
 import { cp, mkdtemp, mkdir, readFile, rm, stat } from "node:fs/promises";
@@ -78,6 +78,7 @@ try {
         input: {
           fastReading: resolve(root, "tests/browser/fast-reading-harness.html"),
           documentBlock: resolve(root, "tests/browser/document-block-harness.html"),
+          optimizeControl: resolve(root, "tests/browser/optimize-control-harness.html"),
           stickerLayout: resolve(root, "tests/browser/sticker-layout-harness.html"),
           stickerNavigation: resolve(root, "tests/browser/sticker-navigation-harness.html"),
         },
@@ -86,6 +87,11 @@ try {
   });
   await mkdir(join(output, "fonts"), { recursive: true });
   await cp(resolve(root, "dist/fonts/Fast_Sans.ttf"), join(output, "fonts/Fast_Sans.ttf"));
+  await mkdir(join(output, "icons"), { recursive: true });
+  await cp(
+    resolve(root, "public/icons/readbooster-32.png"),
+    join(output, "icons/readbooster-32.png"),
+  );
 
   server = createServer(async (request, response) => {
     try {
@@ -216,6 +222,169 @@ try {
   );
   assert(defaultVsFastPixels > 10_000, "Default and Fast Reading rendered too similarly");
   assert(alternatesPixels > 1_000, "Contextual alternates produced no meaningful pixel difference");
+
+  const controlPage = await browser.newPage({
+    viewport: { width: 1200, height: 800 },
+    deviceScaleFactor: 1,
+  });
+  const controlIconResponses = [];
+  controlPage.on("response", (response) => {
+    if (response.url().includes("readbooster-32.png")) {
+      controlIconResponses.push({ status: response.status(), url: response.url() });
+    }
+  });
+  await controlPage.goto(`http://127.0.0.1:${address.port}/optimize-control-harness.html`, {
+    waitUntil: "networkidle",
+  });
+  await controlPage.waitForFunction(
+    () => window.__OPTIMIZE_CONTROL_HARNESS__?.controlHost()?.dataset.rbControlMode === "full",
+  );
+  const responsiveControl = await controlPage.evaluate(async () => {
+    const harness = window.__OPTIMIZE_CONTROL_HARNESS__;
+    const host = harness.controlHost();
+    const button = host?.shadowRoot?.querySelector("button");
+    const label = host?.shadowRoot?.querySelector(".rb-optimize-label");
+    const icon = host?.shadowRoot?.querySelector("img");
+    const sizer = host?.shadowRoot?.querySelector(".rb-control-sizer");
+    const composer = document.querySelector(".composer");
+    if (
+      !(host instanceof HTMLElement) ||
+      !(button instanceof HTMLButtonElement) ||
+      !(label instanceof HTMLElement) ||
+      !(icon instanceof HTMLImageElement) ||
+      !(sizer instanceof HTMLElement) ||
+      !(composer instanceof HTMLElement)
+    ) {
+      throw new Error("Responsive Optimize Reading harness is incomplete");
+    }
+    const full = {
+      mode: host.dataset.rbControlMode,
+      placement: host.dataset.rbControlPlacement,
+      labelDisplay: getComputedStyle(label).display,
+      buttonWidth: button.getBoundingClientRect().width,
+      ariaLabel: button.getAttribute("aria-label"),
+      title: button.title,
+      sizerWidth: sizer.getBoundingClientRect().width,
+    };
+    button.focus();
+    const modeHistory = [];
+    const modeObserver = new MutationObserver((records) => {
+      if (records.some((record) => record.attributeName === "data-rb-control-mode")) {
+        modeHistory.push(host.dataset.rbControlMode);
+      }
+    });
+    modeObserver.observe(host, { attributes: true, attributeFilter: ["data-rb-control-mode"] });
+    harness.setComposerRight(190);
+    for (let index = 0; index < 10; index += 1) {
+      harness.requestLayout();
+      await new Promise((resolveFrame) => requestAnimationFrame(resolveFrame));
+    }
+    const intermediate = {
+      mode: host.dataset.rbControlMode,
+      placement: host.dataset.rbControlPlacement,
+      labelDisplay: getComputedStyle(label).display,
+      sizerWidth: sizer.getBoundingClientRect().width,
+      modeHistory: [...modeHistory],
+    };
+    harness.setComposerRight(195);
+    for (let index = 0; index < 6; index += 1) {
+      harness.requestLayout();
+      await new Promise((resolveFrame) => requestAnimationFrame(resolveFrame));
+    }
+    const nearRestoreMode = host.dataset.rbControlMode;
+    harness.setComposerRight(20);
+    await new Promise((resolveFrame) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolveFrame)),
+    );
+    const compactButtonRect = button.getBoundingClientRect();
+    const compactComposerRect = composer.getBoundingClientRect();
+    const compact = {
+      mode: host.dataset.rbControlMode,
+      placement: host.dataset.rbControlPlacement,
+      labelDisplay: getComputedStyle(label).display,
+      width: compactButtonRect.width,
+      height: compactButtonRect.height,
+      aboveComposer: compactButtonRect.bottom <= compactComposerRect.top,
+      focused: host.shadowRoot?.activeElement === button,
+      inViewport:
+        compactButtonRect.left >= 0 &&
+        compactButtonRect.right <= window.innerWidth &&
+        compactButtonRect.top >= 0 &&
+        compactButtonRect.bottom <= window.innerHeight,
+    };
+    button.click();
+    await new Promise((resolveFrame) => requestAnimationFrame(resolveFrame));
+    harness.setComposerRight(300);
+    await new Promise((resolveFrame) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolveFrame)),
+    );
+    modeObserver.disconnect();
+    return {
+      full,
+      intermediate,
+      nearRestoreMode,
+      compact,
+      restoredMode: host.dataset.rbControlMode,
+      sameButton: host.shadowRoot?.querySelector("button") === button,
+      activationCount: harness.activationCount(),
+      hostCount: document.querySelectorAll("#readbooster-control-root").length,
+      iconComplete: icon.complete && icon.naturalWidth > 0,
+      modeHistory,
+    };
+  });
+  assert(
+    responsiveControl.full.mode === "full" &&
+      responsiveControl.full.placement === "side" &&
+      responsiveControl.full.labelDisplay !== "none",
+    "Optimize Reading control did not start in full composer-side mode",
+  );
+  assert(
+    responsiveControl.full.ariaLabel === "Optimize Reading" &&
+      responsiveControl.full.title === "Optimize Reading",
+    "Full control lost its accessible name or tooltip",
+  );
+  assert(
+    responsiveControl.intermediate.mode === "compact" &&
+      responsiveControl.intermediate.placement === "side" &&
+      responsiveControl.intermediate.labelDisplay === "none" &&
+      responsiveControl.nearRestoreMode === "compact" &&
+      responsiveControl.intermediate.modeHistory.length === 1,
+    "Intermediate width oscillated instead of remaining compact",
+  );
+  assert(
+    Math.abs(responsiveControl.full.sizerWidth - responsiveControl.intermediate.sizerWidth) < 0.5,
+    "Full-button measurement changed when compact presentation hid the visible label",
+  );
+  assert(
+    responsiveControl.compact.mode === "compact" &&
+      responsiveControl.compact.placement === "above" &&
+      responsiveControl.compact.labelDisplay === "none" &&
+      responsiveControl.compact.width >= 44 &&
+      responsiveControl.compact.height >= 44,
+    "Crowded composer did not use an accessible compact target",
+  );
+  assert(
+    responsiveControl.compact.aboveComposer && responsiveControl.compact.inViewport,
+    "Compact control overlapped the composer or left the viewport",
+  );
+  assert(
+    responsiveControl.compact.focused &&
+      responsiveControl.sameButton &&
+      responsiveControl.activationCount === 1 &&
+      responsiveControl.hostCount === 1,
+    "Responsive switching replaced, duplicated, or disconnected the control",
+  );
+  assert(responsiveControl.restoredMode === "full", "Control did not return to full mode");
+  assert(
+    JSON.stringify(responsiveControl.modeHistory) === JSON.stringify(["compact", "full"]),
+    "Responsive control crossed its directional thresholds more than once",
+  );
+  assert(
+    responsiveControl.iconComplete &&
+      controlIconResponses.some((response) => response.status === 200),
+    "Compact control icon did not load locally over HTTP 200",
+  );
+  await controlPage.close();
 
   const layoutPage = await browser.newPage({
     viewport: { width: 1920, height: 1080 },
@@ -837,6 +1006,7 @@ try {
         fontResponse: fontResponses[0],
         results,
         pixelDifference: { defaultVsFastPixels, contextualAlternatesPixels: alternatesPixels },
+        responsiveControl,
         stickerLayouts,
         stickerNavigation: {
           initial: initialNavigation,

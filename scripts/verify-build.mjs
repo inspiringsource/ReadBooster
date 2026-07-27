@@ -18,6 +18,7 @@ const expectedHomepage = "https://inspiringsource.github.io/ReadBooster/";
 const expectedFirefoxId = "contact@avicloud.ch";
 const expectedFirefoxMinimum = "142.0";
 const fastReadingFontPath = "fonts/Fast_Sans.ttf";
+const optimizeControlIconPath = "icons/readbooster-32.png";
 
 function assert(condition, message) {
   if (!condition) {
@@ -39,7 +40,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const noticePath = join(dist, "NOTICE.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.7.0", "release version is not 0.7.0");
+  assert(manifest.version === "0.7.1", "release version is not 0.7.1");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -76,6 +77,16 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
       group.resources?.includes(fastReadingFontPath),
     ),
     "Fast Reading font is not declared as a web-accessible resource",
+  );
+  assert(
+    manifest.web_accessible_resources.some((group) =>
+      group.resources?.includes(optimizeControlIconPath),
+    ),
+    "Optimize Reading icon is not declared as a web-accessible resource",
+  );
+  assert(
+    existsSync(join(dist, optimizeControlIconPath)),
+    "Optimize Reading icon is missing from dist",
   );
   const fastReadingFont = join(dist, fastReadingFontPath);
   assert(existsSync(fastReadingFont), "Fast Reading font was not copied to dist");
@@ -223,6 +234,13 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
       shippedText.includes("artifact-content") &&
       shippedText.includes("claude.ai"),
     "built Claude adapter support is stale or missing",
+  );
+  assert(
+    shippedText.includes("data-rb-control-mode") &&
+      shippedText.includes("data-rb-control-placement") &&
+      shippedText.includes("ResizeObserver") &&
+      shippedText.includes("Optimize Reading"),
+    "built responsive Optimize Reading control is stale or missing",
   );
   assert(!/MyWebSite|MySite/.test(shippedText), "generic website placeholder metadata was shipped");
   assert(

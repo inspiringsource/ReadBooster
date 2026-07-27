@@ -4,7 +4,7 @@
 
 ReadBooster turns long AI chats into structured, navigable reading documents. It creates a separate Reader rather than rewriting, summarizing, or editing the source conversation. Conversation extraction and rendering happen locally in the browser.
 
-Version 0.7.0 is an unreleased preparation build. It adds a Claude adapter and the repository material needed for future public open-source collaboration. No store submission or public release is performed by the build scripts.
+Version 0.7.1 is an unreleased preparation build. It adds responsive full and icon-only forms of the shared Optimize Reading control while retaining the Claude and open-source preparation introduced in 0.7.0. No store submission or public release is performed by the build scripts.
 
 ## Supported platforms
 
@@ -13,7 +13,7 @@ Version 0.7.0 is an unreleased preparation build. It adds a Claude adapter and t
 - Mistral at `chat.mistral.ai`
 - Claude at `claude.ai`
 
-Chrome and Firefox production builds are generated from the same TypeScript and React source. Claude support is covered by sanitized fixtures and automated tests in 0.7.0; authenticated live Claude verification must be completed before the release is presented as fully accepted.
+Chrome and Firefox production builds are generated from the same TypeScript and React source. Claude support is covered by sanitized fixtures and automated tests; authenticated live Claude verification must be completed before the release is presented as fully accepted.
 
 ## Features
 
@@ -40,7 +40,7 @@ The only browser permission is `storage`. Host access and content scripts are re
 
 ### Official stores
 
-Use the official ReadBooster listing in the Chrome Web Store or Firefox Add-ons when a published version is available. Version 0.7.0 has not been submitted or published by this repository task, so do not treat local 0.7.0 artifacts as signed public releases.
+Use the official ReadBooster listing in the Chrome Web Store or Firefox Add-ons when a published version is available. Version 0.7.1 has not been submitted or published by this repository task, so do not treat local 0.7.1 artifacts as signed public releases.
 
 ### Local Chrome testing
 
@@ -86,9 +86,9 @@ Build outputs are isolated:
 
 - `dist-chrome/` — unpacked Chrome extension
 - `dist-firefox/` — unpacked Firefox extension
-- `release/readbooster-chrome-0.7.0.zip` — complete Chrome upload archive
-- `release/readbooster-firefox-0.7.0.zip` — unsigned Firefox submission archive
-- `release/readbooster-source-0.7.0.zip` — reviewer source and build inputs
+- `release/readbooster-chrome-0.7.1.zip` — complete Chrome upload archive
+- `release/readbooster-firefox-0.7.1.zip` — unsigned Firefox submission archive
+- `release/readbooster-source-0.7.1.zip` — reviewer source and build inputs
 
 See `docs/release-builds.md` for the reproducible release workflow.
 
@@ -120,6 +120,6 @@ Third-party licences remain separate in `THIRD_PARTY_NOTICES.md`. ReadBooster is
 
 ## Release status and limitations
 
-Version 0.7.0 is marked Unreleased in `CHANGELOG.md`. Claude route, extraction, streaming, artifact, and shared-reader behavior are implemented against sanitized semantic fixtures, but a signed-in live Claude session must still verify real current DOM variants, side-panel artifacts, and streaming behavior in both browsers.
+Version 0.7.1 is marked Unreleased in `CHANGELOG.md`. Its responsive injected control is covered by measured-layout tests, but real composer and side-panel layouts still require signed-in acceptance across supported platforms. Claude route, extraction, streaming, artifact, and shared-reader behavior remain fixture-backed pending live verification in both browsers.
 
 ReadBooster does not support Perplexity, DeepSeek, or Claude private APIs. It does not provide accounts, analytics, cloud synchronization, remote processing, or automated store publishing.
