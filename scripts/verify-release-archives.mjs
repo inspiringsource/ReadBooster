@@ -71,7 +71,7 @@ for (const target of ["chrome", "firefox"]) {
   assert(!entries.some((entry) => forbidden.test(entry)), `${target} contains forbidden files`);
   assert(
     entries.every((entry) =>
-      /^(?:assets|fonts|icons|src)(?:\/|$)|^(?:manifest\.json|THIRD_PARTY_NOTICES\.md)$/.test(
+      /^(?:assets|fonts|icons|src)(?:\/|$)|^(?:LICENSE|NOTICE\.md|manifest\.json|THIRD_PARTY_NOTICES\.md)$/.test(
         entry,
       ),
     ),
@@ -93,7 +93,11 @@ const sourceArchive = join(releaseDir, `readbooster-source-${version}.zip`);
 const { entries: sourceEntries, contents: sourceContents } = await inspectZip(sourceArchive);
 for (const required of [
   "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
   "LICENSE",
+  "NOTICE.md",
+  "SECURITY.md",
   "package.json",
   "package-lock.json",
   "README.md",
@@ -103,12 +107,17 @@ for (const required of [
   "vite.config.ts",
   "vitest.config.ts",
   "docs/firefox-listing-draft.md",
+  "docs/adding-a-platform.md",
+  "docs/repository-audit-0.7.0.md",
+  "docs/repository-maintenance.md",
   "docs/firefox-submission.md",
   "docs/release-builds.md",
   "public/fonts/Fast_Sans.ttf",
   "src/manifest/manifest.ts",
   "scripts/build.mjs",
   "tests/setup.ts",
+  ".github/ISSUE_TEMPLATE/platform_support.yml",
+  ".github/pull_request_template.md",
 ]) {
   assert(sourceEntries.includes(required), `source ZIP is missing ${required}`);
 }

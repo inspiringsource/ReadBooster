@@ -2,25 +2,9 @@ import { useEffect, useState } from "react";
 
 import type { ContentRequest, ContentResponse } from "../content/messages";
 import { getExtensionApi } from "../shared/extensionApi";
+import { isSupportedPlatformUrl } from "../shared/platforms";
 
 type PopupState = "loading" | "supported" | "unsupported" | "unavailable";
-
-function isConfiguredUrl(url: string | undefined): boolean {
-  if (!url) {
-    return false;
-  }
-  try {
-    const hostname = new URL(url).hostname;
-    return (
-      hostname === "chatgpt.com" ||
-      hostname.endsWith(".chatgpt.com") ||
-      hostname === "gemini.google.com" ||
-      hostname === "chat.mistral.ai"
-    );
-  } catch {
-    return false;
-  }
-}
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
   const extensionApi = getExtensionApi();
@@ -53,7 +37,7 @@ export function Popup() {
   useEffect(() => {
     void (async () => {
       const tab = await getActiveTab();
-      if (tab?.id == null || !isConfiguredUrl(tab.url)) {
+      if (tab?.id == null || !isSupportedPlatformUrl(tab.url)) {
         setState("unsupported");
         setMessage("This page is not supported.");
         return;

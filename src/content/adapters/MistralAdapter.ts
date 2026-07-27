@@ -217,6 +217,7 @@ function validStableId(value: string | null | undefined): string | undefined {
 
 export class MistralAdapter implements ConversationAdapter {
   readonly source = "mistral" as const;
+  readonly displayName = "Mistral";
   readonly capabilities = {
     configured: true,
     implemented: true,

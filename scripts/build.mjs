@@ -21,6 +21,14 @@ await copyFile(
   new URL("../THIRD_PARTY_NOTICES.md", import.meta.url),
   new URL(`../${outDir}/THIRD_PARTY_NOTICES.md`, import.meta.url),
 );
+await copyFile(
+  new URL("../LICENSE", import.meta.url),
+  new URL(`../${outDir}/LICENSE`, import.meta.url),
+);
+await copyFile(
+  new URL("../NOTICE.md", import.meta.url),
+  new URL(`../${outDir}/NOTICE.md`, import.meta.url),
+);
 await rm(new URL(`../${outDir}/.DS_Store`, import.meta.url), { force: true });
 await rm(new URL(`../${outDir}/__MACOSX`, import.meta.url), {
   force: true,

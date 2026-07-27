@@ -98,15 +98,19 @@ async function packageFirefox(output) {
 }
 
 async function packageSource(output) {
-  const directoryRoots = ["src", "public", "scripts", "tests", "docs"];
+  const directoryRoots = ["src", "public", "scripts", "tests", "docs", ".github"];
   const rootFiles = [
     ".editorconfig",
     ".gitignore",
     ".prettierignore",
     ".prettierrc.json",
     "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
     "LICENSE",
+    "NOTICE.md",
     "README.md",
+    "SECURITY.md",
     "THIRD_PARTY_NOTICES.md",
     "eslint.config.js",
     "package-lock.json",

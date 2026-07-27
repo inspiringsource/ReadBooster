@@ -45,13 +45,13 @@ describe("Chrome Web Store release documentation", () => {
     expect(submission).toContain("https://chatgpt.com/*");
     expect(submission).toContain("https://gemini.google.com/*");
     expect(submission).toContain("https://chat.mistral.ai/*");
+    expect(submission).toContain("https://claude.ai/*");
     expect(submission).toContain("No, ReadBooster does not use remote executable code.");
     expect(combined).toContain("section-title");
     expect(combined).toContain("Sticker");
     expect(combined).toContain("Tally");
     expect(combined).toContain("Limited Use");
     expect(combined).toContain("does not persist complete conversations");
-    expect(combined).not.toContain("https://claude.ai/*");
     expect(combined).not.toContain("Access to https://mistral.ai/*");
   });
 
@@ -60,7 +60,7 @@ describe("Chrome Web Store release documentation", () => {
     const submission = readFileSync(STORE_DOC, "utf8");
 
     expect(privacy).toContain("[EFFECTIVE DATE TO BE PROVIDED]");
-    expect(privacy).toContain("[USER-APPROVED SUPPORT CONTACT TO BE PROVIDED]");
+    expect(privacy).toContain("contact@avicloud.ch");
     expect(privacy).toContain("suggestions only");
     expect(submission).toContain("website is maintained separately");
     expect(submission).toContain("add the Chrome Web Store link only after publication");

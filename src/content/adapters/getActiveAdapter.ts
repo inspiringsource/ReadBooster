@@ -1,22 +1,25 @@
 import { ChatGPTAdapter } from "./ChatGPTAdapter";
+import { ClaudeAdapter } from "./ClaudeAdapter";
 import type { ConversationAdapter } from "./ConversationAdapter";
 import { GeminiAdapter } from "./GeminiAdapter";
 import { MistralAdapter } from "./MistralAdapter";
+import { supportedPlatformForHostname } from "../../shared/platforms";
 
 export function getActiveAdapter(
   hostname: string = window.location.hostname,
   doc: Document = document,
 ): ConversationAdapter | null {
-  const normalized = hostname.toLowerCase().replace(/\.$/, "");
-
-  if (normalized === "chatgpt.com" || normalized.endsWith(".chatgpt.com")) {
-    return new ChatGPTAdapter(doc, normalized);
+  const platform = supportedPlatformForHostname(hostname);
+  switch (platform?.id) {
+    case "chatgpt":
+      return new ChatGPTAdapter(doc, platform.hostname);
+    case "gemini":
+      return new GeminiAdapter(doc, platform.hostname);
+    case "mistral":
+      return new MistralAdapter(doc, platform.hostname);
+    case "claude":
+      return new ClaudeAdapter(doc, platform.hostname);
+    default:
+      return null;
   }
-  if (normalized === "gemini.google.com") {
-    return new GeminiAdapter(doc, normalized);
-  }
-  if (normalized === "chat.mistral.ai") {
-    return new MistralAdapter(doc, normalized);
-  }
-  return null;
 }

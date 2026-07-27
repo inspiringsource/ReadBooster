@@ -1,11 +1,11 @@
 # ReadBooster browser release builds
 
-ReadBooster 0.6.9 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
+ReadBooster 0.7.0 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
 
 ## Requirements
 
-- Node.js 20 or newer. The release was prepared with Node.js 22.
-- npm 8 or newer. Use the npm version bundled with the selected Node.js release.
+- Node.js 22 or newer. The release was prepared with Node.js 22.
+- Use the npm version bundled with the selected Node.js release.
 - macOS, Linux, or Windows.
 - No globally installed build tools are required. Mozilla `web-ext`, ZIP creation, and ZIP inspection are lockfile-controlled development dependencies.
 
@@ -43,9 +43,9 @@ npm run release
 It creates:
 
 ```text
-release/readbooster-chrome-0.6.9.zip
-release/readbooster-firefox-0.6.9.zip
-release/readbooster-source-0.6.9.zip
+release/readbooster-chrome-0.7.0.zip
+release/readbooster-firefox-0.7.0.zip
+release/readbooster-source-0.7.0.zip
 release/SHA256SUMS.txt
 ```
 
@@ -53,7 +53,7 @@ The extension ZIPs contain `manifest.json` at their root. The source ZIP include
 
 ## Browser manifest differences
 
-Both targets use Manifest V3, the `storage` permission, the same ChatGPT, Gemini, and `chat.mistral.ai` host patterns, popup, content script, icons, and narrowly scoped web-accessible resources. The Firefox build alone adds:
+Both targets use Manifest V3, the `storage` permission, the same ChatGPT, Gemini, `chat.mistral.ai`, and Claude host patterns, popup, content script, icons, and narrowly scoped web-accessible resources. The Firefox build alone adds:
 
 ```json
 "browser_specific_settings": {
@@ -77,6 +77,7 @@ Firefox 142 is the unified minimum because desktop support for `data_collection_
 - No executable code is downloaded or evaluated at runtime.
 - Highlight.js and application code are bundled locally.
 - Fast Sans and extension icons are bundled locally. Fast Font is attributed under the MIT License in `THIRD_PARTY_NOTICES.md`.
+- Project-owned source is licensed under MPL-2.0 through `LICENSE` and `NOTICE.md`.
 - The user-initiated Tally iframe is external page content, not extension code. ReadBooster does not load Tally's widget script or inspect submitted form content.
 
 ## Temporary Firefox testing

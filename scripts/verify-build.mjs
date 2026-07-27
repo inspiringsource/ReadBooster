@@ -11,6 +11,7 @@ const expectedHosts = [
   "https://chatgpt.com/*",
   "https://gemini.google.com/*",
   "https://chat.mistral.ai/*",
+  "https://claude.ai/*",
 ];
 const expectedDescription = "Turn AI conversations into readable, navigable documents.";
 const expectedHomepage = "https://inspiringsource.github.io/ReadBooster/";
@@ -34,9 +35,11 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const manifest = JSON.parse(readFileSync(join(dist, "manifest.json"), "utf8"));
   const thirdPartyNoticesPath = join(dist, "THIRD_PARTY_NOTICES.md");
+  const licensePath = join(dist, "LICENSE");
+  const noticePath = join(dist, "NOTICE.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.6.9", "release version is not 0.6.9");
+  assert(manifest.version === "0.7.0", "release version is not 0.7.0");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -83,6 +86,12 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   );
   assert(fastReadingFontBuffer.length > 1_000_000, "Fast Reading font asset is unexpectedly small");
   assert(existsSync(thirdPartyNoticesPath), "third-party notices were not copied to dist");
+  assert(existsSync(licensePath), "MPL-2.0 license was not copied to dist");
+  assert(existsSync(noticePath), "project copyright notice was not copied to dist");
+  assert(
+    /Mozilla Public License Version 2\.0/.test(readFileSync(licensePath, "utf8")),
+    "MPL-2.0 license text is missing",
+  );
   const thirdPartyNotices = readFileSync(thirdPartyNoticesPath, "utf8");
   assert(/Fast Font/.test(thirdPartyNotices), "Fast Font attribution is missing");
   assert(
@@ -91,7 +100,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   );
   assert(/MIT License/.test(thirdPartyNotices), "Fast Font MIT license is missing");
   const manifestText = JSON.stringify(manifest);
-  assert(!/claude\.ai|<all_urls>/i.test(manifestText), "unused host access was shipped");
+  assert(!/<all_urls>/i.test(manifestText), "broad host access was shipped");
   assert(!manifestText.includes("https://mistral.ai/*"), "broad Mistral host access was shipped");
   assert(
     !/(?:activeTab|tabs|scripting|webRequest)/.test(JSON.stringify(manifest.permissions)),
@@ -207,6 +216,13 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
       shippedText.includes("rb-document-block") &&
       shippedText.includes("Copy document"),
     "built ChatGPT document-block presentation is stale or missing",
+  );
+  assert(
+    shippedText.includes("data-message-author-role") &&
+      shippedText.includes("assistant-response") &&
+      shippedText.includes("artifact-content") &&
+      shippedText.includes("claude.ai"),
+    "built Claude adapter support is stale or missing",
   );
   assert(!/MyWebSite|MySite/.test(shippedText), "generic website placeholder metadata was shipped");
   assert(

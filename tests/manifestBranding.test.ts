@@ -22,9 +22,9 @@ function pngDimensions(path: string): { width: number; height: number } {
 }
 
 describe("extension branding package", () => {
-  it("uses package version 0.6.9 and keeps the exact store permission boundary", () => {
+  it("uses package version 0.7.0 and keeps the exact store permission boundary", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.6.9");
+    expect(packageJson.version).toBe("0.7.0");
     expect(manifestSource).toContain("version: packageJson.version");
     expect(manifestSource).toContain('permissions: ["storage"]');
     expect(manifestSource).not.toContain('permissions: ["storage",');
@@ -32,12 +32,13 @@ describe("extension branding package", () => {
       "https://chatgpt.com/*",
       "https://gemini.google.com/*",
       "https://chat.mistral.ai/*",
+      "https://claude.ai/*",
     ]);
     expect(MANIFEST_DESCRIPTION).toBe("Turn AI conversations into readable, navigable documents.");
     expect(MANIFEST_DESCRIPTION.length).toBeLessThanOrEqual(132);
     expect(HOMEPAGE_URL).toBe("https://inspiringsource.github.io/ReadBooster/");
     expect(manifestSource).not.toMatch(
-      /claude\.ai|https:\/\/mistral\.ai\/\*|<all_urls>|activeTab|\btabs\b|\bscripting\b|webRequest|update_url/,
+      /https:\/\/mistral\.ai\/\*|<all_urls>|activeTab|\btabs\b|\bscripting\b|webRequest|update_url/,
     );
   });
 

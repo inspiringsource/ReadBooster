@@ -46,6 +46,7 @@ const DOCUMENT: ConversationDocument = {
 function implementedAdapter(): ConversationAdapter {
   return {
     source: "chatgpt",
+    displayName: "ChatGPT",
     capabilities: {
       configured: true,
       implemented: true,

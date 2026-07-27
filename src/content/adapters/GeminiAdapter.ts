@@ -168,6 +168,7 @@ function normalizedText(value: string | null | undefined): string {
 
 export class GeminiAdapter implements ConversationAdapter {
   readonly source = "gemini" as const;
+  readonly displayName = "Google Gemini";
   readonly capabilities = {
     configured: true,
     implemented: true,

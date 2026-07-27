@@ -4,19 +4,20 @@
 
 **Effective date:** `[EFFECTIVE DATE TO BE PROVIDED]`
 
-**Contact/support:** `[USER-APPROVED SUPPORT CONTACT TO BE PROVIDED]`
+**Contact/support:** `contact@avicloud.ch`
 
-No company name, legal address, data-protection officer, or support email is asserted by this draft. Those details must be supplied and approved before publication.
+No incorporated-company status, legal address, or data-protection officer is asserted by this draft. Legal identity details must receive final review before publication.
 
 ## 1. Product and scope
 
-ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.6.9 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.7.0 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`;
 - Mistral at `https://chat.mistral.ai/*`.
+- Claude at `https://claude.ai/*`.
 
-Claude is a future roadmap integration and is not enabled in this release. ReadBooster does not request access to Claude or to unrelated Mistral marketing, documentation, account, or API pages.
+ReadBooster does not request access to unrelated Mistral marketing, documentation, account, or API pages or to Claude subdomains. Claude live authenticated acceptance remains pending for this unreleased build.
 
 ## 2. Website and conversation content
 
@@ -48,7 +49,7 @@ ReadBooster has:
 - no sale of personal data;
 - no ReadBooster backend.
 
-ReadBooster does not use OpenAI, Gemini, Claude, or Mistral APIs, private AI-platform endpoints, or network interception. It does not execute code contained in AI responses and does not load remote executable extension code.
+ReadBooster does not use OpenAI, Gemini, Anthropic, or Mistral APIs, private AI-platform endpoints, or network interception. It does not execute code contained in AI responses and does not load remote executable extension code.
 
 ## 5. Optional feedback through Tally
 
@@ -74,7 +75,7 @@ Uninstalling the extension removes the installed extension. The browser controls
 ReadBooster minimizes access and data handling by:
 
 - requesting only the `storage` extension permission;
-- limiting host access to ChatGPT, Google Gemini, and the Mistral chat application;
+- limiting host access to ChatGPT, Google Gemini, the Mistral chat application, and Claude;
 - processing conversation content locally;
 - using a conservative HTML sanitizer before rendering extracted content;
 - stripping host controls, scripts, event handlers, and unsafe markup;
@@ -98,7 +99,6 @@ This policy may be updated when ReadBooster’s functionality, supported platfor
 Before publication, replace these placeholders:
 
 - `[EFFECTIVE DATE TO BE PROVIDED]`
-- `[USER-APPROVED SUPPORT CONTACT TO BE PROVIDED]`
 
 Possible future website routes may include:
 

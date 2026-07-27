@@ -166,6 +166,7 @@ function simpleHash(value: string): string {
 
 export class ChatGPTAdapter implements ConversationAdapter {
   readonly source = "chatgpt" as const;
+  readonly displayName = "ChatGPT";
   readonly capabilities = {
     configured: true,
     implemented: true,

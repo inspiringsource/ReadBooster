@@ -1,0 +1,54 @@
+name: Platform support proposal
+description: Propose support for another AI conversation service using sanitized evidence.
+title: "[Platform]: "
+labels: [platform]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Platform name
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Official URL and supported paths
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser tested
+      options: [Chrome, Firefox, Both, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: dom
+    attributes:
+      label: Sanitized DOM characteristics
+      description: Describe stable roles or data attributes, streaming, and SPA navigation. Do not post a complete private DOM dump.
+    validations:
+      required: true
+  - type: textarea
+    id: rich_content
+    attributes:
+      label: Rich content
+      description: Does the platform expose tables, code, math, images, artifacts, documents, or side panels?
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproducible public or synthetic example
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Sanitized screenshots
+      description: Remove names, prompts, account details, and private content before attaching images.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed private AI conversation and account data.
+          required: true

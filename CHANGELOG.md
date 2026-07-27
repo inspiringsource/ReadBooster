@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.0] - Unreleased
+
+### Added
+
+- Added fixture-backed Claude conversation support with semantic message extraction, streaming-safe refresh behavior, and bounded document/artifact normalization.
+- Licensed project-owned ReadBooster source under MPL 2.0.
+- Added platform-adapter, contribution, security, conduct, repository-maintenance, and community-template documentation.
+
+### Improved
+
+- Centralized supported-platform host metadata for adapter routing, popup eligibility, and Chrome/Firefox manifests.
+- Formalized the adapter contract and documented normalized extraction, sanitization, fixture, and browser-verification expectations.
+- Improved repository, dependency, privacy, permission, and reproducible-build documentation for future public review.
+
+### Preserved
+
+- Preserved ChatGPT, Gemini, and Mistral extraction and the shared Document, Focus, outline, title, Sticker, table, code, document-block, Copy, and Print systems.
+- Preserved separate Chrome and Firefox Manifest V3 builds with only the `storage` browser permission.
+
 ## 0.6.9
 
 ### Added

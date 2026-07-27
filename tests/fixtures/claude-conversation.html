@@ -1,0 +1,163 @@
+<main role="main" data-testid="conversation" data-conversation-id="fixture-claude-conversation">
+  <h1 data-testid="conversation-title">Fixture Claude conversation</h1>
+  <section data-testid="conversation-thread">
+    <article data-message-author-role="user" data-message-id="claude-user-1">
+      <div data-testid="user-message-content">
+        <p>Explain the adapter boundary with a structured example.</p>
+        <button aria-label="Edit message">Edit</button>
+      </div>
+    </article>
+
+    <article data-message-author-role="assistant" data-message-id="claude-assistant-1">
+      <div
+        data-testid="assistant-message-content"
+        class="font-claude-response prose"
+        data-is-streaming="false"
+      >
+        <h2>Claude adapter overview</h2>
+        <p>
+          The response keeps <strong>semantic structure</strong> and
+          <span data-testid="citation-source">
+            <a href="https://example.test/reference?utm_source=claude&amp;item=1">
+              <img src="https://example.test/favicon.png" alt="" width="32" height="32" />
+              Example source
+            </a>
+          </span>
+          .
+        </p>
+        <h3>Key points</h3>
+        <ul>
+          <li>Detect bounded messages.</li>
+          <li>
+            Normalize content.
+            <ol>
+              <li>Remove controls.</li>
+              <li>Sanitize semantic HTML.</li>
+            </ol>
+          </li>
+        </ul>
+        <blockquote>Visible quoted material.</blockquote>
+        <table>
+          <caption>
+            Adapter comparison
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Layer</th>
+              <th scope="col">Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Extraction</th>
+              <td>Claude adapter</td>
+            </tr>
+          </tbody>
+        </table>
+        <div data-testid="code-block">
+          <div data-testid="code-header" data-language="TypeScript">
+            TypeScript
+            <button aria-label="Copy code">Copy</button>
+          </div>
+          <pre><code>const provider = "claude";</code></pre>
+        </div>
+        <figure data-testid="response-image">
+          <img
+            src="https://example.test/claude-diagram.png"
+            alt="Claude adapter diagram"
+            width="640"
+            height="320"
+          />
+          <figcaption>Claude adapter diagram</figcaption>
+        </figure>
+
+        <section
+          data-testid="artifact"
+          data-artifact-id="artifact-document-1"
+          data-artifact-type="text/markdown"
+        >
+          <header data-testid="artifact-toolbar">
+            <button aria-label="Edit artifact">Edit</button>
+            <button aria-label="Copy artifact">Copy</button>
+            <button aria-label="Open artifact fullscreen">Open</button>
+          </header>
+          <div data-testid="artifact-content" contenteditable="true" spellcheck="true">
+            <h3>Artifact findings</h3>
+            <p>This visible document belongs to the assistant response.</p>
+            <ul>
+              <li>Artifact item</li>
+            </ul>
+          </div>
+        </section>
+
+        <div data-testid="message-actions">
+          <button aria-label="Copy response">Copy</button>
+          <button aria-label="Share response">Share</button>
+          <button aria-label="Regenerate response">Retry</button>
+          <button aria-label="Feedback">Feedback</button>
+        </div>
+        <script>
+          window.privateClaudeFixture = true;
+        </script>
+      </div>
+    </article>
+
+    <div data-testid="user-message" data-message-id="claude-user-2">
+      <p>Show a code artifact.</p>
+    </div>
+    <div data-testid="assistant-response" data-message-id="claude-assistant-2">
+      <div class="font-claude-response">
+        <p>The code artifact follows.</p>
+        <div
+          data-testid="artifact-card"
+          data-artifact-id="artifact-code-1"
+          data-artifact-type="code/typescript"
+        >
+          <button aria-label="Copy artifact">Copy</button>
+          <div data-testid="artifact-content" data-language="TypeScript">
+            <pre><code>export const ready = true;</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-testid="user-message" data-message-id="claude-user-3">
+      <p>Continue while streaming.</p>
+    </div>
+    <div
+      data-testid="assistant-response"
+      data-message-id="claude-assistant-3"
+      data-is-streaming="true"
+      aria-busy="true"
+    >
+      <p>Currently available partial Claude response.</p>
+    </div>
+
+    <div
+      data-testid="assistant-response"
+      data-message-id="claude-hidden-alternative"
+      aria-hidden="true"
+    >
+      <p>Hidden duplicate answer.</p>
+    </div>
+
+    <div data-testid="assistant-response" data-message-id="claude-empty-shell">
+      <button aria-label="Copy response">Copy</button>
+    </div>
+  </section>
+
+  <form data-testid="composer"><textarea>Composer text</textarea></form>
+</main>
+
+<aside data-testid="sidebar">
+  <div data-testid="user-message" data-message-id="sidebar-user">Sidebar preview</div>
+</aside>
+
+<aside data-testid="artifact-panel">
+  <div data-artifact-id="unassociated-artifact" data-artifact-type="text/markdown">
+    <div data-testid="artifact-content">
+      <h2>Unassociated side-panel artifact</h2>
+      <p>This must not be extracted without a verified assistant-message relationship.</p>
+    </div>
+  </div>
+</aside>

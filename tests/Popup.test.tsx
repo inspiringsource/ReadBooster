@@ -39,7 +39,6 @@ describe("Popup", () => {
   });
 
   it.each([
-    ["Claude", "https://claude.ai/chat/1"],
     ["Claude subdomain", "https://chat.claude.ai/chat/1"],
     ["Mistral", "https://mistral.ai/"],
   ])("treats %s as unsupported without messaging a content script", async (_name, url) => {
@@ -99,6 +98,26 @@ describe("Popup", () => {
     }) as HTMLButtonElement;
     expect(optimize.disabled).toBe(false);
     fireEvent.click(optimize);
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(sendMessage).toHaveBeenLastCalledWith(7, { type: "READBOOSTER_OPTIMIZE_LATEST" });
+  });
+
+  it("enables optimization for an available Claude response", async () => {
+    const sendMessage = installChromeMock("https://claude.ai/chat/fixture", () => ({
+      ok: true,
+      supported: true,
+      source: "claude",
+      implemented: true,
+      manuallyVerified: false,
+      canExtractResponses: true,
+      responseAvailable: true,
+    }));
+    const close = vi.spyOn(window, "close").mockImplementation(() => undefined);
+
+    render(<Popup />);
+
+    expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Optimize latest response" }));
     await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
     expect(sendMessage).toHaveBeenLastCalledWith(7, { type: "READBOOSTER_OPTIMIZE_LATEST" });
   });

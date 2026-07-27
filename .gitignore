@@ -3,7 +3,11 @@ dist/
 dist-chrome/
 dist-firefox/
 release/
+/*.zip
+*.xpi
+*.crx
 coverage/
+.nyc_output/
 .vite/
 *.log
 .DS_Store

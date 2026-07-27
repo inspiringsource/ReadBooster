@@ -2,6 +2,7 @@ import { defineManifest } from "@crxjs/vite-plugin";
 
 import packageJson from "../../package.json";
 import { FAST_READING_FONT_PATH } from "../shared/assets";
+import { SUPPORTED_PLATFORM_HOST_MATCHES } from "../shared/platforms";
 
 export const EXTENSION_ICONS = {
   "16": "icons/readbooster-16.png",
@@ -15,11 +16,7 @@ export const ACTION_ICONS = {
   "32": EXTENSION_ICONS["32"],
 };
 
-export const SUPPORTED_HOST_MATCHES = [
-  "https://chatgpt.com/*",
-  "https://gemini.google.com/*",
-  "https://chat.mistral.ai/*",
-];
+export const SUPPORTED_HOST_MATCHES = [...SUPPORTED_PLATFORM_HOST_MATCHES];
 export const MANIFEST_DESCRIPTION = "Turn AI conversations into readable, navigable documents.";
 export const HOMEPAGE_URL = "https://inspiringsource.github.io/ReadBooster/";
 export const FIREFOX_EXTENSION_ID = "contact@avicloud.ch";

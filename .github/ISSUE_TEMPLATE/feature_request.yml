@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose a focused improvement to the reading experience.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What reading or navigation problem should ReadBooster solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Scope and privacy
+      options:
+        - label: This request does not contain private conversation data.
+          required: true
+        - label: I described any new permission, network, or storage behavior the proposal would need.
+          required: true

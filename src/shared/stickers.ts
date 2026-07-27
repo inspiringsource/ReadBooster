@@ -77,6 +77,8 @@ function conversationIdFromSourceUrl(conversation: ConversationDocument): string
       match = url.pathname.match(/^\/app\/([^/?#]+)/);
     } else if (conversation.source === "mistral" && url.hostname === "chat.mistral.ai") {
       match = url.pathname.match(/^\/(?:chat|work)\/([^/?#]+)/);
+    } else if (conversation.source === "claude" && url.hostname === "claude.ai") {
+      match = url.pathname.match(/^\/chat\/([^/?#]+)/);
     }
     const routeId = match?.[1] ? decodeURIComponent(match[1]).trim() : "";
     return validKey(routeId) && !/^(?:new|login|signup)$/i.test(routeId) ? routeId : null;

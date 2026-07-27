@@ -205,6 +205,7 @@ describe("sticker domain and local repository", () => {
       ["chatgpt", "https://chatgpt.com/c/chat-route", "chatgpt:chat-route"],
       ["gemini", "https://gemini.google.com/app/gemini-route", "gemini:gemini-route"],
       ["mistral", "https://chat.mistral.ai/work/mistral-route", "mistral:mistral-route"],
+      ["claude", "https://claude.ai/chat/claude-route", "claude:claude-route"],
     ] as const;
 
     for (const [platform, sourceUrl, conversationKey] of routes) {

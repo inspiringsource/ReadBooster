@@ -9,6 +9,7 @@ import type {
 
 export interface ConversationAdapter {
   readonly source: ExtractedResponseSource;
+  readonly displayName: string;
   readonly capabilities: AdapterCapabilities;
   isSupportedPage(): boolean;
   shouldInjectControl?(): boolean;
