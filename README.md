@@ -44,6 +44,9 @@ The only browser permission is `storage`. Host access and content scripts are re
 
 ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source version; the Chrome Web Store update for 0.7.1 is still pending review. Do not treat local 0.7.1 artifacts as signed or store-approved releases.
 
+- [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd)
+- [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/readbooster/)
+
 ### Local Chrome testing
 
 1. Run `npm ci` and `npm run build:chrome`.
@@ -108,9 +111,17 @@ The source flow is:
 
 Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, code, tables, document blocks, Stickers, reading settings, copying, and printing. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
 
-## Contributing
+## Feedback and contributions
 
-Bug reports, focused feature requests, documentation improvements, accessibility improvements, and platform-adapter contributions are welcome. New platform adapters must keep provider-specific extraction separate from the shared Reader and include representative sanitized fixtures and regression coverage.
+Reproducible bug reports, focused improvements, new-platform requests, documentation contributions, accessibility suggestions, and code contributions are welcome. Search existing issues before opening a duplicate.
+
+- [Report a bug or request a feature](https://github.com/inspiringsource/ReadBooster/issues/new/choose)
+- [Browse existing issues](https://github.com/inspiringsource/ReadBooster/issues)
+- [Read the contribution guide](CONTRIBUTING.md)
+
+Bug reports should include the browser and version, affected AI platform, ReadBooster version, reproduction steps, expected behavior, actual behavior, and relevant console errors. Remove private conversation content, account information, tokens, and other sensitive material from screenshots and fixtures.
+
+Do not report security vulnerabilities through a public issue. Follow the private reporting instructions in [SECURITY.md](SECURITY.md).
 
 Read `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` before preparing changes. Discuss broad features, new permissions, storage migrations, dependencies, or platform support before implementation. Provider changes require sanitized fixtures, extraction regressions, duplicate and streaming coverage, and honest manual-browser verification.
 
