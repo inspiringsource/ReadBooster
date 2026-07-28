@@ -17,7 +17,7 @@ ReadBooster is a browser extension for Chrome and Firefox that improves the read
 - Mistral at `https://chat.mistral.ai/*`.
 - Claude at `https://claude.ai/*`.
 
-ReadBooster does not request access to unrelated Mistral marketing, documentation, account, or API pages or to Claude subdomains. Claude live authenticated acceptance remains pending for this unreleased build.
+ReadBooster does not request access to unrelated Mistral marketing, documentation, account, or API pages or to Claude subdomains. Claude was tested successfully in a real authenticated conversation after the latest fix; the normal browser-specific release regression remains separate from this privacy description.
 
 ## 2. Website and conversation content
 

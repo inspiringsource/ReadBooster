@@ -8,6 +8,7 @@
 - Added an icon-only compact mode for narrow layouts and crowded chat composers.
 - Added measured composer-boundary positioning so ReadBooster avoids obstructing native controls.
 - Added accessible labeling, local icon packaging, hysteresis, and responsive-layout tests.
+- Recorded successful testing in a real authenticated Claude conversation after the latest fix while retaining the normal browser-specific regression requirements for release acceptance.
 
 ### Fixed
 
@@ -18,7 +19,7 @@
 
 ### Added
 
-- Added fixture-backed Claude conversation support with semantic message extraction, streaming-safe refresh behavior, and bounded document/artifact normalization.
+- Added Claude conversation support with semantic message extraction, streaming-safe refresh behavior, and bounded document/artifact normalization.
 - Licensed project-owned ReadBooster source under MPL 2.0.
 - Added platform-adapter, contribution, security, conduct, repository-maintenance, and community-template documentation.
 

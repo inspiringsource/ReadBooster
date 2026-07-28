@@ -5,14 +5,14 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.7.1 (unreleased preparation build)
+- Submission candidate: 0.7.1 (unreleased candidate)
 - Manifest: Version 3
 - Currently supported websites: ChatGPT, Google Gemini, Mistral, and Claude
 - Requested Chrome permission: `storage`
 - Requested host access: `https://chatgpt.com/*`, `https://gemini.google.com/*`, `https://chat.mistral.ai/*`, and `https://claude.ai/*`
 - Public homepage: <https://inspiringsource.github.io/ReadBooster/>
 
-Claude uses a semantic, fixture-backed adapter in 0.7.0. Authenticated live Claude verification in Chrome and Firefox remains pending and must be completed before submission.
+Claude uses a semantic adapter introduced in 0.7.0 with sanitized fixture coverage. A real authenticated Claude conversation was tested successfully after the latest fix. Browser-specific release regression remains required; this document does not claim a complete Chrome and Firefox acceptance matrix.
 
 ## Single-purpose statement
 
@@ -80,7 +80,7 @@ ReadBooster does not claim to use a Google API. Gemini content is read from the 
 
 ## Reviewer test instructions
 
-> ReadBooster works on ChatGPT, Google Gemini, Mistral, and Claude. Claude requires final authenticated reviewer-flow verification before submission.
+> ReadBooster works on ChatGPT, Google Gemini, Mistral, and Claude. Claude has been tested successfully in a real authenticated conversation; the store candidate still requires the normal browser-specific reviewer-flow regression.
 >
 > No ReadBooster account or credentials are required. Reviewers may use their own test account for the supported third-party platform.
 >
@@ -111,8 +111,8 @@ The website is maintained separately and is not changed by the 0.7.1 extension t
 - show current extension version 0.7.1 only when that release is ready;
 - show ChatGPT support;
 - show Google Gemini support;
-- show Mistral support with an honest live-verification status;
-- show Claude support only after authenticated acceptance is complete;
+- show Mistral support;
+- show Claude as supported, reflecting the successful authenticated conversation test;
 - explain local conversation processing and local preference/custom-title/Sticker storage;
 - disclose the optional user-initiated external Tally feedback form;
 - publish a reviewed privacy-policy page;

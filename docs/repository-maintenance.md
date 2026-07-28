@@ -1,7 +1,7 @@
 # Repository maintenance recommendations
 
-This document prepares ReadBooster for public collaboration. It does not change GitHub settings or
-grant release access.
+This document defines recommended controls for public collaboration. It does not change GitHub
+settings or grant release access.
 
 ## Default branch and review
 

@@ -37,9 +37,9 @@ describe("open-source preparation", () => {
   it("keeps public-release status explicitly pending", () => {
     const readme = readFileSync("README.md", "utf8");
     const changelog = readFileSync("CHANGELOG.md", "utf8");
-    expect(readme).toContain("unreleased preparation build");
-    expect(changelog).toContain("## [0.7.0] - Unreleased");
-    expect(readme).not.toMatch(/0\.7\.0 (?:is|has been) published/i);
+    expect(readme).toContain("current unreleased candidate");
+    expect(changelog).toContain("## [0.7.1] - Unreleased");
+    expect(readme).not.toMatch(/0\.7\.1 (?:is|has been) published/i);
   });
 
   it("documents the intentional encrypted PWDNote file without making it a build input", () => {

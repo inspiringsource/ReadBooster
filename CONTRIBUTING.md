@@ -1,9 +1,7 @@
 # Contributing to ReadBooster
 
-ReadBooster is being prepared for public open-source development. Until repository visibility
-changes, external issue and pull-request channels are not available. Once public collaboration
-opens, reproducible bug reports, focused feature requests, platform adapters, documentation fixes,
-and accessibility improvements will be welcome under these guidelines.
+ReadBooster welcomes reproducible bug reports, focused feature requests, platform adapters,
+documentation fixes, and accessibility improvements under these guidelines.
 
 ## Values
 
@@ -14,8 +12,8 @@ over speculative platform-wide rewrites.
 ## Workflow
 
 Discuss large features, storage migrations, permissions, new dependencies, or new providers before
-implementation. When public collaboration opens, create a focused branch, keep unrelated changes
-out of the patch, and submit a pull request against the protected default branch.
+implementation. Create a focused branch, keep unrelated changes out of the patch, and submit a pull
+request against the protected default branch.
 
 Install with Node.js 22 or newer and npm:
 

@@ -5,10 +5,17 @@ make the repository public or publish an extension.
 
 ## Repository and governance
 
-- [ ] Confirm the intended public repository name, description, homepage, topics, and default branch.
+- [ ] Apply the reviewed public repository metadata:
+  - Name: `ReadBooster`
+  - Description: `Open-source browser extension that turns AI conversations into readable, navigable documents.`
+  - Homepage: `https://inspiringsource.github.io/ReadBooster/`
+  - Default branch: `main`
+  - Topics: `browser-extension`, `accessibility`, `reading`, `chatgpt`, `gemini`, `mistral`,
+    `claude`, `typescript`, `react`, `chrome-extension`, `firefox-addon`
 - [ ] Perform a final README, licence, notice, contributor, Code of Conduct, and security-policy review.
-- [ ] Confirm that `.pwdnote.enc` is intentionally public ciphertext, its decryption key has never
-      been committed, and the maintainer accepts the long-term exposure of the encrypted file.
+- [x] Keep the maintainer-reviewed `.pwdnote.enc` ciphertext tracked intentionally as part of the
+      AviCloud/PWDNote workflow; it is not a ReadBooster build input and must not be decrypted or
+      exposed during publication preparation.
 - [ ] Change repository visibility only after every security and privacy item below is complete.
 - [ ] Enable branch protection for `main` and require pull requests and the CI check.
 - [ ] Verify that CODEOWNERS requests review from `@inspiringsource`.
