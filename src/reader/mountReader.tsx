@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 
+import { flushHighlightWrites, loadHighlightsWithStatus } from "../shared/highlightRepository";
 import { loadReaderPreferences, loadSectionTitleOverrides } from "../shared/storage";
 import { flushStickerWrites, loadStickersWithStatus } from "../shared/stickerRepository";
 import type {
@@ -181,7 +182,7 @@ export async function mountReader(
   const requestId = ++mountRequestId;
   // Explicit Sticker saves are queued to serialize storage.local updates. A remount must observe
   // every prior write instead of loading a stale snapshot while the previous Reader closes.
-  await flushStickerWrites();
+  await Promise.all([flushStickerWrites(), flushHighlightWrites()]);
   if (requestId !== mountRequestId) {
     return () => undefined;
   }
@@ -193,10 +194,11 @@ export async function mountReader(
   }
 
   const previouslyFocused = getDeepActiveElement();
-  const [preferences, sectionTitleOverrides, stickerLoad] = await Promise.all([
+  const [preferences, sectionTitleOverrides, stickerLoad, highlightLoad] = await Promise.all([
     loadReaderPreferences(),
     loadSectionTitleOverrides(conversation),
     loadStickersWithStatus(conversation),
+    loadHighlightsWithStatus(conversation),
   ]);
   const fastReadingFont = registerFastReadingFont();
 
@@ -279,9 +281,19 @@ export async function mountReader(
             ? "Saved Stickers could not be loaded from local storage."
             : undefined
         }
+        initialHighlights={highlightLoad.highlights}
+        initialHighlightPersistenceWarning={
+          highlightLoad.status === "failed" || highlightLoad.status === "unavailable"
+            ? "Saved highlights could not be loaded from local storage."
+            : highlightLoad.status === "not-persistable"
+              ? "Highlights are temporary because this conversation could not be identified reliably."
+              : undefined
+        }
         refreshConversation={refreshConversation}
         onClose={() => {
-          void flushStickerWrites().finally(() => queueMicrotask(cleanup));
+          void Promise.all([flushStickerWrites(), flushHighlightWrites()]).finally(() =>
+            queueMicrotask(cleanup),
+          );
         }}
       />,
     );

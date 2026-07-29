@@ -1,7 +1,10 @@
 # Contributing to ReadBooster
 
-ReadBooster welcomes reproducible bug reports, focused feature requests, platform adapters,
-documentation fixes, and accessibility improvements under these guidelines.
+Thanks for considering a contribution to ReadBooster.
+
+Contributions can be as small as correcting documentation or describing a conversation that does
+not render properly. Code changes, tests, accessibility improvements, and new platform adapters are
+also welcome. You do not need to understand the whole project before helping.
 
 ## Values
 
@@ -9,11 +12,15 @@ Changes should protect reading quality, accessibility, local-first privacy, narr
 permissions, and faithful treatment of source conversations. Prefer focused changes with evidence
 over speculative platform-wide rewrites.
 
+The goal is not to support the largest number of AI platforms or add features for their own sake.
+ReadBooster should make real conversations easier to read, navigate, annotate, and reuse.
+
 ## Workflow
 
-Discuss large features, storage migrations, permissions, new dependencies, or new providers before
-implementation. Create a focused branch, keep unrelated changes out of the patch, and submit a pull
-request against the protected default branch.
+Before starting a larger feature or platform adapter, open an issue so we can compare ideas and avoid
+duplicated work. This is especially important for storage migrations, permissions, new dependencies,
+or new providers. Create a focused branch, keep unrelated changes out of the patch, and submit a
+pull request against the protected default branch.
 
 Install with Node.js 22 or newer and npm:
 
@@ -45,6 +52,9 @@ Do not add remote executable code, telemetry, broad host access, unsafe HTML ins
 access, conversation logging, or new data transmission without explicit maintainer review. Every UI
 change must remain keyboard-usable, expose accessible names and focus states, preserve reduced-motion
 preferences, and work in supported light/dark and responsive layouts.
+
+Contributions are reviewed carefully because browser extensions operate on potentially sensitive
+conversation content. This protects users; it is not intended to discourage small or early ideas.
 
 Report vulnerabilities through `SECURITY.md`, not a public issue.
 

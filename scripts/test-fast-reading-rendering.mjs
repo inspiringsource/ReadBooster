@@ -78,6 +78,7 @@ try {
         input: {
           fastReading: resolve(root, "tests/browser/fast-reading-harness.html"),
           documentBlock: resolve(root, "tests/browser/document-block-harness.html"),
+          highlight: resolve(root, "tests/browser/highlight-harness.html"),
           optimizeControl: resolve(root, "tests/browser/optimize-control-harness.html"),
           stickerLayout: resolve(root, "tests/browser/sticker-layout-harness.html"),
           stickerNavigation: resolve(root, "tests/browser/sticker-navigation-harness.html"),
@@ -999,6 +1000,39 @@ try {
   );
   await documentBlockPage.close();
 
+  const highlightPage = await browser.newPage({
+    viewport: { width: 1000, height: 700 },
+    deviceScaleFactor: 1,
+  });
+  const highlightErrors = [];
+  highlightPage.on("pageerror", (error) => highlightErrors.push(error.message));
+  await highlightPage.goto(`http://127.0.0.1:${address.port}/highlight-harness.html`, {
+    waitUntil: "networkidle",
+  });
+  await highlightPage.waitForFunction(() => Boolean(window.__HIGHLIGHT_RESULTS__));
+  const highlight = await highlightPage.evaluate(() => window.__HIGHLIGHT_RESULTS__);
+  assert(highlightErrors.length === 0, "Highlight rendering produced a browser console error");
+  assert(
+    highlight.markCount === 1 && highlight.text === "important passage",
+    "Highlight rendering duplicated or lost the selected passage",
+  );
+  assert(
+    highlight.role === "button" &&
+      highlight.tabIndex === 0 &&
+      highlight.ariaLabel === "yellow highlighted passage" &&
+      highlight.activationCount === 1,
+    "Highlighted text lost its accessible activation behavior",
+  );
+  assert(
+    highlight.light.background !== "rgba(0, 0, 0, 0)" &&
+      highlight.dark.background !== "rgba(0, 0, 0, 0)" &&
+      highlight.light.decoration.includes("underline") &&
+      contrastRatio(highlight.light.color, "rgb(255, 253, 248)") >= 4.5 &&
+      contrastRatio(highlight.dark.color, "rgb(29, 33, 40)") >= 4.5,
+    "Highlight styling is not readable or distinguishable in light and dark appearances",
+  );
+  await highlightPage.close();
+
   console.log(
     JSON.stringify(
       {
@@ -1016,6 +1050,7 @@ try {
           narrow: narrowNavigation,
         },
         documentBlock,
+        highlight,
       },
       null,
       2,

@@ -1,12 +1,12 @@
 # ReadBooster
 
-> ReadBooster is an open-source document layer for AI conversations.
+ReadBooster turns long AI conversations into readable, navigable documents.
 
-ReadBooster turns long AI chats into structured, navigable reading documents. It creates a separate Reader rather than rewriting, summarizing, or editing the source conversation. Conversation extraction and rendering happen locally in the browser.
+I started the project because useful AI conversations often become difficult to read, revisit, annotate, and print. ReadBooster adds a local reading layer across supported AI platforms without rewriting the original conversation.
 
-ReadBooster is maintained by AviCloud and licensed under the Mozilla Public License 2.0.
+ReadBooster was started by Avi and is maintained as an open-source AviCloud project. Ideas and contributions from the community are welcome. The project is licensed under the Mozilla Public License 2.0.
 
-Version 0.7.1 is the current unreleased candidate. It adds responsive full and icon-only forms of the shared Optimize Reading control while retaining the Claude support and open-source documentation introduced in 0.7.0. Build scripts do not submit to stores or publish releases.
+Version 0.7.2 is the current unreleased candidate. It adds persistent local text highlights and a lightweight highlights overview while preserving the responsive Optimize Reading control, Claude support, Stickers, and existing reading features. Build scripts do not submit to stores or publish releases.
 
 ## Supported platforms
 
@@ -29,12 +29,13 @@ Chrome and Firefox production builds are generated from the same TypeScript and 
 - Syntax-aware code presentation and copying
 - Static document blocks for provider-generated documents and artifacts
 - Local Stickers attached to conversation sections
+- Persistent local text highlights with four accessible styles, navigation, and an overview
 - Conversation refresh, Copy, Print, and PDF output
 - Local-first processing without a ReadBooster backend, analytics, or advertising
 
 ## Privacy and permissions
 
-ReadBooster reads only the visible conversation DOM on its supported sites. It does not use provider private APIs, intercept credentials, upload conversation content, download executable code, or store full conversation bodies. Preferences, custom titles, and Stickers use extension-local storage. Feedback opens an external Tally form only after an explicit user action.
+ReadBooster reads only the visible conversation DOM on its supported sites. It does not use provider private APIs, intercept credentials, upload conversation content, download executable code, or store full conversation bodies. Preferences, custom titles, Stickers, and highlights use extension-local storage. Persisted highlights include the selected passage and short surrounding context so ReadBooster can restore them reliably. Highlight data is not sent to a ReadBooster server. Feedback opens an external Tally form only after an explicit user action.
 
 The only browser permission is `storage`. Host access and content scripts are restricted to the four supported origins listed above. See `docs/privacy-policy-draft.md` and the browser-review documents under `docs/` for the audited disclosures.
 
@@ -42,7 +43,7 @@ The only browser permission is `storage`. Host access and content scripts are re
 
 ### Official stores
 
-ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source version; the Chrome Web Store update for 0.7.1 is still pending review. Do not treat local 0.7.1 artifacts as signed or store-approved releases.
+ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.2 artifacts as signed or store-approved releases.
 
 - [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd)
 - [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/readbooster/)
@@ -91,9 +92,9 @@ Build outputs are isolated:
 
 - `dist-chrome/` — unpacked Chrome extension
 - `dist-firefox/` — unpacked Firefox extension
-- `release/readbooster-chrome-0.7.1.zip` — complete Chrome upload archive
-- `release/readbooster-firefox-0.7.1.zip` — unsigned Firefox submission archive
-- `release/readbooster-source-0.7.1.zip` — reviewer source and build inputs
+- `release/readbooster-chrome-0.7.2.zip` — complete Chrome upload archive
+- `release/readbooster-firefox-0.7.2.zip` — unsigned Firefox submission archive
+- `release/readbooster-source-0.7.2.zip` — reviewer source and build inputs
 
 See `docs/release-builds.md` for the reproducible release workflow.
 
@@ -109,25 +110,30 @@ The source flow is:
           ↓
     shared Reader
 
-Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, code, tables, document blocks, Stickers, reading settings, copying, and printing. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
+Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, code, tables, document blocks, Stickers, highlights, reading settings, copying, and printing. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
 
 ## Feedback and contributions
 
-Reproducible bug reports, focused improvements, new-platform requests, documentation contributions, accessibility suggestions, and code contributions are welcome. Search existing issues before opening a duplicate.
+Ideas, bug reports, documentation improvements, accessibility work, tests, and code contributions are all welcome.
+
+You do not need to understand the whole project before getting involved. A small reproduction, a platform request, or a clear explanation of a reading problem can be useful. Search existing issues before opening a duplicate.
 
 - [Report a bug or request a feature](https://github.com/inspiringsource/ReadBooster/issues/new/choose)
 - [Browse existing issues](https://github.com/inspiringsource/ReadBooster/issues)
 - [Read the contribution guide](CONTRIBUTING.md)
+- [Learn how platform adapters work](docs/adding-a-platform.md)
 
 Bug reports should include the browser and version, affected AI platform, ReadBooster version, reproduction steps, expected behavior, actual behavior, and relevant console errors. Remove private conversation content, account information, tokens, and other sensitive material from screenshots and fixtures.
 
 Do not report security vulnerabilities through a public issue. Follow the private reporting instructions in [SECURITY.md](SECURITY.md).
 
-Read `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` before preparing changes. Discuss broad features, new permissions, storage migrations, dependencies, or platform support before implementation. Provider changes require sanitized fixtures, extraction regressions, duplicate and streaming coverage, and honest manual-browser verification.
+Before starting a larger feature or platform adapter, open an issue so we can compare ideas and avoid duplicated work. Contributions are reviewed carefully because browser extensions operate on potentially sensitive conversation content. The detailed testing, privacy, and adapter requirements remain in `CONTRIBUTING.md`.
+
+The goal is not to support the largest number of AI platforms or add features for their own sake. ReadBooster should make real conversations easier to read, navigate, annotate, and reuse.
 
 ## AviCloud project notes
 
-This repository includes an encrypted `.pwdnote.enc` file created with [PWDNote](https://github.com/inspiringsource/pwdnote), another AviCloud open-source project.
+This repository uses [PWDNote](https://github.com/inspiringsource/pwdnote), another open-source AviCloud project, for encrypted maintainer notes. It includes the encrypted `.pwdnote.enc` workspace intentionally.
 
 The file contains encrypted maintainer notes and project-continuity information for planning, development continuity, session recovery, and internal project organisation. It is included intentionally as part of the AviCloud development workflow.
 
@@ -137,10 +143,10 @@ It is not required for building, running, testing, or contributing to ReadBooste
 
 ReadBooster is licensed under the Mozilla Public License 2.0. In general, distributed modifications to MPL-covered files remain available under MPL 2.0, while the licence permits those files to be combined with files under other licences. This summary is not legal advice; the complete terms are in `LICENSE`.
 
-Third-party licences remain separate in `THIRD_PARTY_NOTICES.md`. ReadBooster is maintained by AviCloud. Copyright 2026 Abraham Bobrovsky.
+Third-party licences remain separate in `THIRD_PARTY_NOTICES.md`. Created and maintained by Avi as part of AviCloud, with help and ideas welcome from the community. Formal copyright information remains in `NOTICE.md`.
 
 ## Release status and limitations
 
-Version 0.7.1 is marked Unreleased in `CHANGELOG.md`. Its responsive injected control is covered by measured-layout tests, but real composer and side-panel layouts still require signed-in acceptance across supported platforms. Claude route, extraction, streaming, artifact, and shared-reader behavior have automated fixture coverage, and a real authenticated Claude conversation was tested successfully after the latest fix. A complete browser-specific regression matrix has not been claimed.
+Version 0.7.2 is marked Unreleased in `CHANGELOG.md`. Highlight creation, persistence, anchoring, rendering, navigation, and removal have automated coverage, but the complete authenticated browser matrix remains a separate release acceptance step. Highlighting is intentionally limited to a single semantic text block at a time; code, mathematics, generated charts, and other complex interactive content are excluded when reliable restoration would be unsafe.
 
 ReadBooster does not support Perplexity, DeepSeek, or Claude private APIs. It does not provide accounts, analytics, cloud synchronization, remote processing, or automated store publishing.

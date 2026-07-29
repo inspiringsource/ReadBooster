@@ -3,6 +3,17 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import packageJson from "../../package.json";
 import { conversationDocumentsMatch, mergeConversationDocuments } from "../shared/conversation";
 import {
+  removeHighlight,
+  saveHighlight,
+  type HighlightPersistenceResult,
+} from "../shared/highlightRepository";
+import {
+  highlightSectionIdentity,
+  resolveHighlightInsertion,
+  type HighlightRecord,
+  type HighlightStyle,
+} from "../shared/highlights";
+import {
   removeSectionTitleOverride,
   saveReaderPreferences,
   saveSectionTitleOverride,
@@ -40,6 +51,13 @@ import { ContinuousDocumentView } from "./ContinuousDocumentView";
 import { ConversationOutline } from "./ConversationOutline";
 import { FeedbackModal } from "./FeedbackModal";
 import { FocusResponseView } from "./FocusResponseView";
+import { HighlightOverview, type HighlightOverviewEntry } from "./highlights/HighlightOverview";
+import { HighlightToolbar } from "./highlights/HighlightToolbar";
+import {
+  assignHighlightBlockIds,
+  resolveHighlightAnchor,
+  type HighlightSelectionDraft,
+} from "./highlights/highlightAnchoring";
 import type { OutlineItem } from "./outline";
 import { StickerMenuPortalContext } from "./stickers/StickerMenuPortalContext";
 import { StickerNavigation } from "./stickers/StickerNavigation";
@@ -60,11 +78,13 @@ interface ReaderViewProps {
   initialSectionTitleOverrides: ReadonlyMap<string, string>;
   initialStickers: readonly Sticker[];
   initialStickerPersistenceWarning?: string;
+  initialHighlights: readonly HighlightRecord[];
+  initialHighlightPersistenceWarning?: string;
   refreshConversation?: RefreshConversation;
   onClose: () => void | Promise<void>;
 }
 
-type HeaderPanel = "actions" | "reading-settings";
+type HeaderPanel = "actions" | "highlights" | "reading-settings";
 type RefreshStatus = "idle" | "checking" | "success" | "unchanged" | "failed";
 
 interface PendingRefreshAnchor {
@@ -121,6 +141,8 @@ export function ReaderView({
   initialSectionTitleOverrides,
   initialStickers,
   initialStickerPersistenceWarning,
+  initialHighlights,
+  initialHighlightPersistenceWarning,
   refreshConversation,
   onClose,
 }: ReaderViewProps) {
@@ -130,6 +152,12 @@ export function ReaderView({
     () => new Map(initialSectionTitleOverrides),
   );
   const [stickers, setStickers] = useState<Sticker[]>(() => [...initialStickers]);
+  const [highlights, setHighlights] = useState<HighlightRecord[]>(() => [...initialHighlights]);
+  const [selectedHighlightId, setSelectedHighlightId] = useState<string | null>(null);
+  const [activeHighlightTarget, setActiveHighlightTarget] = useState<{
+    highlight: HighlightRecord;
+    rect: DOMRect;
+  } | null>(null);
   const [activeStickerEditorId, setActiveStickerEditorId] = useState<string | null>(null);
   const [expandedStickerId, setExpandedStickerId] = useState<string | null>(
     () =>
@@ -167,6 +195,7 @@ export function ReaderView({
   const [refreshMessage, setRefreshMessage] = useState("");
   const [sectionTitleStatus, setSectionTitleStatus] = useState("");
   const [stickerStatus, setStickerStatus] = useState(initialStickerPersistenceWarning ?? "");
+  const [highlightStatus, setHighlightStatus] = useState(initialHighlightPersistenceWarning ?? "");
   const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(
@@ -180,6 +209,7 @@ export function ReaderView({
   const outlineToggleRef = useRef<HTMLButtonElement>(null);
   const readingSettingsTriggerRef = useRef<HTMLButtonElement>(null);
   const actionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const highlightsTriggerRef = useRef<HTMLButtonElement>(null);
   const feedbackTriggerRef = useRef<HTMLButtonElement>(null);
   const headerPanelRef = useRef<HTMLDivElement>(null);
   const documentScrollTopRef = useRef(0);
@@ -190,6 +220,9 @@ export function ReaderView({
   const refreshStatusTimerRef = useRef<number | undefined>(undefined);
   const sectionTitleStatusTimerRef = useRef<number | undefined>(undefined);
   const stickerStatusTimerRef = useRef<number | undefined>(undefined);
+  const highlightStatusTimerRef = useRef<number | undefined>(undefined);
+  const highlightDestinationTimerRef = useRef<number | undefined>(undefined);
+  const pendingHighlightNavigationRef = useRef<string | null>(null);
   const readerMountedRef = useRef(true);
   const pendingRefreshAnchorRef = useRef<PendingRefreshAnchor | null>(null);
   const modeRef = useRef(mode);
@@ -215,6 +248,8 @@ export function ReaderView({
       window.clearTimeout(refreshStatusTimerRef.current);
       window.clearTimeout(sectionTitleStatusTimerRef.current);
       window.clearTimeout(stickerStatusTimerRef.current);
+      window.clearTimeout(highlightStatusTimerRef.current);
+      window.clearTimeout(highlightDestinationTimerRef.current);
       refreshInFlightRef.current = false;
       pendingRefreshAnchorRef.current = null;
     },
@@ -226,7 +261,9 @@ export function ReaderView({
       const trigger =
         headerPanel === "reading-settings"
           ? readingSettingsTriggerRef.current
-          : actionsTriggerRef.current;
+          : headerPanel === "highlights"
+            ? highlightsTriggerRef.current
+            : actionsTriggerRef.current;
       setHeaderPanel(null);
       setAboutOpen(false);
       if (restoreFocus) {
@@ -280,6 +317,7 @@ export function ReaderView({
       if (
         path.includes(headerPanelRef.current as EventTarget) ||
         path.includes(readingSettingsTriggerRef.current as EventTarget) ||
+        path.includes(highlightsTriggerRef.current as EventTarget) ||
         path.includes(actionsTriggerRef.current as EventTarget)
       ) {
         return;
@@ -309,12 +347,15 @@ export function ReaderView({
           target instanceof Element &&
           target.matches("[data-rb-sticker-ui], [data-rb-sticker-editor], .rb-sticker-menu"),
       );
+      const highlightUiInPath = eventPath.some(
+        (target) => target instanceof Element && target.matches("[data-rb-highlight-ui]"),
+      );
 
       if (event.key === "Escape") {
         const sectionTitleEditorInPath = eventPath.some(
           (target) => target instanceof Element && target.matches("[data-rb-section-title-editor]"),
         );
-        if (sectionTitleEditorInPath || stickerUiInPath) {
+        if (sectionTitleEditorInPath || stickerUiInPath || highlightUiInPath) {
           return;
         }
         event.preventDefault();
@@ -336,7 +377,13 @@ export function ReaderView({
         const isTableViewport =
           target instanceof Element && Boolean(target.closest(".rb-table-scroll"));
         const scrollArea = scrollAreaRef.current;
-        if (!isFormControl && !isTableViewport && !stickerUiInPath && scrollArea) {
+        if (
+          !isFormControl &&
+          !isTableViewport &&
+          !stickerUiInPath &&
+          !highlightUiInPath &&
+          scrollArea
+        ) {
           const pageDistance = Math.max(120, scrollArea.clientHeight * 0.85);
           const scrollCommands: Partial<Record<string, () => void>> = {
             PageDown: () => scrollArea.scrollBy({ top: pageDistance }),
@@ -491,6 +538,19 @@ export function ReaderView({
     }, 5000);
   }, []);
 
+  const announceHighlightStatus = useCallback((message: string): void => {
+    if (!readerMountedRef.current) {
+      return;
+    }
+    window.clearTimeout(highlightStatusTimerRef.current);
+    setHighlightStatus(message);
+    highlightStatusTimerRef.current = window.setTimeout(() => {
+      if (readerMountedRef.current) {
+        setHighlightStatus("");
+      }
+    }, 5000);
+  }, []);
+
   const stickersBySectionId = useMemo(() => {
     const groups = new Map<string, Sticker[]>();
     for (const section of sections) {
@@ -515,6 +575,225 @@ export function ReaderView({
           ? (stickersBySectionId.get(focusedSection.id) ?? [])
           : [],
     [focusedSection, mode, sections, stickersBySectionId],
+  );
+
+  const highlightsBySectionId = useMemo(() => {
+    const groups = new Map<string, HighlightRecord[]>();
+    const placedIds = new Set<string>();
+    for (const section of sections) {
+      const identity = highlightSectionIdentity(accumulatedConversation, section.response);
+      const sectionHighlights = highlights.filter(
+        (highlight) =>
+          highlight.conversationKey === identity.conversationKey &&
+          highlight.sectionKey === identity.sectionKey,
+      );
+      sectionHighlights.forEach((highlight) => placedIds.add(highlight.id));
+      groups.set(section.id, sectionHighlights);
+    }
+
+    // A provider without stable message IDs may derive a response fingerprint that changes after a
+    // refresh. Recover only when the stored passage and context resolve in exactly one response;
+    // duplicate or ambiguous text remains safely unresolved.
+    for (const highlight of highlights.filter((candidate) => !placedIds.has(candidate.id))) {
+      const matchingSections = sections.filter((section) => {
+        const identity = highlightSectionIdentity(accumulatedConversation, section.response);
+        if (identity.conversationKey !== highlight.conversationKey) {
+          return false;
+        }
+        const temporary = new DOMParser().parseFromString(section.response.html, "text/html").body;
+        return resolveHighlightAnchor(temporary, highlight) !== null;
+      });
+      if (matchingSections.length === 1) {
+        const section = matchingSections[0];
+        groups.set(section.id, [...(groups.get(section.id) ?? []), highlight]);
+        placedIds.add(highlight.id);
+      }
+    }
+    return groups;
+  }, [accumulatedConversation, highlights, sections]);
+
+  const highlightOverviewEntries = useMemo<HighlightOverviewEntry[]>(() => {
+    const blockOrders = new Map(
+      sections.map((section) => {
+        const temporary = new DOMParser().parseFromString(section.response.html, "text/html").body;
+        return [
+          section.id,
+          new Map(
+            assignHighlightBlockIds(temporary).map((block, index) => [
+              block.dataset.rbHighlightBlockId!,
+              index,
+            ]),
+          ),
+        ] as const;
+      }),
+    );
+    return sections
+      .flatMap((section) =>
+        (highlightsBySectionId.get(section.id) ?? []).map((highlight) => ({
+          highlight,
+          sectionTitle: section.title,
+          sectionIndex: section.index,
+          blockOrder:
+            blockOrders.get(section.id)?.get(highlight.blockId) ?? Number.MAX_SAFE_INTEGER,
+        })),
+      )
+      .sort(
+        (left, right) =>
+          left.sectionIndex - right.sectionIndex ||
+          left.blockOrder - right.blockOrder ||
+          left.highlight.startOffset - right.highlight.startOffset ||
+          left.highlight.createdAt - right.highlight.createdAt,
+      );
+  }, [highlightsBySectionId, sections]);
+
+  const sectionForHighlight = useCallback(
+    (highlight: HighlightRecord): ConversationSection | undefined =>
+      sections.find((section) => {
+        if (
+          (highlightsBySectionId.get(section.id) ?? []).some(
+            (candidate) => candidate.id === highlight.id,
+          )
+        ) {
+          return true;
+        }
+        const identity = highlightSectionIdentity(
+          accumulatedConversationRef.current,
+          section.response,
+        );
+        return (
+          identity.conversationKey === highlight.conversationKey &&
+          identity.sectionKey === highlight.sectionKey
+        );
+      }),
+    [highlightsBySectionId, sections],
+  );
+
+  const persistHighlight = useCallback(
+    async (highlight: HighlightRecord): Promise<HighlightPersistenceResult> => {
+      const section = sectionForHighlight(highlight);
+      const persistable = section
+        ? highlightSectionIdentity(accumulatedConversationRef.current, section.response).persistable
+        : false;
+      const result = await saveHighlight(highlight, persistable);
+      if (result === "not-persistable") {
+        announceHighlightStatus(
+          "This highlight is temporary because this conversation could not be identified reliably.",
+        );
+      } else if (result !== "saved") {
+        announceHighlightStatus("Your highlight could not be saved locally. Please try again.");
+      }
+      return result;
+    },
+    [announceHighlightStatus, sectionForHighlight],
+  );
+
+  const createReaderHighlight = useCallback(
+    (draft: HighlightSelectionDraft, style: HighlightStyle): void => {
+      const section = sections.find(
+        (candidate) =>
+          candidate.id === draft.sectionId && candidate.responseBlockId === draft.responseId,
+      );
+      if (!section) {
+        announceHighlightStatus("That passage could not be associated with a Reader section.");
+        return;
+      }
+      const identity = highlightSectionIdentity(
+        accumulatedConversationRef.current,
+        section.response,
+      );
+      const insertion = resolveHighlightInsertion(
+        highlights,
+        identity,
+        draft,
+        style,
+        draft.blockText,
+      );
+      if (insertion.kind === "overlap") {
+        announceHighlightStatus(
+          "This passage overlaps an existing highlight. Change or remove that highlight first.",
+        );
+        return;
+      }
+      setHighlights((current) => [
+        ...current.filter(
+          (highlight) =>
+            highlight.id !== insertion.highlight.id && !insertion.removeIds.includes(highlight.id),
+        ),
+        insertion.highlight,
+      ]);
+      for (const removeId of insertion.removeIds) {
+        void removeHighlight(identity.conversationKey, removeId, identity.persistable);
+      }
+      void persistHighlight(insertion.highlight).then((result) => {
+        if (result === "saved") {
+          announceHighlightStatus(
+            insertion.kind === "merged"
+              ? "Adjacent highlights merged."
+              : "Highlight saved locally.",
+          );
+        }
+      });
+      setSelectedHighlightId(insertion.highlight.id);
+    },
+    [announceHighlightStatus, highlights, persistHighlight, sections],
+  );
+
+  const changeHighlightStyle = useCallback(
+    (highlightId: string, style: HighlightStyle): void => {
+      const existing = highlights.find((highlight) => highlight.id === highlightId);
+      if (!existing || existing.style === style) {
+        return;
+      }
+      const updated: HighlightRecord = { ...existing, style, updatedAt: Date.now() };
+      setHighlights((current) =>
+        current.map((highlight) => (highlight.id === highlightId ? updated : highlight)),
+      );
+      setActiveHighlightTarget((current) =>
+        current?.highlight.id === highlightId ? { ...current, highlight: updated } : current,
+      );
+      void persistHighlight(updated).then((result) => {
+        if (result === "saved") {
+          announceHighlightStatus("Highlight style updated.");
+        }
+      });
+    },
+    [announceHighlightStatus, highlights, persistHighlight],
+  );
+
+  const deleteReaderHighlight = useCallback(
+    (highlightId: string): void => {
+      const highlight = highlights.find((candidate) => candidate.id === highlightId);
+      if (!highlight) {
+        return;
+      }
+      const section = sectionForHighlight(highlight);
+      const persistable = section
+        ? highlightSectionIdentity(accumulatedConversationRef.current, section.response).persistable
+        : false;
+      setHighlights((current) => current.filter((candidate) => candidate.id !== highlightId));
+      setActiveHighlightTarget(null);
+      setSelectedHighlightId((current) => (current === highlightId ? null : current));
+      void removeHighlight(highlight.conversationKey, highlight.id, persistable).then((result) => {
+        announceHighlightStatus(
+          result === "removed" || result === "not-persistable"
+            ? "Highlight removed."
+            : "Highlight removed for this session, but its saved copy could not be removed.",
+        );
+      });
+    },
+    [announceHighlightStatus, highlights, sectionForHighlight],
+  );
+
+  const activateHighlight = useCallback(
+    (highlightId: string, target: HTMLElement): void => {
+      const highlight = highlights.find((candidate) => candidate.id === highlightId);
+      if (!highlight) {
+        return;
+      }
+      setSelectedHighlightId(highlightId);
+      setActiveHighlightTarget({ highlight, rect: target.getBoundingClientRect() });
+    },
+    [highlights],
   );
 
   useEffect(() => {
@@ -1057,6 +1336,99 @@ export function ReaderView({
     scrollToTarget(item.targetHeadingId);
   };
 
+  const navigateToHighlight = useCallback(
+    (highlightId: string): void => {
+      const entry = highlightOverviewEntries.find(
+        (candidate) => candidate.highlight.id === highlightId,
+      );
+      if (!entry) {
+        return;
+      }
+      const section = sectionForHighlight(entry.highlight);
+      if (!section) {
+        announceHighlightStatus(
+          "This saved highlight could not be placed in the current document.",
+        );
+        return;
+      }
+      if (mode === "focus") {
+        const sectionIndex = sections.findIndex((candidate) => candidate.id === section.id);
+        if (sectionIndex >= 0) {
+          setCurrentResponseIndex(sectionIndex);
+        }
+      }
+      setSelectedHighlightId(highlightId);
+      pendingHighlightNavigationRef.current = highlightId;
+      setHeaderPanel(null);
+    },
+    [announceHighlightStatus, highlightOverviewEntries, mode, sectionForHighlight, sections],
+  );
+
+  const navigateHighlightBy = useCallback(
+    (direction: -1 | 1): void => {
+      if (highlightOverviewEntries.length === 0) {
+        return;
+      }
+      const currentIndex = highlightOverviewEntries.findIndex(
+        (entry) => entry.highlight.id === selectedHighlightId,
+      );
+      const baseIndex =
+        currentIndex >= 0 ? currentIndex : direction > 0 ? -1 : highlightOverviewEntries.length;
+      const nextIndex = Math.min(
+        highlightOverviewEntries.length - 1,
+        Math.max(0, baseIndex + direction),
+      );
+      navigateToHighlight(highlightOverviewEntries[nextIndex].highlight.id);
+    },
+    [highlightOverviewEntries, navigateToHighlight, selectedHighlightId],
+  );
+
+  useLayoutEffect(() => {
+    const highlightId = pendingHighlightNavigationRef.current;
+    const scrollArea = scrollAreaRef.current;
+    if (!highlightId || !scrollArea) {
+      return;
+    }
+    const targets = Array.from(
+      scrollArea.querySelectorAll<HTMLElement>("mark[data-rb-highlight-id]"),
+    );
+    const target = targets.find((candidate) => candidate.dataset.rbHighlightId === highlightId);
+    if (!target) {
+      pendingHighlightNavigationRef.current = null;
+      announceHighlightStatus(
+        "This saved highlight could not be matched confidently to the current content.",
+      );
+      return;
+    }
+    pendingHighlightNavigationRef.current = null;
+    const reducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+    target.focus({ preventScroll: true });
+    target.classList.add("rb-highlight--destination");
+    const destination = highlightOverviewEntries.find(
+      (entry) => entry.highlight.id === highlightId,
+    );
+    if (destination) {
+      announceHighlightStatus(`Moved to highlight in “${destination.sectionTitle}”.`);
+    }
+    window.clearTimeout(highlightDestinationTimerRef.current);
+    highlightDestinationTimerRef.current = window.setTimeout(
+      () => {
+        target.classList.remove("rb-highlight--destination");
+      },
+      reducedMotion ? 300 : 1500,
+    );
+  }, [
+    announceHighlightStatus,
+    currentResponseIndex,
+    highlightOverviewEntries,
+    highlights,
+    mode,
+    selectedHighlightId,
+  ]);
+
   return (
     <div
       ref={dialogRef}
@@ -1128,6 +1500,16 @@ export function ReaderView({
               Actions
             </button>
             <button
+              ref={highlightsTriggerRef}
+              type="button"
+              aria-controls="rb-highlights-panel"
+              aria-expanded={headerPanel === "highlights"}
+              aria-haspopup="dialog"
+              onClick={() => toggleHeaderPanel("highlights")}
+            >
+              Highlights{highlights.length > 0 ? ` (${highlights.length})` : ""}
+            </button>
+            <button
               ref={outlineToggleRef}
               type="button"
               aria-controls="rb-response-outline"
@@ -1190,19 +1572,38 @@ export function ReaderView({
             {stickerStatus}
           </p>
         ) : null}
+        {highlightStatus ? (
+          <p className="rb-highlight-status" aria-live="polite" aria-atomic="true">
+            {highlightStatus}
+          </p>
+        ) : null}
 
         {headerPanel ? (
           <div
             ref={headerPanelRef}
             id={
-              headerPanel === "reading-settings" ? "rb-reading-settings-panel" : "rb-actions-panel"
+              headerPanel === "reading-settings"
+                ? "rb-reading-settings-panel"
+                : headerPanel === "highlights"
+                  ? "rb-highlights-panel"
+                  : "rb-actions-panel"
             }
             className="rb-header-panel"
             data-panel={headerPanel}
             role="dialog"
-            aria-labelledby={`${headerPanel}-title`}
+            aria-labelledby={
+              headerPanel === "highlights" ? "rb-highlights-title" : `${headerPanel}-title`
+            }
           >
-            {headerPanel === "reading-settings" ? (
+            {headerPanel === "highlights" ? (
+              <HighlightOverview
+                entries={highlightOverviewEntries}
+                activeHighlightId={selectedHighlightId}
+                onNavigate={navigateToHighlight}
+                onPrevious={() => navigateHighlightBy(-1)}
+                onNext={() => navigateHighlightBy(1)}
+              />
+            ) : headerPanel === "reading-settings" ? (
               <>
                 <h2 id="reading-settings-title">Reading settings</h2>
                 <div className="rb-settings-grid">
@@ -1473,6 +1874,8 @@ export function ReaderView({
                 fullscreenCoordinator={fullscreenCoordinator}
                 onActiveChange={handleActiveDocumentChange}
                 codeAppearance={preferences.codeAppearance}
+                highlightsBySectionId={highlightsBySectionId}
+                onHighlightActivate={activateHighlight}
               />
             </>
           ) : focusedSection ? (
@@ -1494,6 +1897,8 @@ export function ReaderView({
               tableSessionStates={tableSessionStates}
               fullscreenCoordinator={fullscreenCoordinator}
               codeAppearance={preferences.codeAppearance}
+              highlights={highlightsBySectionId.get(focusedSection.id) ?? []}
+              onHighlightActivate={activateHighlight}
             />
           ) : null}
           <StickerNavigation
@@ -1507,6 +1912,14 @@ export function ReaderView({
         ref={setStickerMenuPortal}
         className="rb-sticker-menu-portal rb-print-hidden"
         data-rb-sticker-menu-portal="true"
+      />
+      <HighlightToolbar
+        readerRef={dialogRef}
+        activeHighlight={activeHighlightTarget}
+        onCreate={createReaderHighlight}
+        onChangeStyle={changeHighlightStyle}
+        onRemove={deleteReaderHighlight}
+        onCloseActive={() => setActiveHighlightTarget(null)}
       />
       {feedbackOpen ? <FeedbackModal onClose={closeFeedback} /> : null}
     </div>

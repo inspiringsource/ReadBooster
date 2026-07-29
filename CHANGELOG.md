@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.7.2] - Unreleased
+
+### Added
+
+- Persistent text highlighting in Document and Focus views.
+- Four accessible, theme-aware highlight styles.
+- A lightweight highlight overview with previous/next navigation.
+- Local highlight persistence with layered, context-aware passage anchoring.
+
+### Improved
+
+- Friendlier README, contributor guidance, and issue-template wording.
+- Print-safe and copy-safe handling of highlights.
+- Privacy documentation for locally stored highlighted text and anchoring context.
+
+### Preserved
+
+- Local-only processing with no ReadBooster account or backend.
+- Existing Stickers, custom titles, platform adapters, responsive controls, and reading features.
+
 ## [0.7.1] - Unreleased
 
 ### Improved

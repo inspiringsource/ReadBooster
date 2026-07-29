@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
 import type { CodeAppearance } from "../shared/types";
+import type { HighlightRecord } from "../shared/highlights";
 import { recordConversationPipelineDiagnostics } from "../shared/developmentDiagnostics";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { flattenOutline } from "./outline";
@@ -22,6 +23,8 @@ interface ContinuousDocumentViewProps extends StickerActions {
   fullscreenCoordinator: TableFullscreenCoordinator;
   onActiveChange: (sectionId: string, headingId: string | null) => void;
   codeAppearance: CodeAppearance;
+  highlightsBySectionId: ReadonlyMap<string, readonly HighlightRecord[]>;
+  onHighlightActivate: (highlightId: string, target: HTMLElement) => void;
 }
 
 export function ContinuousDocumentView({
@@ -42,6 +45,8 @@ export function ContinuousDocumentView({
   onTogglePinned,
   onDelete,
   onMove,
+  highlightsBySectionId,
+  onHighlightActivate,
 }: ContinuousDocumentViewProps) {
   if (import.meta.env.DEV) {
     recordConversationPipelineDiagnostics({ renderedDocumentSections: sections.length });
@@ -144,6 +149,8 @@ export function ContinuousDocumentView({
                 fullscreenCoordinator={fullscreenCoordinator}
                 variant="document"
                 codeAppearance={codeAppearance}
+                highlights={highlightsBySectionId.get(section.id) ?? []}
+                onHighlightActivate={onHighlightActivate}
               />
             </div>
             <StickerLayer

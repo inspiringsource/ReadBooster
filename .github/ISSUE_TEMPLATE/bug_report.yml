@@ -1,5 +1,5 @@
-name: Bug report
-description: Report a reproducible ReadBooster defect without sharing private conversation data.
+name: Report a problem
+description: Help us understand a reproducible ReadBooster problem without sharing private conversation data.
 title: "[Bug]: "
 labels: [bug]
 body:
@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: ReadBooster version
-      placeholder: 0.7.1
+      placeholder: 0.7.2
     validations:
       required: true
   - type: dropdown

@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 
 import type { CodeAppearance } from "../shared/types";
+import type { HighlightRecord } from "../shared/highlights";
 import type { Sticker } from "../shared/stickers";
 import type { TableDisplayState, TableFullscreenCoordinator } from "./blockControls";
 import { ResponseContent } from "./ResponseContent";
@@ -20,6 +21,8 @@ interface FocusResponseViewProps extends StickerActions {
   tableSessionStates: Map<string, TableDisplayState>;
   fullscreenCoordinator: TableFullscreenCoordinator;
   codeAppearance: CodeAppearance;
+  highlights: readonly HighlightRecord[];
+  onHighlightActivate: (highlightId: string, target: HTMLElement) => void;
 }
 
 export function FocusResponseView({
@@ -40,6 +43,8 @@ export function FocusResponseView({
   onTogglePinned,
   onDelete,
   onMove,
+  highlights,
+  onHighlightActivate,
 }: FocusResponseViewProps) {
   const response = section.response;
   return (
@@ -59,6 +64,7 @@ export function FocusResponseView({
         <section
           className="rb-focus-section"
           data-rb-section-id={section.id}
+          data-rb-response-id={section.responseBlockId}
           aria-label={section.title}
         >
           <div className="rb-section-reading-column">
@@ -75,6 +81,8 @@ export function FocusResponseView({
               fullscreenCoordinator={fullscreenCoordinator}
               variant="focus"
               codeAppearance={codeAppearance}
+              highlights={highlights}
+              onHighlightActivate={onHighlightActivate}
             />
           </div>
           <StickerLayer

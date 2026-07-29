@@ -41,6 +41,10 @@
   --rb-code-number: #b44b00;
   --rb-code-title: #1456b8;
   --rb-code-comment: #68717e;
+  --rb-highlight-yellow: #f6d95f66;
+  --rb-highlight-green: #65c98555;
+  --rb-highlight-blue: #68a8f255;
+  --rb-highlight-pink: #e985b855;
   --rb-reader-default-font:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --rb-reader-serif-font: ui-serif, Georgia, Cambria, "Times New Roman", serif;
@@ -82,6 +86,10 @@
   --rb-code-number: #ffbd7a;
   --rb-code-title: #91baff;
   --rb-code-comment: #aeb6c2;
+  --rb-highlight-yellow: #e3c94e55;
+  --rb-highlight-green: #57b8794d;
+  --rb-highlight-blue: #5d99df55;
+  --rb-highlight-pink: #d574a855;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -101,6 +109,10 @@
     --rb-code-number: #ffbd7a;
     --rb-code-title: #91baff;
     --rb-code-comment: #aeb6c2;
+    --rb-highlight-yellow: #e3c94e55;
+    --rb-highlight-green: #57b8794d;
+    --rb-highlight-blue: #5d99df55;
+    --rb-highlight-pink: #d574a855;
   }
 }
 
@@ -248,6 +260,10 @@
   width: min(22rem, calc(100vw - 32px));
 }
 
+.rb-header-panel[data-panel="highlights"] {
+  width: min(34rem, calc(100vw - 32px));
+}
+
 .rb-header-panel h2,
 .rb-about-readbooster h3 {
   font-size: 15px;
@@ -295,7 +311,8 @@
   min-height: 1.45em;
 }
 
-.rb-sticker-status {
+.rb-sticker-status,
+.rb-highlight-status {
   background: color-mix(in srgb, var(--rb-accent) 10%, var(--rb-panel));
   border: 1px solid color-mix(in srgb, var(--rb-accent) 32%, var(--rb-border));
   border-radius: 8px;
@@ -304,6 +321,96 @@
   line-height: 1.45;
   margin: 0;
   padding: 7px 10px;
+}
+
+.rb-highlight-overview {
+  display: grid;
+  gap: 14px;
+}
+
+.rb-highlight-overview-heading {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.rb-highlight-overview-heading h2 {
+  margin-bottom: 3px;
+}
+
+.rb-highlight-overview-heading p,
+.rb-highlight-empty {
+  color: var(--rb-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rb-highlight-navigation {
+  display: flex;
+  gap: 6px;
+}
+
+.rb-highlight-list {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rb-highlight-list button {
+  align-items: start;
+  background: transparent;
+  display: grid;
+  gap: 3px 9px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.rb-highlight-list button[aria-current="true"] {
+  background: color-mix(in srgb, var(--rb-accent) 10%, transparent);
+  border-color: var(--rb-accent);
+}
+
+.rb-highlight-list button strong {
+  color: var(--rb-text);
+  font-size: 12px;
+}
+
+.rb-highlight-list button > span:last-child {
+  color: var(--rb-muted);
+  font-size: 12px;
+  grid-column: 1 / -1;
+  line-height: 1.45;
+}
+
+.rb-highlight-list-swatch {
+  border: 1px solid color-mix(in srgb, var(--rb-text) 22%, transparent);
+  border-radius: 999px;
+  color: var(--rb-text);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+}
+
+.rb-highlight-list-swatch--yellow {
+  background: var(--rb-highlight-yellow);
+}
+
+.rb-highlight-list-swatch--green {
+  background: var(--rb-highlight-green);
+}
+
+.rb-highlight-list-swatch--blue {
+  background: var(--rb-highlight-blue);
+}
+
+.rb-highlight-list-swatch--pink {
+  background: var(--rb-highlight-pink);
 }
 
 .rb-action-status {
@@ -713,6 +820,151 @@
 
 .rb-reader-body[data-outline-open="true"] {
   grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);
+}
+
+.rb-highlight {
+  border-radius: 0.16em;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.04em 0;
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+}
+
+.rb-highlight--yellow {
+  background: var(--rb-highlight-yellow);
+  text-decoration-color: #9b7900;
+}
+
+.rb-highlight--green {
+  background: var(--rb-highlight-green);
+  text-decoration-color: #23703c;
+}
+
+.rb-highlight--blue {
+  background: var(--rb-highlight-blue);
+  text-decoration-color: #245b9d;
+}
+
+.rb-highlight--pink {
+  background: var(--rb-highlight-pink);
+  text-decoration-color: #91456b;
+}
+
+.rb-highlight:focus-visible,
+.rb-highlight--destination {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+.rb-highlight--destination {
+  animation: rb-highlight-destination 1.5s ease-out;
+}
+
+@keyframes rb-highlight-destination {
+  0%,
+  35% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--rb-accent) 22%, transparent);
+  }
+
+  100% {
+    box-shadow: none;
+  }
+}
+
+.rb-highlight-toolbar {
+  align-items: center;
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(18, 22, 30, 0.24);
+  color: var(--rb-text);
+  display: flex;
+  gap: 8px;
+  max-width: calc(100vw - 16px);
+  padding: 7px 8px;
+  position: fixed;
+  z-index: 80;
+}
+
+.rb-highlight-toolbar-label {
+  color: var(--rb-muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rb-highlight-style-options {
+  display: flex;
+  gap: 4px;
+}
+
+.rb-highlight-style,
+.rb-highlight-remove {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--rb-border);
+  border-radius: 7px;
+  color: var(--rb-text);
+  cursor: pointer;
+  min-height: 34px;
+}
+
+.rb-highlight-style {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  padding: 5px;
+  width: 34px;
+}
+
+.rb-highlight-style > span {
+  border: 1px solid color-mix(in srgb, var(--rb-text) 25%, transparent);
+  border-radius: 50%;
+  height: 18px;
+  width: 18px;
+}
+
+.rb-highlight-style--yellow > span {
+  background: var(--rb-highlight-yellow);
+}
+
+.rb-highlight-style--green > span {
+  background: var(--rb-highlight-green);
+}
+
+.rb-highlight-style--blue > span {
+  background: var(--rb-highlight-blue);
+}
+
+.rb-highlight-style--pink > span {
+  background: var(--rb-highlight-pink);
+}
+
+.rb-highlight-style[aria-pressed="true"] {
+  border-color: var(--rb-accent);
+  box-shadow: inset 0 0 0 1px var(--rb-accent);
+}
+
+.rb-highlight-style:hover,
+.rb-highlight-remove:hover {
+  background: var(--rb-code);
+  border-color: var(--rb-accent);
+}
+
+.rb-highlight-style:focus-visible,
+.rb-highlight-remove:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 2px;
+}
+
+.rb-highlight-remove {
+  font:
+    700 11px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  padding: 6px 9px;
 }
 
 .rb-outline {
@@ -2070,6 +2322,10 @@
   [data-rb-sticker-highlighted="true"] {
     animation: none;
   }
+
+  .rb-highlight--destination {
+    animation: none;
+  }
 }
 
 @media (hover: none) {
@@ -2085,6 +2341,19 @@
 }
 
 @media (max-width: 620px) {
+  .rb-highlight-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .rb-highlight-toolbar-label {
+    flex-basis: 100%;
+  }
+
+  .rb-highlight-overview-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .rb-feedback-overlay {
     padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
       max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));

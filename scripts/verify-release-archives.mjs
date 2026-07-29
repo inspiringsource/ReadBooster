@@ -107,6 +107,7 @@ for (const required of [
   "vite.config.ts",
   "vitest.config.ts",
   "docs/firefox-listing-draft.md",
+  "docs/highlight-manual-test.md",
   "docs/adding-a-platform.md",
   "docs/optimize-control-manual-test.md",
   "docs/repository-audit-0.7.0.md",

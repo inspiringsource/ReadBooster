@@ -39,8 +39,18 @@
   .rb-sticker-layer,
   .rb-sticker,
   .rb-sticker-anchor,
+  .rb-highlight-toolbar,
   .rb-visually-hidden {
     display: none !important;
+  }
+
+  .rb-highlight {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    outline: 0 !important;
+    text-decoration: underline 1pt #555 !important;
+    text-underline-offset: 1.5pt;
   }
 
   .rb-print-metadata {
