@@ -6,6 +6,17 @@ I started the project because useful AI conversations often become difficult to 
 
 ReadBooster was started by Avi and is maintained as an open-source AviCloud project. Ideas and contributions from the community are welcome. The project is licensed under the Mozilla Public License 2.0.
 
+<p>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/readbooster/">
+    <img src="docs/assets/store-badges/firefox-add-ons-badge.png" alt="Get ReadBooster for Firefox" height="54">
+  </a>
+  <a href="https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd">
+    <img src="docs/assets/store-badges/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="54">
+  </a>
+</p>
+
+_Firefox: version 0.7.2 available. Chrome: the latest update is awaiting Chrome Web Store review._
+
 Version 0.7.2 is the current unreleased candidate. It adds persistent local text highlights and a lightweight highlights overview while preserving the responsive Optimize Reading control, Claude support, Stickers, and existing reading features. Build scripts do not submit to stores or publish releases.
 
 ## Supported platforms
