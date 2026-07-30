@@ -19,9 +19,34 @@ import {
   unregisterFastReadingFont,
 } from "./fastReadingFont";
 import { ReaderView } from "./ReaderView";
+import type { PrintPageSetup } from "./printStudio/printStudioModel";
 
 export const READER_HOST_ID = "readbooster-reader-root";
 const PRINT_STYLE_ID = "readbooster-print-style";
+
+function printHostStyles(setup?: PrintPageSetup | null): string {
+  const pageSize =
+    setup?.pageSize === "letter" ? "Letter" : setup?.pageSize === "a4" ? "A4" : "auto";
+  const orientation = setup?.orientation ?? "portrait";
+  const margin = setup ? `${setup.marginMillimeters}mm` : "12mm";
+  return `
+    @page {
+      margin: ${margin};
+      size: ${pageSize === "auto" ? "auto" : `${pageSize} ${orientation}`};
+    }
+
+    @media print {
+      body > *:not(#${READER_HOST_ID}) { display: none !important; }
+      #${READER_HOST_ID} {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        position: static !important;
+        width: auto !important;
+      }
+    }
+  `;
+}
 
 interface InertSnapshot {
   element: HTMLElement;
@@ -229,23 +254,7 @@ export async function mountReader(
 
   const printStyle = document.createElement("style");
   printStyle.id = PRINT_STYLE_ID;
-  printStyle.textContent = `
-    @page {
-      margin: 12mm;
-      size: auto;
-    }
-
-    @media print {
-      body > *:not(#${READER_HOST_ID}) { display: none !important; }
-      #${READER_HOST_ID} {
-        height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
-        position: static !important;
-        width: auto !important;
-      }
-    }
-  `;
+  printStyle.textContent = printHostStyles();
   document.head.append(printStyle);
   document.body.append(host);
 
@@ -290,6 +299,11 @@ export async function mountReader(
               : undefined
         }
         refreshConversation={refreshConversation}
+        onPrintPageSetupChange={(setup) => {
+          if (activeReader === reader) {
+            printStyle.textContent = printHostStyles(setup);
+          }
+        }}
         onClose={() => {
           void Promise.all([flushStickerWrites(), flushHighlightWrites()]).finally(() =>
             queueMicrotask(cleanup),

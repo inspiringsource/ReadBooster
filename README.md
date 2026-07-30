@@ -7,17 +7,13 @@ I started the project because useful AI conversations often become difficult to 
 ReadBooster was started by Avi and is maintained as an open-source AviCloud project. Ideas and contributions from the community are welcome. The project is licensed under the Mozilla Public License 2.0.
 
 <p>
-  <a href="https://addons.mozilla.org/en-US/firefox/addon/readbooster/">
-    <img src="docs/assets/store-badges/firefox-add-ons-badge.png" alt="Get ReadBooster for Firefox" height="54">
-  </a>
-  <a href="https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd">
-    <img src="docs/assets/store-badges/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="54">
-  </a>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/readbooster/"><img src="docs/assets/store-badges/firefox-add-ons-badge.png" alt="Get ReadBooster for Firefox" height="54"></a>
+  <a href="https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd"><img src="docs/assets/store-badges/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="54"></a>
 </p>
 
 _Firefox: version 0.7.2 available. Chrome: the latest update is awaiting Chrome Web Store review._
 
-Version 0.7.2 is the current unreleased candidate. It adds persistent local text highlights and a lightweight highlights overview while preserving the responsive Optimize Reading control, Claude support, Stickers, and existing reading features. Build scripts do not submit to stores or publish releases.
+Version 0.7.3 is the current unreleased candidate. It adds Print Studio for preparing a separate, configurable print document while preserving the responsive Optimize Reading control, highlights, Stickers, Claude support, and existing reading features. Build scripts do not submit to stores or publish releases.
 
 ## Supported platforms
 
@@ -41,6 +37,7 @@ Chrome and Firefox production builds are generated from the same TypeScript and 
 - Static document blocks for provider-generated documents and artifacts
 - Local Stickers attached to conversation sections
 - Persistent local text highlights with four accessible styles, navigation, and an overview
+- Print Studio with section selection, prompts, annotations, layout presets, page breaks, and browser PDF output
 - Conversation refresh, Copy, Print, and PDF output
 - Local-first processing without a ReadBooster backend, analytics, or advertising
 
@@ -54,7 +51,7 @@ The only browser permission is `storage`. Host access and content scripts are re
 
 ### Official stores
 
-ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.2 artifacts as signed or store-approved releases.
+ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.3 artifacts as signed or store-approved releases.
 
 - [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd)
 - [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/readbooster/)
@@ -103,9 +100,9 @@ Build outputs are isolated:
 
 - `dist-chrome/` — unpacked Chrome extension
 - `dist-firefox/` — unpacked Firefox extension
-- `release/readbooster-chrome-0.7.2.zip` — complete Chrome upload archive
-- `release/readbooster-firefox-0.7.2.zip` — unsigned Firefox submission archive
-- `release/readbooster-source-0.7.2.zip` — reviewer source and build inputs
+- `release/readbooster-chrome-0.7.3.zip` — complete Chrome upload archive
+- `release/readbooster-firefox-0.7.3.zip` — unsigned Firefox submission archive
+- `release/readbooster-source-0.7.3.zip` — reviewer source and build inputs
 
 See `docs/release-builds.md` for the reproducible release workflow.
 
@@ -121,7 +118,7 @@ The source flow is:
           ↓
     shared Reader
 
-Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, code, tables, document blocks, Stickers, highlights, reading settings, copying, and printing. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
+Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, code, tables, document blocks, Stickers, highlights, reading settings, copying, and Print Studio. Print Studio creates a separate print representation from the normalized document; it does not edit provider or Reader state. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
 
 ## Feedback and contributions
 
@@ -158,6 +155,6 @@ Third-party licences remain separate in `THIRD_PARTY_NOTICES.md`. Created and ma
 
 ## Release status and limitations
 
-Version 0.7.2 is marked Unreleased in `CHANGELOG.md`. Highlight creation, persistence, anchoring, rendering, navigation, and removal have automated coverage, but the complete authenticated browser matrix remains a separate release acceptance step. Highlighting is intentionally limited to a single semantic text block at a time; code, mathematics, generated charts, and other complex interactive content are excluded when reliable restoration would be unsafe.
+Version 0.7.3 is marked Unreleased in `CHANGELOG.md`. Print Studio configuration, preview rendering, content selection, and browser-print handoff have automated coverage, but the complete authenticated Chrome and Firefox print/PDF matrix remains a separate release acceptance step. Highlighting is intentionally limited to a single semantic text block at a time; code, mathematics, generated charts, and other complex interactive content are excluded when reliable restoration would be unsafe.
 
 ReadBooster does not support Perplexity, DeepSeek, or Claude private APIs. It does not provide accounts, analytics, cloud synchronization, remote processing, or automated store publishing.

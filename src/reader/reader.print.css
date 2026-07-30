@@ -44,13 +44,103 @@
     display: none !important;
   }
 
-  .rb-highlight {
+  .rb-reader:not([data-print-studio-open="true"]) .rb-highlight {
     background: transparent !important;
     box-shadow: none !important;
     color: inherit !important;
     outline: 0 !important;
     text-decoration: underline 1pt #555 !important;
     text-underline-offset: 1.5pt;
+  }
+
+  .rb-reader[data-print-studio-open="true"] > .rb-toolbar,
+  .rb-reader[data-print-studio-open="true"] > .rb-print-metadata,
+  .rb-reader[data-print-studio-open="true"] > .rb-reader-body,
+  .rb-reader[data-print-studio-open="true"] > .rb-sticker-menu-portal,
+  .rb-reader[data-print-studio-open="true"] > .rb-highlight-toolbar,
+  .rb-print-studio-controls {
+    display: none !important;
+  }
+
+  .rb-print-studio {
+    background: #fff !important;
+    color: #111 !important;
+    display: block !important;
+    height: auto !important;
+    inset: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    width: auto !important;
+  }
+
+  .rb-print-studio-body,
+  .rb-print-preview {
+    background: #fff !important;
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .rb-print-page {
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #111 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+  }
+
+  .rb-print-page-content {
+    font-size: var(--rb-print-font-size) !important;
+    line-height: var(--rb-print-line-height) !important;
+    margin-inline: auto !important;
+    max-width: var(--rb-print-content-width) !important;
+  }
+
+  .rb-print-studio .rb-content--print-studio {
+    color: #111 !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+
+  .rb-print-document-header {
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .rb-print-document-section[data-page-break="true"] {
+    border-top: 0 !important;
+    break-before: page;
+    margin-top: 0 !important;
+    page-break-before: always;
+    padding-top: 0 !important;
+  }
+
+  .rb-print-studio .rb-highlight {
+    box-shadow: inset 0 -0.12em currentColor;
+    color: inherit !important;
+    text-decoration: underline 0.75pt #666;
+    text-underline-offset: 1.5pt;
+  }
+
+  .rb-print-studio .rb-highlight--yellow {
+    background: #f6d95f66 !important;
+  }
+
+  .rb-print-studio .rb-highlight--green {
+    background: #65c98555 !important;
+  }
+
+  .rb-print-studio .rb-highlight--blue {
+    background: #68a8f255 !important;
+  }
+
+  .rb-print-studio .rb-highlight--pink {
+    background: #e985b855 !important;
   }
 
   .rb-print-metadata {

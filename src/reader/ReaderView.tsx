@@ -59,6 +59,8 @@ import {
   type HighlightSelectionDraft,
 } from "./highlights/highlightAnchoring";
 import type { OutlineItem } from "./outline";
+import { PrintStudio } from "./printStudio/PrintStudio";
+import { createPrintStudioDocument, type PrintPageSetup } from "./printStudio/printStudioModel";
 import { StickerMenuPortalContext } from "./stickers/StickerMenuPortalContext";
 import { StickerNavigation } from "./stickers/StickerNavigation";
 import {
@@ -81,6 +83,7 @@ interface ReaderViewProps {
   initialHighlights: readonly HighlightRecord[];
   initialHighlightPersistenceWarning?: string;
   refreshConversation?: RefreshConversation;
+  onPrintPageSetupChange: (setup: PrintPageSetup | null) => void;
   onClose: () => void | Promise<void>;
 }
 
@@ -144,6 +147,7 @@ export function ReaderView({
   initialHighlights,
   initialHighlightPersistenceWarning,
   refreshConversation,
+  onPrintPageSetupChange,
   onClose,
 }: ReaderViewProps) {
   const [accumulatedConversation, setAccumulatedConversation] = useState(conversation);
@@ -190,6 +194,7 @@ export function ReaderView({
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [printStudioOpen, setPrintStudioOpen] = useState(false);
   const [stickerMenuPortal, setStickerMenuPortal] = useState<HTMLDivElement | null>(null);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>("idle");
   const [refreshMessage, setRefreshMessage] = useState("");
@@ -334,7 +339,7 @@ export function ReaderView({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (feedbackOpen) {
+      if (feedbackOpen || printStudioOpen) {
         return;
       }
       const fullscreenTable = dialogRef.current?.querySelector('[data-rb-table-fullscreen="true"]');
@@ -426,7 +431,7 @@ export function ReaderView({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [closeHeaderPanel, feedbackOpen, headerPanel, onClose]);
+  }, [closeHeaderPanel, feedbackOpen, headerPanel, onClose, printStudioOpen]);
 
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
@@ -611,6 +616,18 @@ export function ReaderView({
     }
     return groups;
   }, [accumulatedConversation, highlights, sections]);
+
+  const printDocument = useMemo(
+    () =>
+      createPrintStudioDocument(
+        accumulatedConversation,
+        documentTitle,
+        sections,
+        stickersBySectionId,
+        highlightsBySectionId,
+      ),
+    [accumulatedConversation, documentTitle, highlightsBySectionId, sections, stickersBySectionId],
+  );
 
   const highlightOverviewEntries = useMemo<HighlightOverviewEntry[]>(() => {
     const blockOrders = new Map(
@@ -1136,6 +1153,18 @@ export function ReaderView({
     setFeedbackOpen(true);
   };
 
+  const openPrintStudio = (): void => {
+    fullscreenCoordinator.activeClose?.();
+    setAboutOpen(false);
+    setHeaderPanel(null);
+    setPrintStudioOpen(true);
+  };
+
+  const closePrintStudio = useCallback((): void => {
+    setPrintStudioOpen(false);
+    queueMicrotask(() => actionsTriggerRef.current?.focus());
+  }, []);
+
   const closeFeedback = useCallback((): void => {
     setFeedbackOpen(false);
     queueMicrotask(() => feedbackTriggerRef.current?.focus());
@@ -1439,6 +1468,7 @@ export function ReaderView({
       data-spacing={preferences.spacing}
       data-mode={mode}
       data-code-appearance={preferences.codeAppearance}
+      data-print-studio-open={printStudioOpen ? "true" : "false"}
       role="dialog"
       aria-modal="true"
       aria-labelledby="rb-reader-title"
@@ -1446,8 +1476,8 @@ export function ReaderView({
     >
       <header
         className="rb-toolbar rb-print-hidden"
-        inert={feedbackOpen ? true : undefined}
-        aria-hidden={feedbackOpen ? "true" : undefined}
+        inert={feedbackOpen || printStudioOpen ? true : undefined}
+        aria-hidden={feedbackOpen || printStudioOpen ? "true" : undefined}
       >
         <div className="rb-toolbar-primary">
           <div className="rb-identity">
@@ -1766,6 +1796,9 @@ export function ReaderView({
                   >
                     Print
                   </button>
+                  <button type="button" onClick={openPrintStudio}>
+                    Print Studio
+                  </button>
                   <button
                     ref={feedbackTriggerRef}
                     type="button"
@@ -1823,8 +1856,8 @@ export function ReaderView({
 
       <header
         className="rb-print-metadata"
-        inert={feedbackOpen ? true : undefined}
-        aria-hidden={feedbackOpen ? "true" : undefined}
+        inert={feedbackOpen || printStudioOpen ? true : undefined}
+        aria-hidden={feedbackOpen || printStudioOpen ? "true" : undefined}
       >
         <h1>{mode === "document" ? documentTitle : "ReadBooster — Focused response"}</h1>
         <p>
@@ -1840,8 +1873,8 @@ export function ReaderView({
           className="rb-reader-body"
           data-outline-open={outlineOpen ? "true" : "false"}
           data-narrow={isNarrow ? "true" : "false"}
-          inert={feedbackOpen ? true : undefined}
-          aria-hidden={feedbackOpen ? "true" : undefined}
+          inert={feedbackOpen || printStudioOpen ? true : undefined}
+          aria-hidden={feedbackOpen || printStudioOpen ? "true" : undefined}
         >
           {mode === "document" ? (
             <>
@@ -1921,6 +1954,14 @@ export function ReaderView({
         onRemove={deleteReaderHighlight}
         onCloseActive={() => setActiveHighlightTarget(null)}
       />
+      {printStudioOpen ? (
+        <PrintStudio
+          document={printDocument}
+          codeAppearance={preferences.codeAppearance}
+          onClose={closePrintStudio}
+          onPageSetupChange={onPrintPageSetupChange}
+        />
+      ) : null}
       {feedbackOpen ? <FeedbackModal onClose={closeFeedback} /> : null}
     </div>
   );

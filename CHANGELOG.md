@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.3] - Unreleased
+
+### Added
+
+- Added Print Studio as a separate workspace for preparing conversations before printing or saving through the browser’s PDF destination.
+- Added local controls for prompts, responses, individual sections, Stickers, highlight styling, and images.
+- Added A4 and Letter page sizes, portrait and landscape orientation, margin, font-size, line-spacing, and content-width presets.
+- Added local section ordering and optional page breaks without changing the source conversation or Reader state.
+
+### Improved
+
+- Added print-preview handling for semantic tables, code, document blocks, images, highlights, and section-related Stickers.
+- Kept Print Studio keyboard accessible, responsive on constrained layouts, and compatible with light and dark Reader appearances.
+- Removed the small text-decoration artefact beneath the README store badges while preserving their official artwork and links.
+
+### Preserved
+
+- Existing quick printing, Reader modes, highlights, Stickers, custom titles, platform adapters, permissions, and local-only processing.
+
 ## [0.7.2] - Unreleased
 
 ### Added

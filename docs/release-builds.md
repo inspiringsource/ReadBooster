@@ -1,6 +1,6 @@
 # ReadBooster browser release builds
 
-ReadBooster 0.7.2 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
+ReadBooster 0.7.3 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
 
 ## Requirements
 
@@ -33,7 +33,7 @@ dist-firefox/
 The legacy `npm run build` command remains a Chrome-compatible unpacked build in `dist/`.
 
 Run the authenticated highlight acceptance steps in `docs/highlight-manual-test.md` before any
-0.7.2 store submission.
+0.7.3 store submission.
 
 ## Release archives
 
@@ -46,9 +46,9 @@ npm run release
 It creates:
 
 ```text
-release/readbooster-chrome-0.7.2.zip
-release/readbooster-firefox-0.7.2.zip
-release/readbooster-source-0.7.2.zip
+release/readbooster-chrome-0.7.3.zip
+release/readbooster-firefox-0.7.3.zip
+release/readbooster-source-0.7.3.zip
 release/SHA256SUMS.txt
 ```
 

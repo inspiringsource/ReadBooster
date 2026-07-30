@@ -241,7 +241,11 @@ function textNodes(block: HTMLElement): Text[] {
   return nodes;
 }
 
-function wrapResolvedAnchor(resolved: ResolvedHighlightAnchor, highlight: HighlightRecord): void {
+function wrapResolvedAnchor(
+  resolved: ResolvedHighlightAnchor,
+  highlight: HighlightRecord,
+  interactive: boolean,
+): void {
   let offset = 0;
   let first = true;
   for (const node of textNodes(resolved.block)) {
@@ -262,8 +266,10 @@ function wrapResolvedAnchor(resolved: ResolvedHighlightAnchor, highlight: Highli
     mark.dataset.rbHighlightId = highlight.id;
     mark.dataset.rbHighlightStyle = highlight.style;
     mark.setAttribute("aria-label", `${highlight.style} highlighted passage`);
-    mark.setAttribute("role", "button");
-    mark.tabIndex = first ? 0 : -1;
+    if (interactive) {
+      mark.setAttribute("role", "button");
+      mark.tabIndex = first ? 0 : -1;
+    }
     range.surroundContents(mark);
     first = false;
   }
@@ -283,7 +289,9 @@ export function renderHighlights(
   root: HTMLElement,
   highlights: readonly HighlightRecord[],
   onActivate: (highlightId: string, target: HTMLElement) => void,
+  options: { readonly interactive?: boolean } = {},
 ): { readonly resolvedIds: ReadonlySet<string>; cleanup: () => void } {
+  const interactive = options.interactive ?? true;
   unwrapHighlights(root);
   if (highlights.length === 0) {
     return { resolvedIds: new Set(), cleanup: () => undefined };
@@ -295,7 +303,7 @@ export function renderHighlights(
   });
   resolved
     .sort((left, right) => right.anchor.startOffset - left.anchor.startOffset)
-    .forEach(({ highlight, anchor }) => wrapResolvedAnchor(anchor, highlight));
+    .forEach(({ highlight, anchor }) => wrapResolvedAnchor(anchor, highlight, interactive));
 
   const handleActivate = (event: Event): void => {
     const target =
@@ -316,8 +324,10 @@ export function renderHighlights(
       onActivate(highlightId, target);
     }
   };
-  root.addEventListener("click", handleActivate);
-  root.addEventListener("keydown", handleActivate);
+  if (interactive) {
+    root.addEventListener("click", handleActivate);
+    root.addEventListener("keydown", handleActivate);
+  }
   return {
     resolvedIds: new Set(resolved.map(({ highlight }) => highlight.id)),
     cleanup: () => {
