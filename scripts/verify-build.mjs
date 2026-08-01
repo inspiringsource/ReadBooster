@@ -40,7 +40,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const noticePath = join(dist, "NOTICE.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.7.3", "release version is not 0.7.3");
+  assert(manifest.version === "0.7.4", "release version is not 0.7.4");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -221,6 +221,12 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
       shippedText.includes("Opening the browser print dialog") &&
       shippedText.includes("data-print-studio-open"),
     "built Print Studio integration is stale or missing",
+  );
+  assert(
+    shippedText.includes("Guided Reading") &&
+      shippedText.includes("Previous passage") &&
+      shippedText.includes("data-rb-guided-state"),
+    "built Guided Reading integration is stale or missing",
   );
   assert(
     shippedText.includes("data-writing-block") &&

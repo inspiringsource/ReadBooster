@@ -5,7 +5,7 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.7.3 (unreleased candidate)
+- Submission candidate: 0.7.4 (unreleased candidate)
 - Manifest: Version 3
 - Currently supported websites: ChatGPT, Google Gemini, Mistral, and Claude
 - Requested Chrome permission: `storage`
@@ -106,9 +106,9 @@ This is a recommendation for the future dashboard configuration only. Publicatio
 
 ## Website handoff checklist
 
-The website is maintained separately and is not changed by the 0.7.3 extension task. A later website update should:
+The website is maintained separately and is not changed by the 0.7.4 extension task. A later website update should:
 
-- show current extension version 0.7.3 only when that release is ready;
+- show current extension version 0.7.4 only when that release is ready;
 - show ChatGPT support;
 - show Google Gemini support;
 - show Mistral support;

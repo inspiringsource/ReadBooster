@@ -10,7 +10,7 @@ No incorporated-company status, legal address, or data-protection officer is ass
 
 ## 1. Product and scope
 
-ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.7.3 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.7.4 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`;
@@ -21,7 +21,7 @@ ReadBooster does not request access to unrelated Mistral marketing, documentatio
 
 ## 2. Website and conversation content
 
-When a user activates ReadBooster on a supported website, the extension reads the currently available conversation content from that page and processes it locally in the browser to provide Document and Focus reading modes, navigation, outlines, tables, code controls, Copy, Print, and related reader features.
+When a user activates ReadBooster on a supported website, the extension reads the currently available conversation content from that page and processes it locally in the browser to provide Document and Focus reading modes, Guided Reading presentation, navigation, outlines, tables, code controls, Copy, Print, and related reader features.
 
 Conversation content can include prompts, AI responses, headings, links, citations, tables, code, and response images. ReadBooster does not upload complete prompt or response bodies to a ReadBooster server and does not persist complete conversations. ReadBooster has no backend.
 
@@ -31,7 +31,7 @@ Where supported response markup already references an image, the browser may loa
 
 ReadBooster uses browser-managed local extension storage for:
 
-- validated reader preferences, such as appearance, text size, spacing, code appearance, and initial document position;
+- validated reader preferences, such as appearance, text size, spacing, code appearance, Guided Reading setting, and initial document position;
 - user-created custom section-title overrides;
 - user-created Sticker notes, their collapsed/pinned state, and section-relative position;
 - user-created highlights, including the selected text, highlight style, bounded surrounding context, and local anchor offsets needed to restore the passage;

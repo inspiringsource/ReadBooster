@@ -139,9 +139,9 @@ describe("print layout", () => {
     expect(addEventListener.mock.calls.filter(([type]) => type === "afterprint")).toHaveLength(0);
   });
 
-  it("uses package version 0.7.3 as the manifest source of truth", () => {
+  it("uses package version 0.7.4 as the manifest source of truth", () => {
     const manifestSource = readFileSync("src/manifest/manifest.ts", "utf8");
-    expect(packageJson.version).toBe("0.7.3");
+    expect(packageJson.version).toBe("0.7.4");
     expect(manifestSource).toContain("version: packageJson.version");
   });
 
@@ -152,5 +152,9 @@ describe("print layout", () => {
     expect(PRINT_CSS).toContain(".rb-print-hidden");
     expect(PRINT_CSS).toContain(".rb-block-toolbar");
     expect(PRINT_CSS).toContain(".rb-document-block");
+    expect(PRINT_CSS).toContain(".rb-guided-navigation");
+    expect(PRINT_CSS).toMatch(
+      /\.rb-reading-block\[data-rb-guided-state\][\s\S]+background: transparent !important[\s\S]+opacity: 1 !important/,
+    );
   });
 });

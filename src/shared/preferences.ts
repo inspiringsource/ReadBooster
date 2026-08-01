@@ -2,6 +2,7 @@ import type {
   AppearanceMode,
   CodeAppearance,
   DocumentOpenAt,
+  GuidedReadingMode,
   ReadingFont,
   ReaderPreferences,
   SpacingLevel,
@@ -15,6 +16,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   readingFont: "default",
   codeAppearance: "color",
   documentOpenAt: "latest",
+  guidedReading: "off",
 };
 
 const APPEARANCE_MODES: readonly AppearanceMode[] = ["system", "light", "dark"];
@@ -28,6 +30,7 @@ const READING_FONTS: readonly ReadingFont[] = [
 ];
 const CODE_APPEARANCES: readonly CodeAppearance[] = ["color", "plain"];
 const DOCUMENT_OPEN_POSITIONS: readonly DocumentOpenAt[] = ["latest", "beginning"];
+const GUIDED_READING_MODES: readonly GuidedReadingMode[] = ["off", "soft", "focused"];
 
 function isAllowed<T extends string>(value: unknown, allowed: readonly T[]): value is T {
   return typeof value === "string" && allowed.includes(value as T);
@@ -71,5 +74,8 @@ export function normalizeReaderPreferences(value: unknown): ReaderPreferences {
     readingFont,
     codeAppearance,
     documentOpenAt,
+    guidedReading: isAllowed(candidate.guidedReading, GUIDED_READING_MODES)
+      ? candidate.guidedReading
+      : DEFAULT_READER_PREFERENCES.guidedReading,
   };
 }

@@ -106,6 +106,7 @@ export type SpacingLevel = "compact" | "comfortable" | "roomy";
 export type ReadingFont = "default" | "serif" | "dyslexia-friendly" | "fast-reading";
 export type CodeAppearance = "color" | "plain";
 export type DocumentOpenAt = "latest" | "beginning";
+export type GuidedReadingMode = "off" | "soft" | "focused";
 
 export interface ReaderPreferences {
   appearance: AppearanceMode;
@@ -114,4 +115,5 @@ export interface ReaderPreferences {
   readingFont: ReadingFont;
   codeAppearance: CodeAppearance;
   documentOpenAt: DocumentOpenAt;
+  guidedReading: GuidedReadingMode;
 }

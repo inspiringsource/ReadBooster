@@ -74,6 +74,7 @@ export const ResponseContent = memo(
       <article
         ref={contentRef}
         className={`rb-content rb-content--${variant}`}
+        data-rb-response-id={response.id}
         aria-label={variant === "document" ? "Assistant response" : "Current assistant response"}
         dangerouslySetInnerHTML={{ __html: response.html }}
       />

@@ -39,6 +39,7 @@ import type {
   CodeAppearance,
   ConversationDocument,
   DocumentOpenAt,
+  GuidedReadingMode,
   ReadingFont,
   ReaderPreferences,
   RefreshConversation,
@@ -59,6 +60,7 @@ import {
   type HighlightSelectionDraft,
 } from "./highlights/highlightAnchoring";
 import type { OutlineItem } from "./outline";
+import { useGuidedReading } from "./guidedReading/useGuidedReading";
 import { PrintStudio } from "./printStudio/PrintStudio";
 import { createPrintStudioDocument, type PrintPageSetup } from "./printStudio/printStudioModel";
 import { StickerMenuPortalContext } from "./stickers/StickerMenuPortalContext";
@@ -201,6 +203,7 @@ export function ReaderView({
   const [sectionTitleStatus, setSectionTitleStatus] = useState("");
   const [stickerStatus, setStickerStatus] = useState(initialStickerPersistenceWarning ?? "");
   const [highlightStatus, setHighlightStatus] = useState(initialHighlightPersistenceWarning ?? "");
+  const [guidedReadingStatus, setGuidedReadingStatus] = useState("");
   const [headerPanel, setHeaderPanel] = useState<HeaderPanel | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(
@@ -226,6 +229,7 @@ export function ReaderView({
   const sectionTitleStatusTimerRef = useRef<number | undefined>(undefined);
   const stickerStatusTimerRef = useRef<number | undefined>(undefined);
   const highlightStatusTimerRef = useRef<number | undefined>(undefined);
+  const guidedReadingStatusTimerRef = useRef<number | undefined>(undefined);
   const highlightDestinationTimerRef = useRef<number | undefined>(undefined);
   const pendingHighlightNavigationRef = useRef<string | null>(null);
   const readerMountedRef = useRef(true);
@@ -239,6 +243,43 @@ export function ReaderView({
   const response = responses[currentResponseIndex];
   const focusedSection = sections[currentResponseIndex];
   const documentTitle = accumulatedConversation.title?.trim() || "Conversation document.";
+  const guidedReadingRevision = useMemo(
+    () =>
+      [
+        mode,
+        response?.id ?? "none",
+        preferences.textSize,
+        preferences.spacing,
+        preferences.readingFont,
+        ...sections.map(
+          (section) =>
+            `${section.response.id}:${section.response.provenance.contentFingerprint}:${section.response.html.length}`,
+        ),
+      ].join("|"),
+    [
+      mode,
+      preferences.readingFont,
+      preferences.spacing,
+      preferences.textSize,
+      response?.id,
+      sections,
+    ],
+  );
+  const announceGuidedReadingStatus = useCallback((message: string): void => {
+    window.clearTimeout(guidedReadingStatusTimerRef.current);
+    setGuidedReadingStatus(message);
+    guidedReadingStatusTimerRef.current = window.setTimeout(() => setGuidedReadingStatus(""), 3000);
+  }, []);
+  const guidedReading = useGuidedReading({
+    mode: preferences.guidedReading,
+    scrollAreaRef,
+    revision: guidedReadingRevision,
+    suspended: feedbackOpen || printStudioOpen,
+    onNavigate: announceGuidedReadingStatus,
+  });
+  const guidedReadingEnabled = guidedReading.enabled;
+  const navigateGuidedReading = guidedReading.navigate;
+  const centerActiveGuidedReading = guidedReading.centerActive;
 
   useLayoutEffect(() => {
     modeRef.current = mode;
@@ -254,6 +295,7 @@ export function ReaderView({
       window.clearTimeout(sectionTitleStatusTimerRef.current);
       window.clearTimeout(stickerStatusTimerRef.current);
       window.clearTimeout(highlightStatusTimerRef.current);
+      window.clearTimeout(guidedReadingStatusTimerRef.current);
       window.clearTimeout(highlightDestinationTimerRef.current);
       refreshInFlightRef.current = false;
       pendingRefreshAnchorRef.current = null;
@@ -355,12 +397,22 @@ export function ReaderView({
       const highlightUiInPath = eventPath.some(
         (target) => target instanceof Element && target.matches("[data-rb-highlight-ui]"),
       );
+      const guidedBlockInPath = eventPath.find(
+        (target): target is HTMLElement =>
+          target instanceof HTMLElement && target.matches("[data-rb-reading-block-id]"),
+      );
 
       if (event.key === "Escape") {
         const sectionTitleEditorInPath = eventPath.some(
           (target) => target instanceof Element && target.matches("[data-rb-section-title-editor]"),
         );
         if (sectionTitleEditorInPath || stickerUiInPath || highlightUiInPath) {
+          return;
+        }
+        if (guidedReadingEnabled && guidedBlockInPath) {
+          event.preventDefault();
+          event.stopPropagation();
+          guidedBlockInPath.blur();
           return;
         }
         event.preventDefault();
@@ -374,13 +426,22 @@ export function ReaderView({
       }
 
       if (event.key !== "Tab" || !dialogRef.current) {
-        const target = event.target;
-        const isFormControl =
-          target instanceof HTMLInputElement ||
-          target instanceof HTMLTextAreaElement ||
-          target instanceof HTMLSelectElement;
-        const isTableViewport =
-          target instanceof Element && Boolean(target.closest(".rb-table-scroll"));
+        const isFormControl = eventPath.some(
+          (target) =>
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLSelectElement,
+        );
+        const isInteractiveControl = eventPath.some(
+          (target) =>
+            target instanceof Element &&
+            target.matches(
+              "button, a, input, textarea, select, summary, [contenteditable], [role='slider']",
+            ),
+        );
+        const isTableViewport = eventPath.some(
+          (target) => target instanceof Element && target.matches(".rb-table-scroll"),
+        );
         const scrollArea = scrollAreaRef.current;
         if (
           !isFormControl &&
@@ -390,6 +451,31 @@ export function ReaderView({
           scrollArea
         ) {
           const pageDistance = Math.max(120, scrollArea.clientHeight * 0.85);
+          const guidedKey = event.key.toLowerCase();
+          if (
+            guidedReadingEnabled &&
+            !isInteractiveControl &&
+            !event.altKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.shiftKey
+          ) {
+            if (guidedKey === "j" || event.key === "ArrowDown") {
+              event.preventDefault();
+              navigateGuidedReading(1);
+              return;
+            }
+            if (guidedKey === "k" || event.key === "ArrowUp") {
+              event.preventDefault();
+              navigateGuidedReading(-1);
+              return;
+            }
+            if (event.key === "Enter" && guidedBlockInPath) {
+              event.preventDefault();
+              centerActiveGuidedReading();
+              return;
+            }
+          }
           const scrollCommands: Partial<Record<string, () => void>> = {
             PageDown: () => scrollArea.scrollBy({ top: pageDistance }),
             PageUp: () => scrollArea.scrollBy({ top: -pageDistance }),
@@ -431,7 +517,16 @@ export function ReaderView({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [closeHeaderPanel, feedbackOpen, headerPanel, onClose, printStudioOpen]);
+  }, [
+    closeHeaderPanel,
+    feedbackOpen,
+    centerActiveGuidedReading,
+    headerPanel,
+    guidedReadingEnabled,
+    navigateGuidedReading,
+    onClose,
+    printStudioOpen,
+  ]);
 
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
@@ -1467,6 +1562,7 @@ export function ReaderView({
       data-text-size={preferences.textSize}
       data-spacing={preferences.spacing}
       data-mode={mode}
+      data-guided-reading={preferences.guidedReading}
       data-code-appearance={preferences.codeAppearance}
       data-print-studio-open={printStudioOpen ? "true" : "false"}
       role="dialog"
@@ -1561,29 +1657,56 @@ export function ReaderView({
           </div>
         </div>
 
-        {mode === "focus" ? (
+        {mode === "focus" || guidedReading.enabled ? (
           <div className="rb-toolbar-secondary">
-            <div className="rb-response-navigation" aria-label="Assistant response navigation">
-              <button
-                type="button"
-                onClick={showPreviousResponse}
-                disabled={currentResponseIndex === 0}
-                aria-label="Show previous assistant response"
-              >
-                Previous
-              </button>
-              <output className="rb-response-position" aria-live="polite">
-                Response {currentResponseIndex + 1} of {responses.length}
-              </output>
-              <button
-                type="button"
-                onClick={showNextResponse}
-                disabled={currentResponseIndex === responses.length - 1}
-                aria-label="Show next assistant response"
-              >
-                Next
-              </button>
-            </div>
+            {mode === "focus" ? (
+              <div className="rb-response-navigation" aria-label="Assistant response navigation">
+                <button
+                  type="button"
+                  onClick={showPreviousResponse}
+                  disabled={currentResponseIndex === 0}
+                  aria-label="Show previous assistant response"
+                >
+                  Previous
+                </button>
+                <output className="rb-response-position" aria-live="polite">
+                  Response {currentResponseIndex + 1} of {responses.length}
+                </output>
+                <button
+                  type="button"
+                  onClick={showNextResponse}
+                  disabled={currentResponseIndex === responses.length - 1}
+                  aria-label="Show next assistant response"
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
+            {guidedReading.enabled ? (
+              <div className="rb-guided-navigation" aria-label="Guided Reading passage navigation">
+                <button
+                  type="button"
+                  onClick={() => guidedReading.navigate(-1)}
+                  disabled={!guidedReading.canGoPrevious}
+                  aria-label="Previous passage"
+                >
+                  Previous passage
+                </button>
+                <output className="rb-guided-position">
+                  {guidedReading.blockCount === 0 || guidedReading.activeIndex < 0
+                    ? "No passages"
+                    : `Passage ${guidedReading.activeIndex + 1} of ${guidedReading.blockCount}`}
+                </output>
+                <button
+                  type="button"
+                  onClick={() => guidedReading.navigate(1)}
+                  disabled={!guidedReading.canGoNext}
+                  aria-label="Next passage"
+                >
+                  Next passage
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -1605,6 +1728,11 @@ export function ReaderView({
         {highlightStatus ? (
           <p className="rb-highlight-status" aria-live="polite" aria-atomic="true">
             {highlightStatus}
+          </p>
+        ) : null}
+        {guidedReadingStatus ? (
+          <p className="rb-visually-hidden" role="status" aria-live="polite">
+            {guidedReadingStatus}
           </p>
         ) : null}
 
@@ -1744,7 +1872,30 @@ export function ReaderView({
                       <option value="roomy">Roomy</option>
                     </select>
                   </label>
+                  <label>
+                    <span>Reading assistance</span>
+                    <select
+                      aria-label="Reading assistance"
+                      aria-describedby="rb-guided-reading-description"
+                      value={preferences.guidedReading}
+                      onChange={(event) =>
+                        updatePreferences({
+                          ...preferences,
+                          guidedReading: event.target.value as GuidedReadingMode,
+                        })
+                      }
+                    >
+                      <option value="off">Standard</option>
+                      <option value="soft">Guided — Soft</option>
+                      <option value="focused">Guided — Focused</option>
+                    </select>
+                  </label>
                 </div>
+                <p id="rb-guided-reading-description" className="rb-settings-help">
+                  Guided Reading emphasizes one passage at a time while keeping the surrounding
+                  document visible. Scroll normally, click a passage, or use J/K and the passage
+                  controls.
+                </p>
                 {preferences.readingFont === "fast-reading" ? (
                   <p
                     id="rb-fast-reading-description"

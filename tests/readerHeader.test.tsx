@@ -65,7 +65,7 @@ describe("reader header refinement", () => {
     const shadow = shadowRoot();
     const primary = shadow.querySelector(".rb-toolbar-primary")!;
 
-    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.7.3");
+    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.7.4");
     expect(primary.contains(button(shadow, "Document"))).toBe(true);
     expect(primary.contains(button(shadow, "Focus"))).toBe(true);
     expect(primary.contains(button(shadow, "Hide outline"))).toBe(true);
@@ -206,7 +206,7 @@ describe("reader header refinement", () => {
     expect(writeText).toHaveBeenCalledOnce();
     expect(print).toHaveBeenCalledOnce();
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Version 0.7.3 Beta",
+      "Version 0.7.4 Beta",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
       "ReadBooster processes content locally in your browser.",

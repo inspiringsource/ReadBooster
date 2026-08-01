@@ -40,8 +40,18 @@
   .rb-sticker,
   .rb-sticker-anchor,
   .rb-highlight-toolbar,
+  .rb-guided-navigation,
   .rb-visually-hidden {
     display: none !important;
+  }
+
+  .rb-reading-block,
+  .rb-reading-block[data-rb-guided-state] {
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    outline: 0 !important;
+    transition: none !important;
   }
 
   .rb-reader:not([data-print-studio-open="true"]) .rb-highlight {

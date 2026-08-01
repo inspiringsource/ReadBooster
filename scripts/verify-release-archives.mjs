@@ -109,6 +109,7 @@ for (const required of [
   "docs/firefox-listing-draft.md",
   "docs/highlight-manual-test.md",
   "docs/print-studio-manual-test.md",
+  "docs/guided-reading-manual-test.md",
   "docs/adding-a-platform.md",
   "docs/optimize-control-manual-test.md",
   "docs/repository-audit-0.7.0.md",

@@ -33,7 +33,8 @@ ReadBooster turns supported AI conversations into calm, structured reading docum
 - A grouped conversation outline supports section and heading navigation.
 - Table controls provide Fit, Wide, Fullscreen, Compact text, and Reset modes.
 - Reading styles include Default, Serif, Dyslexia-friendly, and optional Fast Reading.
-- ChatGPT, Google Gemini, Mistral, and Claude are supported in the 0.7.3 candidate. Claude has been tested successfully in a real authenticated conversation; the normal Firefox-specific release regression remains part of submission testing.
+- Guided Reading provides local scroll and keyboard-based passage focus in Document and Focus views without hiding surrounding content.
+- ChatGPT, Google Gemini, Mistral, and Claude are supported in the 0.7.4 candidate. Claude has been tested successfully in a real authenticated conversation; the normal Firefox-specific release regression remains part of submission testing.
 - Reader preferences, user-created section titles, private section Stickers, and text highlights are stored locally.
 - Stickers support short notes, pinning, collapsing, and section-relative placement without appearing in Copy or Print output.
 - Highlights store the selected passage and short anchoring context locally so they can be restored; highlight data is not transmitted to ReadBooster.

@@ -26,6 +26,7 @@ describe("reader preferences", () => {
       readingFont: "default",
       codeAppearance: "plain",
       documentOpenAt: "beginning",
+      guidedReading: "off",
     });
   });
 
@@ -59,6 +60,7 @@ describe("reader preferences", () => {
       readingFont: "default",
       codeAppearance: "plain",
       documentOpenAt: "beginning",
+      guidedReading: "off",
     });
   });
 
@@ -80,6 +82,7 @@ describe("reader preferences", () => {
       readingFont: "dyslexia-friendly",
       codeAppearance: "plain",
       documentOpenAt: "beginning",
+      guidedReading: "off",
     });
   });
 
@@ -101,6 +104,7 @@ describe("reader preferences", () => {
       readingFont: "fast-reading",
       codeAppearance: "color",
       documentOpenAt: "latest",
+      guidedReading: "off",
     });
   });
 
@@ -115,5 +119,26 @@ describe("reader preferences", () => {
       ...DEFAULT_READER_PREFERENCES,
       readingFont: "dyslexia-friendly",
     });
+  });
+
+  it.each(["off", "soft", "focused"] as const)(
+    "accepts the %s Guided Reading preference",
+    (guidedReading) => {
+      expect(
+        normalizeReaderPreferences({
+          ...DEFAULT_READER_PREFERENCES,
+          guidedReading,
+        }).guidedReading,
+      ).toBe(guidedReading);
+    },
+  );
+
+  it("falls back safely for a malformed Guided Reading preference", () => {
+    expect(
+      normalizeReaderPreferences({
+        ...DEFAULT_READER_PREFERENCES,
+        guidedReading: "spotlight",
+      }).guidedReading,
+    ).toBe("off");
   });
 });

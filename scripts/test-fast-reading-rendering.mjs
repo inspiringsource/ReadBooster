@@ -79,6 +79,7 @@ try {
           fastReading: resolve(root, "tests/browser/fast-reading-harness.html"),
           documentBlock: resolve(root, "tests/browser/document-block-harness.html"),
           highlight: resolve(root, "tests/browser/highlight-harness.html"),
+          guidedReading: resolve(root, "tests/browser/guided-reading-harness.html"),
           optimizeControl: resolve(root, "tests/browser/optimize-control-harness.html"),
           stickerLayout: resolve(root, "tests/browser/sticker-layout-harness.html"),
           stickerNavigation: resolve(root, "tests/browser/sticker-navigation-harness.html"),
@@ -1033,6 +1034,55 @@ try {
   );
   await highlightPage.close();
 
+  const guidedPage = await browser.newPage({
+    viewport: { width: 1200, height: 900 },
+    deviceScaleFactor: 1,
+    reducedMotion: "reduce",
+  });
+  const guidedErrors = [];
+  guidedPage.on("pageerror", (error) => guidedErrors.push(error.message));
+  await guidedPage.goto(`http://127.0.0.1:${address.port}/guided-reading-harness.html`, {
+    waitUntil: "networkidle",
+  });
+  await guidedPage.waitForFunction(() => Boolean(window.__GUIDED_READING_RESULTS__));
+  const guidedReading = await guidedPage.evaluate(() => window.__GUIDED_READING_RESULTS__);
+  assert(guidedErrors.length === 0, "Guided Reading produced a browser console error");
+  assert(
+    guidedReading.blockCount === 6 &&
+      guidedReading.activeCount === 1 &&
+      guidedReading.idsUnique === true,
+    "Guided Reading did not create one stable active block across semantic content",
+  );
+  assert(
+    JSON.stringify(guidedReading.blockKinds) ===
+      JSON.stringify(["heading", "paragraph", "list", "table", "code", "image"]),
+    "Guided Reading browser order does not match semantic document order",
+  );
+  assert(
+    Math.abs(guidedReading.widthBefore - guidedReading.focused.contentWidth) < 0.5,
+    "Guided Reading changed the primary reading width",
+  );
+  assert(
+    guidedReading.focused.activeOpacity === "1" &&
+      Number(guidedReading.focused.distantOpacity) >= 0.75 &&
+      Number(guidedReading.softDark.distantOpacity) >= 0.87,
+    "Guided Reading hid or excessively dimmed surrounding content",
+  );
+  assert(
+    guidedReading.focused.fullscreenTableOpacity === "1",
+    "Guided Reading dimmed a fullscreen table dialog",
+  );
+  assert(
+    guidedReading.focused.activeBackground !== "rgba(0, 0, 0, 0)" &&
+      guidedReading.softDark.activeBackground !== "rgba(0, 0, 0, 0)",
+    "Guided Reading active styling is missing in light or dark appearance",
+  );
+  assert(
+    guidedReading.transitionDuration.split(",").every((duration) => duration.trim() === "0s"),
+    "Guided Reading did not respect reduced-motion preferences",
+  );
+  await guidedPage.close();
+
   console.log(
     JSON.stringify(
       {
@@ -1051,6 +1101,7 @@ try {
         },
         documentBlock,
         highlight,
+        guidedReading,
       },
       null,
       2,

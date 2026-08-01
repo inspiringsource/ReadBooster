@@ -13,7 +13,7 @@ ReadBooster was started by Avi and is maintained as an open-source AviCloud proj
 
 _Firefox: version 0.7.2 available. Chrome: the latest update is awaiting Chrome Web Store review._
 
-Version 0.7.3 is the current unreleased candidate. It adds Print Studio for preparing a separate, configurable print document while preserving the responsive Optimize Reading control, highlights, Stickers, Claude support, and existing reading features. Build scripts do not submit to stores or publish releases.
+Version 0.7.4 is the current unreleased candidate. It introduces Guided Reading as a calm passage-by-passage focus layer while preserving Print Studio, Highlights, Stickers, Claude support, and the responsive Optimize Reading control. Build scripts do not submit to stores or publish releases.
 
 ## Supported platforms
 
@@ -26,6 +26,8 @@ Chrome and Firefox production builds are generated from the same TypeScript and 
 
 ## Features
 
+Guided Reading emphasizes one meaningful passage at a time while keeping the surrounding document visible. It works in both Document and Focus views and supports scroll, keyboard, pointer, and compact passage controls.
+
 - Continuous Document view for complete conversations
 - Focus view for individual assistant responses
 - Conversation outline and heading navigation
@@ -37,6 +39,7 @@ Chrome and Firefox production builds are generated from the same TypeScript and 
 - Static document blocks for provider-generated documents and artifacts
 - Local Stickers attached to conversation sections
 - Persistent local text highlights with four accessible styles, navigation, and an overview
+- Guided Reading, with scroll, keyboard, and passage controls in both Document and Focus views
 - Print Studio with section selection, prompts, annotations, layout presets, page breaks, and browser PDF output
 - Conversation refresh, Copy, Print, and PDF output
 - Local-first processing without a ReadBooster backend, analytics, or advertising
@@ -51,7 +54,7 @@ The only browser permission is `storage`. Host access and content scripts are re
 
 ### Official stores
 
-ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.3 artifacts as signed or store-approved releases.
+ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.4 artifacts as signed or store-approved releases.
 
 - [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd)
 - [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/readbooster/)
@@ -100,9 +103,9 @@ Build outputs are isolated:
 
 - `dist-chrome/` — unpacked Chrome extension
 - `dist-firefox/` — unpacked Firefox extension
-- `release/readbooster-chrome-0.7.3.zip` — complete Chrome upload archive
-- `release/readbooster-firefox-0.7.3.zip` — unsigned Firefox submission archive
-- `release/readbooster-source-0.7.3.zip` — reviewer source and build inputs
+- `release/readbooster-chrome-0.7.4.zip` — complete Chrome upload archive
+- `release/readbooster-firefox-0.7.4.zip` — unsigned Firefox submission archive
+- `release/readbooster-source-0.7.4.zip` — reviewer source and build inputs
 
 See `docs/release-builds.md` for the reproducible release workflow.
 
@@ -155,6 +158,6 @@ Third-party licences remain separate in `THIRD_PARTY_NOTICES.md`. Created and ma
 
 ## Release status and limitations
 
-Version 0.7.3 is marked Unreleased in `CHANGELOG.md`. Print Studio configuration, preview rendering, content selection, and browser-print handoff have automated coverage, but the complete authenticated Chrome and Firefox print/PDF matrix remains a separate release acceptance step. Highlighting is intentionally limited to a single semantic text block at a time; code, mathematics, generated charts, and other complex interactive content are excluded when reliable restoration would be unsafe.
+Version 0.7.4 is marked Unreleased in `CHANGELOG.md`. Guided Reading block discovery, preference persistence, navigation, focus-zone behavior, theme styling, and Print Studio isolation have automated coverage, but the complete authenticated Chrome and Firefox provider matrix remains a separate release acceptance step. Highlighting is intentionally limited to a single semantic text block at a time; code, mathematics, generated charts, and other complex interactive content are excluded when reliable restoration would be unsafe.
 
 ReadBooster does not support Perplexity, DeepSeek, or Claude private APIs. It does not provide accounts, analytics, cloud synchronization, remote processing, or automated store publishing.

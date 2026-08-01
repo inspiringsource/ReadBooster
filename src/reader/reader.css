@@ -45,6 +45,7 @@
   --rb-highlight-green: #65c98555;
   --rb-highlight-blue: #68a8f255;
   --rb-highlight-pink: #e985b855;
+  --rb-guided-active: color-mix(in srgb, var(--rb-accent) 7%, var(--rb-surface));
   --rb-reader-default-font:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --rb-reader-serif-font: ui-serif, Georgia, Cambria, "Times New Roman", serif;
@@ -90,6 +91,7 @@
   --rb-highlight-green: #57b8794d;
   --rb-highlight-blue: #5d99df55;
   --rb-highlight-pink: #d574a855;
+  --rb-guided-active: color-mix(in srgb, var(--rb-accent) 11%, var(--rb-surface));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -113,6 +115,7 @@
     --rb-highlight-green: #57b8794d;
     --rb-highlight-blue: #5d99df55;
     --rb-highlight-pink: #d574a855;
+    --rb-guided-active: color-mix(in srgb, var(--rb-accent) 11%, var(--rb-surface));
   }
 }
 
@@ -222,6 +225,20 @@
   gap: 7px;
 }
 
+.rb-guided-navigation {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.rb-guided-position {
+  color: var(--rb-muted);
+  font-size: 12px;
+  font-weight: 650;
+  min-width: 104px;
+  text-align: center;
+}
+
 .rb-response-position {
   color: var(--rb-muted);
   font-size: 12px;
@@ -234,6 +251,8 @@
   align-items: center;
   border-top: 1px solid color-mix(in srgb, var(--rb-border) 70%, transparent);
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
   justify-content: center;
   margin-top: 10px;
   padding-top: 10px;
@@ -550,6 +569,7 @@
 
 .rb-header-controls button,
 .rb-response-navigation button,
+.rb-guided-navigation button,
 .rb-header-panel button,
 .rb-header-panel select {
   appearance: none;
@@ -579,6 +599,7 @@
 
 .rb-header-controls button:hover,
 .rb-response-navigation button:hover,
+.rb-guided-navigation button:hover,
 .rb-header-panel button:hover,
 .rb-header-panel select:hover {
   border-color: var(--rb-accent);
@@ -586,6 +607,7 @@
 
 .rb-header-controls button:disabled,
 .rb-response-navigation button:disabled,
+.rb-guided-navigation button:disabled,
 .rb-header-panel button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
@@ -593,6 +615,7 @@
 
 .rb-header-controls :focus-visible,
 .rb-response-navigation :focus-visible,
+.rb-guided-navigation :focus-visible,
 .rb-header-panel :focus-visible,
 .rb-mode-switch button:focus-visible,
 .rb-outline-group-link:focus-visible,
@@ -1711,6 +1734,56 @@
   margin-bottom: 0;
 }
 
+/* Guided Reading adds metadata and paint-only emphasis to existing semantic
+   elements. It never wraps, hides, reorders, or rewrites response content. */
+.rb-reader:not([data-guided-reading="off"]) .rb-reading-block {
+  border-radius: 6px;
+  opacity: 1;
+  position: relative;
+  scroll-margin-block: 28vh;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.rb-reader:not([data-guided-reading="off"]) .rb-reading-block[data-rb-guided-state="active"] {
+  background: var(--rb-guided-active);
+  box-shadow: 0 0 0 9px var(--rb-guided-active);
+  opacity: 1;
+  z-index: 1;
+}
+
+.rb-reader[data-guided-reading="soft"] .rb-reading-block[data-rb-guided-state="nearby"] {
+  opacity: 0.95;
+}
+
+.rb-reader[data-guided-reading="soft"] .rb-reading-block[data-rb-guided-state="distant"] {
+  opacity: 0.88;
+}
+
+.rb-reader[data-guided-reading="focused"] .rb-reading-block[data-rb-guided-state="nearby"] {
+  opacity: 0.88;
+}
+
+.rb-reader[data-guided-reading="focused"] .rb-reading-block[data-rb-guided-state="distant"] {
+  opacity: 0.76;
+}
+
+.rb-reader:not([data-guided-reading="off"]) .rb-reading-block:hover {
+  opacity: 1;
+}
+
+.rb-reader:not([data-guided-reading="off"])
+  .rb-table-block[data-rb-table-fullscreen="true"].rb-reading-block {
+  opacity: 1;
+}
+
+.rb-reader:not([data-guided-reading="off"]) .rb-reading-block:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 10px;
+}
+
 .rb-content p,
 .rb-content ul,
 .rb-content ol,
@@ -2672,12 +2745,29 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rb-reading-block {
+    transition: none !important;
+  }
+
   [data-rb-sticker-highlighted="true"] {
     animation: none;
   }
 
   .rb-highlight--destination {
     animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .rb-reader:not([data-guided-reading="off"]) .rb-reading-block[data-rb-guided-state="active"] {
+    background: Canvas;
+    box-shadow: none;
+    outline: 2px solid Highlight;
+    outline-offset: 6px;
+  }
+
+  .rb-reader:not([data-guided-reading="off"]) .rb-reading-block {
+    opacity: 1;
   }
 }
 
@@ -2766,6 +2856,16 @@
   .rb-response-navigation {
     display: grid;
     grid-template-columns: minmax(5.5rem, 1fr) auto minmax(5.5rem, 1fr);
+    width: 100%;
+  }
+
+  .rb-guided-navigation {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 1fr) auto minmax(6.5rem, 1fr);
+    width: 100%;
+  }
+
+  .rb-guided-navigation button {
     width: 100%;
   }
 

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-ReadBooster 0.7.3 is the current unreleased development candidate. Security fixes are applied to the
+ReadBooster 0.7.4 is the current unreleased development candidate. Security fixes are applied to the
 current development line on a best-effort basis. This table will be updated when a broader public
 support policy is established.
 

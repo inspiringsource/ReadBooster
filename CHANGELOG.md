@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.4] - Unreleased
+
+### Added
+
+- Added Guided Reading as a shared reading-assistance layer for Document and Focus views.
+- Added scroll-based active-passage detection with stable focus-zone hysteresis.
+- Added Previous passage, Next passage, Arrow-key, and J/K navigation.
+- Added locally persisted Soft and Focused Guided Reading styles.
+
+### Improved
+
+- Added semantic reading-block discovery for headings, paragraphs, lists, blockquotes, tables, code, images, mathematics, notices, and document blocks.
+- Added theme-aware focus styling, reduced-motion handling, high-contrast fallbacks, and constrained-layout controls.
+- Preserved Highlights, Stickers, table and code controls, copying, quick printing, and Print Studio isolation.
+
+### Preserved
+
+- Existing Document and Focus views, provider adapters, local-only processing, browser permissions, and supported platforms.
+
 ## [0.7.3] - Unreleased
 
 ### Added
