@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.5] - Unreleased
+
+### Added
+
+- Added experimental reading support for individual repository and organisation GitHub Discussions.
+- Added structured DOM extraction for opening posts, comments, replies, authors, timestamps, accepted answers, code, tables, quotations, links, and images.
+- Added GitHub Discussion compatibility with Document, Focus, Guided Reading, Highlights, Stickers, custom titles, copying, and Print Studio.
+
+### Improved
+
+- Added source-aware document metadata and stable identities for structured non-AI content.
+- Added strict GitHub Discussion route gating, title-anchored responsive control placement, duplicate prevention, and SPA cleanup.
+- Reused the shared technical-content rendering and print paths instead of creating GitHub-specific Reader systems.
+
+### Fixed
+
+- Fixed 0.7.5 route detection and extraction coverage for organisation Discussions at `/orgs/<organization>/discussions/<number>`.
+- Isolated repository and organisation Discussion annotation identities with explicit `repo:` and `org:` namespaces.
+
+### Privacy
+
+- GitHub Discussion content is processed locally from the rendered page.
+- No GitHub API, authentication token, analytics, tracking, or remote processing is used.
+
 ## [0.7.4] - Unreleased
 
 ### Added

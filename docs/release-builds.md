@@ -1,6 +1,6 @@
 # ReadBooster browser release builds
 
-ReadBooster 0.7.4 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
+ReadBooster 0.7.5 uses one TypeScript/React source tree and one generated manifest model. The build target adds only the browser-specific manifest fields and writes to an isolated output directory.
 
 ## Requirements
 
@@ -32,7 +32,7 @@ dist-firefox/
 
 The legacy `npm run build` command remains a Chrome-compatible unpacked build in `dist/`.
 
-Run the authenticated annotation and Guided Reading acceptance steps in `docs/highlight-manual-test.md` and `docs/guided-reading-manual-test.md` before any 0.7.4 store submission.
+Run the authenticated annotation, Guided Reading, and GitHub Discussions acceptance steps before any 0.7.5 store submission.
 
 ## Release archives
 
@@ -45,9 +45,9 @@ npm run release
 It creates:
 
 ```text
-release/readbooster-chrome-0.7.4.zip
-release/readbooster-firefox-0.7.4.zip
-release/readbooster-source-0.7.4.zip
+release/readbooster-chrome-0.7.5.zip
+release/readbooster-firefox-0.7.5.zip
+release/readbooster-source-0.7.5.zip
 release/SHA256SUMS.txt
 ```
 
@@ -55,7 +55,7 @@ The extension ZIPs contain `manifest.json` at their root. The source ZIP include
 
 ## Browser manifest differences
 
-Both targets use Manifest V3, the `storage` permission, the same ChatGPT, Gemini, `chat.mistral.ai`, and Claude host patterns, popup, content script, icons, and narrowly scoped web-accessible resources. The Firefox build alone adds:
+Both targets use Manifest V3, the `storage` permission, the same ChatGPT, Gemini, `chat.mistral.ai`, Claude, and `github.com` host patterns, popup, content script, icons, and narrowly scoped web-accessible resources. Strict runtime routing limits GitHub activation to individual repository and organisation Discussion pages. The Firefox build alone adds:
 
 ```json
 "browser_specific_settings": {

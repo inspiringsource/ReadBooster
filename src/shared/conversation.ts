@@ -144,6 +144,13 @@ function preferCompletedBlock(
   const incomingMedia = mediaCount(incoming);
   const incomingHasContent = hasMeaningfulContent(incoming);
   if (
+    incoming.provenance.platform === "github-discussion" &&
+    incomingHasContent &&
+    incoming.provenance.sourceMessageId === existing.provenance.sourceMessageId
+  ) {
+    return { ...incoming, id: existing.id };
+  }
+  if (
     !incomingHasContent ||
     incomingText.length < existingText.length ||
     incomingMedia < existingMedia
@@ -290,7 +297,10 @@ export function mergeConversationDocuments(
     mergedBlocks.length !== existingOrderedBlocks.length ||
     mergedBlocks.some((block, index) => block !== existingOrderedBlocks[index]);
   const titleChanged = !existing.title && Boolean(incoming.title);
-  if (!blocksChanged && !titleChanged) {
+  const sourceContextChanged =
+    JSON.stringify(existing.sourceContext ?? null) !==
+    JSON.stringify(incoming.sourceContext ?? null);
+  if (!blocksChanged && !titleChanged && !sourceContextChanged) {
     return existing;
   }
 
@@ -298,6 +308,7 @@ export function mergeConversationDocuments(
     ...existing,
     title: existing.title ?? incoming.title,
     extractedAt: incoming.extractedAt,
+    sourceContext: incoming.sourceContext ?? existing.sourceContext,
     turns: pairContentBlocksIntoTurns(mergedBlocks),
   };
 }

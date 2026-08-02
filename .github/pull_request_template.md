@@ -13,7 +13,7 @@ Describe the focused behavior change and why it belongs in ReadBooster.
 
 ## Safety and maintenance
 
-- [ ] No private conversation, credential, or personal data is included
+- [ ] No private conversation or discussion, credential, or personal data is included
 - [ ] Browser permissions remain minimal and documented
 - [ ] No remote executable code, unsafe HTML insertion, or conversation logging was added
 - [ ] Accessibility and keyboard behavior were checked

@@ -46,6 +46,7 @@ const EXCLUDED_ANCESTOR_SELECTOR = [
   ".rb-code-toolbar",
   ".rb-table-toolbar",
   ".rb-document-block__header",
+  "[data-readbooster-source-meta]",
   "[hidden]",
   '[aria-hidden="true"]',
 ].join(", ");

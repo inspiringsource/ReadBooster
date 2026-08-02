@@ -118,6 +118,7 @@ const SOURCE_LABELS: Record<ConversationDocument["source"], string> = {
   claude: "Claude",
   gemini: "Gemini",
   mistral: "Mistral",
+  "github-discussion": "GitHub Discussions",
 };
 
 async function copyText(text: string): Promise<void> {
@@ -243,6 +244,12 @@ export function ReaderView({
   const response = responses[currentResponseIndex];
   const focusedSection = sections[currentResponseIndex];
   const documentTitle = accumulatedConversation.title?.trim() || "Conversation document.";
+  const responseUnit =
+    accumulatedConversation.source === "github-discussion"
+      ? "discussion entry"
+      : "assistant response";
+  const responseUnitTitle =
+    accumulatedConversation.source === "github-discussion" ? "Entry" : "Response";
   const guidedReadingRevision = useMemo(
     () =>
       [
@@ -1660,23 +1667,26 @@ export function ReaderView({
         {mode === "focus" || guidedReading.enabled ? (
           <div className="rb-toolbar-secondary">
             {mode === "focus" ? (
-              <div className="rb-response-navigation" aria-label="Assistant response navigation">
+              <div
+                className="rb-response-navigation"
+                aria-label={`${responseUnitTitle} navigation`}
+              >
                 <button
                   type="button"
                   onClick={showPreviousResponse}
                   disabled={currentResponseIndex === 0}
-                  aria-label="Show previous assistant response"
+                  aria-label={`Show previous ${responseUnit}`}
                 >
                   Previous
                 </button>
                 <output className="rb-response-position" aria-live="polite">
-                  Response {currentResponseIndex + 1} of {responses.length}
+                  {responseUnitTitle} {currentResponseIndex + 1} of {responses.length}
                 </output>
                 <button
                   type="button"
                   onClick={showNextResponse}
                   disabled={currentResponseIndex === responses.length - 1}
-                  aria-label="Show next assistant response"
+                  aria-label={`Show next ${responseUnit}`}
                 >
                   Next
                 </button>
@@ -1994,8 +2004,8 @@ export function ReaderView({
                     <p>Version {READER_VERSION} Beta</p>
                     <p>ReadBooster processes content locally in your browser.</p>
                     <p>
-                      ReadBooster currently supports ChatGPT, Google Gemini, Mistral, and Claude.
-                      Gemini, Mistral, and Claude live full-checklist verification remain pending.
+                      ReadBooster supports ChatGPT, Google Gemini, Mistral, Claude, and experimental
+                      GitHub Discussions reading. Live verification status is documented separately.
                     </p>
                   </section>
                 ) : null}
@@ -2004,6 +2014,26 @@ export function ReaderView({
           </div>
         ) : null}
       </header>
+
+      {accumulatedConversation.sourceContext ? (
+        <section
+          className="rb-source-context rb-print-hidden"
+          aria-label="Source context"
+          inert={feedbackOpen || printStudioOpen ? true : undefined}
+          aria-hidden={feedbackOpen || printStudioOpen ? "true" : undefined}
+        >
+          <div>
+            <strong>{accumulatedConversation.sourceContext.label}</strong>
+            <span>{accumulatedConversation.sourceContext.details.join(" · ")}</span>
+          </div>
+          <a href={accumulatedConversation.sourceUrl} target="_blank" rel="noopener noreferrer">
+            {accumulatedConversation.sourceContext.actionLabel}
+          </a>
+          {accumulatedConversation.sourceContext.notice ? (
+            <p>{accumulatedConversation.sourceContext.notice}</p>
+          ) : null}
+        </section>
+      ) : null}
 
       <header
         className="rb-print-metadata"
@@ -2014,9 +2044,15 @@ export function ReaderView({
         <p>
           {SOURCE_LABELS[accumulatedConversation.source]} ·{" "}
           {mode === "document"
-            ? `${sections.length} assistant responses`
-            : `Response ${currentResponseIndex + 1} of ${responses.length}`}
+            ? `${sections.length} ${accumulatedConversation.source === "github-discussion" ? "discussion entries" : "assistant responses"}`
+            : `${responseUnitTitle} ${currentResponseIndex + 1} of ${responses.length}`}
         </p>
+        {accumulatedConversation.sourceContext ? (
+          <p>
+            {accumulatedConversation.sourceContext.details.join(" · ")} ·{" "}
+            {accumulatedConversation.sourceUrl}
+          </p>
+        ) : null}
       </header>
 
       <StickerMenuPortalContext.Provider value={stickerMenuPortal}>

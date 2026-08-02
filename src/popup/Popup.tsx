@@ -54,8 +54,8 @@ export function Popup() {
             setState("supported");
             setMessage(
               response.responseAvailable
-                ? "A response is ready to optimize."
-                : "Supported page. No assistant response found yet.",
+                ? "Readable content is ready to optimize."
+                : "Supported page. No readable content found yet.",
             );
           }
         } else {
@@ -79,7 +79,7 @@ export function Popup() {
       if (response.ok) {
         window.close();
       } else if (response.reason === "no-response") {
-        setMessage("No assistant response was found on this page.");
+        setMessage("No readable content was found on this page.");
       } else {
         setMessage("ReadBooster could not open the reader on this page.");
       }
@@ -107,7 +107,7 @@ export function Popup() {
         onClick={() => void optimize()}
         disabled={state !== "supported" || optimizing}
       >
-        {optimizing ? "Opening…" : "Optimize latest response"}
+        {optimizing ? "Opening…" : "Optimize Reading"}
       </button>
       <p className="privacy">ReadBooster processes content locally in your browser.</p>
     </main>

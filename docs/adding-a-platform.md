@@ -1,19 +1,21 @@
 # Adding a platform adapter
 
-ReadBooster keeps provider DOM knowledge at the edge of the extension:
+ReadBooster keeps source-specific DOM knowledge at the edge of the extension:
 
 ```text
-location detection -> platform adapter -> normalized conversation -> shared reader
+location detection -> source adapter -> normalized document -> shared reader
 ```
 
-The shared reader must not know which CSS selectors ChatGPT, Gemini, Mistral, or Claude use.
+The shared reader must not know which CSS selectors ChatGPT, Gemini, Mistral, Claude, or GitHub Discussions use.
 
 ## Adapter location and contract
 
 Adapters live in `src/content/adapters/` and implement `ConversationAdapter` from
 `ConversationAdapter.ts`. The contract supplies a stable provider ID and display name, declares
 capabilities, detects eligible pages, extracts a normalized `ConversationDocument`, observes
-bounded page changes, and optionally scans virtualized conversations.
+bounded page changes, and optionally scans virtualized conversations. Adapters may expose a stable
+page identity so SPA navigation can close stale Reader state, and a layout anchor for the shared
+responsive Optimize Reading control.
 
 Register a new platform once in `src/shared/platforms.ts`. That registry is the shared source for
 hostname detection, popup eligibility, and manifest host matches. Keep path eligibility in the
@@ -26,9 +28,9 @@ Normalized messages are `DocumentContentBlock` values with:
 - a stable message ID when the source exposes one;
 - source URL, provider, conversation ID, extraction time, and a content fingerprint.
 
-The renderer owns Document and Focus modes, outlines, custom titles, document blocks, code, tables,
-reading settings, copying, printing, Stickers, and accessibility. Do not fork those systems inside
-an adapter.
+The renderer owns Document and Focus modes, Guided Reading, outlines, custom titles, document
+blocks, code, tables, reading settings, copying, Print Studio, Highlights, Stickers, and
+accessibility. Do not fork those systems inside an adapter.
 
 ## Selector policy
 
@@ -118,5 +120,6 @@ Run `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build:chrome`,
 - [ ] Manual verification steps and known limitations are included.
 - [ ] Privacy, README, changelog, and store-review documentation are accurate.
 
-This process also applies to possible future adapters such as Perplexity or DeepSeek. Mentioning a
-platform here is not a statement of current support.
+This process applies to carefully bounded structured sources, not generic webpage extraction. A
+future source may be an AI conversation or another structured discussion type, but mentioning a
+possible adapter in planning documentation is not a statement of current support.

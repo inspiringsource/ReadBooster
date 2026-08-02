@@ -1,5 +1,5 @@
 export type OptimizeControlMode = "full" | "compact";
-export type OptimizeControlPlacement = "side" | "above" | "viewport";
+export type OptimizeControlPlacement = "side" | "above" | "viewport" | "anchor";
 
 export interface LayoutRect {
   top: number;

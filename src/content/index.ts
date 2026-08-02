@@ -27,6 +27,7 @@ const adapter = getActiveAdapter();
 let buttonCleanup: (() => void) | null = null;
 let disposed = false;
 let readerModulePromise: Promise<typeof import("../reader/mountReader")> | null = null;
+let currentPageIdentity = adapter?.getPageIdentity?.();
 
 function loadReaderModule(): Promise<typeof import("../reader/mountReader")> {
   readerModulePromise ??= import("../reader/mountReader");
@@ -49,6 +50,15 @@ async function mountConversationDocument(
 const optimizationService = createOptimizationService(adapter, mountConversationDocument);
 
 function syncButton(): void {
+  const nextPageIdentity = adapter?.getPageIdentity?.();
+  if (nextPageIdentity !== currentPageIdentity) {
+    currentPageIdentity = nextPageIdentity;
+    if (readerModulePromise) {
+      void readerModulePromise
+        .then((readerModule) => readerModule.unmountReader())
+        .catch(() => undefined);
+    }
+  }
   const shouldShow = shouldShowOptimizeControl(adapter, disposed);
 
   if (!shouldShow) {
@@ -60,7 +70,9 @@ function syncButton(): void {
     requestOptimizeButtonLayout(document);
     return;
   }
-  buttonCleanup = injectOptimizeButton(document, optimizationService.optimizeLatest);
+  buttonCleanup = injectOptimizeButton(document, optimizationService.optimizeLatest, {
+    getAnchor: adapter?.getOptimizeControlAnchor?.bind(adapter),
+  });
 }
 
 const messageListener = createContentMessageListener(optimizationService.handleMessage, () =>

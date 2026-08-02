@@ -5,13 +5,15 @@ import { ClaudeAdapter } from "../src/content/adapters/ClaudeAdapter";
 import { GeminiAdapter } from "../src/content/adapters/GeminiAdapter";
 import { getActiveAdapter } from "../src/content/adapters/getActiveAdapter";
 import { MistralAdapter } from "../src/content/adapters/MistralAdapter";
+import { GitHubDiscussionsAdapter } from "../src/content/adapters/GitHubDiscussionsAdapter";
 
 describe("getActiveAdapter", () => {
-  it("selects the four production-supported hostname adapters", () => {
+  it("selects the four AI adapters and the GitHub Discussions adapter", () => {
     expect(getActiveAdapter("chatgpt.com", document)).toBeInstanceOf(ChatGPTAdapter);
     expect(getActiveAdapter("gemini.google.com", document)).toBeInstanceOf(GeminiAdapter);
     expect(getActiveAdapter("chat.mistral.ai", document)).toBeInstanceOf(MistralAdapter);
     expect(getActiveAdapter("claude.ai", document)).toBeInstanceOf(ClaudeAdapter);
+    expect(getActiveAdapter("github.com", document)).toBeInstanceOf(GitHubDiscussionsAdapter);
   });
 
   it("returns null for unsupported and lookalike hostnames", () => {

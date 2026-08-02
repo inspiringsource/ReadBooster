@@ -206,6 +206,16 @@ describe("sticker domain and local repository", () => {
       ["gemini", "https://gemini.google.com/app/gemini-route", "gemini:gemini-route"],
       ["mistral", "https://chat.mistral.ai/work/mistral-route", "mistral:mistral-route"],
       ["claude", "https://claude.ai/chat/claude-route", "claude:claude-route"],
+      [
+        "github-discussion",
+        "https://github.com/example/reader/discussions/42",
+        "github-discussion:repo:example/reader#42",
+      ],
+      [
+        "github-discussion",
+        "https://github.com/orgs/community/discussions/203678",
+        "github-discussion:org:community#203678",
+      ],
     ] as const;
 
     for (const [platform, sourceUrl, conversationKey] of routes) {

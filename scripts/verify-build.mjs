@@ -12,8 +12,10 @@ const expectedHosts = [
   "https://gemini.google.com/*",
   "https://chat.mistral.ai/*",
   "https://claude.ai/*",
+  "https://github.com/*",
 ];
-const expectedDescription = "Turn AI conversations into readable, navigable documents.";
+const expectedDescription =
+  "Turn AI conversations and GitHub Discussions into readable, navigable documents.";
 const expectedHomepage = "https://inspiringsource.github.io/ReadBooster/";
 const expectedFirefoxId = "contact@avicloud.ch";
 const expectedFirefoxMinimum = "142.0";
@@ -40,7 +42,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const noticePath = join(dist, "NOTICE.md");
 
   assert(manifest.version === packageJson.version, "manifest version does not match package.json");
-  assert(manifest.version === "0.7.4", "release version is not 0.7.4");
+  assert(manifest.version === "0.7.5", "release version is not 0.7.5");
   assert(manifest.name === "ReadBooster", "extension name changed");
   assert(manifest.description === expectedDescription, "store description changed");
   assert(manifest.homepage_url === expectedHomepage, "homepage URL changed");
@@ -113,6 +115,7 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
   const manifestText = JSON.stringify(manifest);
   assert(!/<all_urls>/i.test(manifestText), "broad host access was shipped");
   assert(!manifestText.includes("https://mistral.ai/*"), "broad Mistral host access was shipped");
+  assert(!manifestText.includes("https://api.github.com/*"), "GitHub API access was shipped");
   assert(
     !/(?:activeTab|tabs|scripting|webRequest)/.test(JSON.stringify(manifest.permissions)),
     "an unnecessary Chrome permission was shipped",
@@ -246,6 +249,15 @@ export function verifyBuild({ target = "chrome", dist = join(root, "dist") } = {
       shippedText.includes("artifact-content") &&
       shippedText.includes("claude.ai"),
     "built Claude adapter support is stale or missing",
+  );
+  assert(
+    shippedText.includes("GitHub Discussions") &&
+      shippedText.includes("discussion-comment") &&
+      shippedText.includes("organization-discussion") &&
+      shippedText.includes("org:") &&
+      shippedText.includes("Open original discussion") &&
+      shippedText.includes("github.com"),
+    "built GitHub Discussions adapter support is stale or missing",
   );
   assert(
     shippedText.includes("data-rb-control-mode") &&

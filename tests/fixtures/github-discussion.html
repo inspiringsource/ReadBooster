@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <body>
+    <!-- Synthetic, sanitized fixture: structure only; no private or copied discussion content. -->
+    <main data-testid="discussion-page" data-discussion-number="42">
+      <header data-testid="discussion-header">
+        <h1 data-testid="discussion-title">Designing a bounded discussion reader</h1>
+        <a data-testid="discussion-category" href="/example/reader/discussions/categories/ideas"
+          >Ideas</a
+        >
+        <span data-testid="discussion-status">Answered</span>
+      </header>
+
+      <article data-testid="discussion-post">
+        <a data-testid="discussion-author" data-author-login="maintainer" href="/maintainer"
+          >maintainer</a
+        >
+        <span data-testid="author-role">Maintainer</span>
+        <relative-time datetime="2026-07-01T09:00:00Z">Jul 1</relative-time>
+        <div data-testid="discussion-body" class="markdown-body">
+          <h2>Proposal</h2>
+          <p>
+            Keep the reader scoped to individual discussions with <strong>local processing</strong>.
+          </p>
+          <ul>
+            <li><input type="checkbox" checked /> Preserve task lists</li>
+            <li>Keep links to <a href="https://example.com/reference">references</a>.</li>
+          </ul>
+          <blockquote><p>Source context remains important.</p></blockquote>
+          <pre><code class="language-typescript">const enabled = true;</code></pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Mode</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Document</td>
+                <td>Calm</td>
+              </tr>
+            </tbody>
+          </table>
+          <details>
+            <summary>Implementation note</summary>
+            <p>Collapsed semantic content is retained.</p>
+          </details>
+          <figure>
+            <img src="https://github.com/example/image.png" alt="Synthetic architecture diagram" />
+            <figcaption>Architecture</figcaption>
+          </figure>
+          <button>React</button>
+        </div>
+      </article>
+
+      <article data-testid="discussion-comment" data-discussion-comment-id="1001">
+        <a class="author" href="/reviewer">reviewer</a>
+        <relative-time datetime="2026-07-02T10:30:00Z">Jul 2</relative-time>
+        <span data-testid="edited-marker">edited</span>
+        <a href="https://github.com/example/reader/discussions/42#discussioncomment-1001"
+          >Permalink</a
+        >
+        <div data-testid="comment-body" class="markdown-body">
+          <p>Use semantic attributes before class fallbacks.</p>
+        </div>
+        <section data-testid="discussion-replies">
+          <article
+            data-testid="discussion-comment"
+            data-discussion-comment-id="1002"
+            data-reply-to-author="reviewer"
+          >
+            <a class="author" href="/helper">helper</a>
+            <relative-time datetime="2026-07-02T11:00:00Z">Jul 2</relative-time>
+            <a href="https://github.com/example/reader/discussions/42#discussioncomment-1002"
+              >Permalink</a
+            >
+            <div data-testid="comment-body" class="markdown-body">
+              <p>A nested reply should follow its parent.</p>
+            </div>
+          </article>
+        </section>
+      </article>
+
+      <article
+        data-testid="discussion-comment"
+        data-discussion-comment-id="1003"
+        data-answer-accepted="true"
+      >
+        <a class="author" href="/answerer">answerer</a>
+        <relative-time datetime="2026-07-03T12:00:00Z">Jul 3</relative-time>
+        <a href="https://github.com/example/reader/discussions/42#discussioncomment-1003"
+          >Permalink</a
+        >
+        <div data-testid="comment-body" class="markdown-body">
+          <p>The accepted answer remains chronological.</p>
+        </div>
+      </article>
+
+      <article data-testid="discussion-comment" data-discussion-comment-id="1004">
+        <relative-time datetime="2026-07-04T12:00:00Z">Jul 4</relative-time>
+        <div data-testid="comment-body" class="markdown-body">
+          <p>A deleted author still leaves readable content.</p>
+        </div>
+      </article>
+      <button data-testid="load-more-comments">Load more</button>
+      <div aria-hidden="true">
+        <div class="markdown-body"><p>Hidden duplicate content.</p></div>
+      </div>
+    </main>
+  </body>
+</html>

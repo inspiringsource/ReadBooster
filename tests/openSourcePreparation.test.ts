@@ -6,7 +6,7 @@ import packageJson from "../package.json";
 
 describe("open-source preparation", () => {
   it("uses MPL-2.0 metadata and ships the official license plus project notice", () => {
-    expect(packageJson.version).toBe("0.7.4");
+    expect(packageJson.version).toBe("0.7.5");
     expect(packageJson.license).toBe("MPL-2.0");
     expect(readFileSync("LICENSE", "utf8")).toContain("Mozilla Public License Version 2.0");
     expect(readFileSync("NOTICE.md", "utf8")).toContain("Copyright 2026 Abraham Bobrovsky");
@@ -40,7 +40,7 @@ describe("open-source preparation", () => {
     const readme = readFileSync("README.md", "utf8");
     const changelog = readFileSync("CHANGELOG.md", "utf8");
     expect(readme).toContain("current unreleased candidate");
-    expect(changelog).toContain("## [0.7.4] - Unreleased");
+    expect(changelog).toContain("## [0.7.5] - Unreleased");
     expect(readme).not.toMatch(/0\.7\.2 (?:is|has been) published/i);
   });
 

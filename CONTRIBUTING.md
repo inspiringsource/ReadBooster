@@ -12,8 +12,9 @@ Changes should protect reading quality, accessibility, local-first privacy, narr
 permissions, and faithful treatment of source conversations. Prefer focused changes with evidence
 over speculative platform-wide rewrites.
 
-The goal is not to support the largest number of AI platforms or add features for their own sake.
-ReadBooster should make real conversations easier to read, navigate, annotate, and reuse.
+The goal is not to support the largest number of sites or add features for their own sake.
+ReadBooster should make long, structured conversations and discussions easier to read, navigate,
+annotate, and reuse.
 
 ## Workflow
 
@@ -44,7 +45,7 @@ formatting conventions. `npx prettier --check .` and `git diff --check` must pas
 Read `docs/adding-a-platform.md` first. Adapter changes must keep provider DOM selectors out of the
 shared renderer and include representative sanitized fixtures, extraction and duplicate-prevention
 tests, streaming and SPA-navigation coverage where applicable, and a documented live manual test.
-Never commit private conversations, cookies, tokens, or account data.
+Never commit private conversations or discussions, cookies, tokens, or account data.
 
 ## Security, privacy, and accessibility
 

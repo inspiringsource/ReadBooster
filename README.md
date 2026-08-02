@@ -1,6 +1,6 @@
 # ReadBooster
 
-ReadBooster turns long AI conversations into readable, navigable documents.
+ReadBooster turns long AI conversations and structured technical discussions into readable, navigable documents.
 
 I started the project because useful AI conversations often become difficult to read, revisit, annotate, and print. ReadBooster adds a local reading layer across supported AI platforms without rewriting the original conversation.
 
@@ -11,18 +11,27 @@ ReadBooster was started by Avi and is maintained as an open-source AviCloud proj
   <a href="https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd"><img src="docs/assets/store-badges/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="54"></a>
 </p>
 
-_Firefox: version 0.7.2 available. Chrome: the latest update is awaiting Chrome Web Store review._
+_Firefox: version 0.7.3 available. Chrome: version 0.7.1 available; the 0.7.3 update is awaiting Chrome Web Store review._
 
-Version 0.7.4 is the current unreleased candidate. It introduces Guided Reading as a calm passage-by-passage focus layer while preserving Print Studio, Highlights, Stickers, Claude support, and the responsive Optimize Reading control. Build scripts do not submit to stores or publish releases.
+Version 0.7.5 is the current unreleased candidate. It adds experimental reading support for individual repository and organisation GitHub Discussions while preserving the shared Reader, Guided Reading, Print Studio, Highlights, Stickers, and AI conversation adapters. Build scripts do not submit to stores or publish releases.
 
-## Supported platforms
+## Supported sources
+
+### AI conversations
 
 - ChatGPT at `chatgpt.com`
 - Google Gemini at `gemini.google.com`
 - Mistral at `chat.mistral.ai`
 - Claude at `claude.ai`
 
-Chrome and Firefox production builds are generated from the same TypeScript and React source. Claude support is covered by sanitized fixtures and automated tests, and it has been tested successfully in a real authenticated Claude conversation after the latest fix. Browser-specific release regression remains part of the normal acceptance process.
+### Structured discussions
+
+- Repository Discussions at `github.com/<owner>/<repository>/discussions/<number>` — experimental in 0.7.5
+- Organisation Discussions at `github.com/orgs/<organization>/discussions/<number>` — experimental in 0.7.5
+
+ReadBooster can turn long GitHub Discussions into structured reading documents while preserving authorship, replies, code, tables, links, Highlights, Stickers, Guided Reading, and Print Studio. It activates only on individual discussion pages, reads content already rendered in the page, and does not use GitHub APIs or credentials.
+
+Chrome and Firefox production builds are generated from the same TypeScript and React source. Claude has been tested successfully in a real authenticated conversation. GitHub Discussions has synthetic fixture and automated coverage; live logged-in and logged-out browser acceptance remains required before release.
 
 ## Features
 
@@ -46,15 +55,15 @@ Guided Reading emphasizes one meaningful passage at a time while keeping the sur
 
 ## Privacy and permissions
 
-ReadBooster reads only the visible conversation DOM on its supported sites. It does not use provider private APIs, intercept credentials, upload conversation content, download executable code, or store full conversation bodies. Preferences, custom titles, Stickers, and highlights use extension-local storage. Persisted highlights include the selected passage and short surrounding context so ReadBooster can restore them reliably. Highlight data is not sent to a ReadBooster server. Feedback opens an external Tally form only after an explicit user action.
+ReadBooster reads only the visible supported content DOM. It does not use provider or GitHub APIs, intercept credentials, upload source content, download executable code, or store complete source documents. Preferences, custom titles, Stickers, and highlights use extension-local storage. Persisted highlights include the selected passage and short surrounding context so ReadBooster can restore them reliably. Highlight data is not sent to a ReadBooster server. Feedback opens an external Tally form only after an explicit user action.
 
-The only browser permission is `storage`. Host access and content scripts are restricted to the four supported origins listed above. See `docs/privacy-policy-draft.md` and the browser-review documents under `docs/` for the audited disclosures.
+The only browser permission is `storage`. Host access and content scripts are restricted to the four AI origins plus `https://github.com/*`. GitHub’s match pattern covers the origin, while strict runtime routing activates ReadBooster only on individual repository or organisation Discussion pages. See `docs/privacy-policy-draft.md` and the browser-review documents under `docs/` for the audited disclosures.
 
 ## Installation
 
 ### Official stores
 
-ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.4 artifacts as signed or store-approved releases.
+ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store versions can update independently from the current source candidate, and Chrome and Firefox review on separate schedules. Do not treat local 0.7.5 artifacts as signed or store-approved releases.
 
 - [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/dgkgecgijplbfllnhcolplieaejjnmhd)
 - [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/readbooster/)
@@ -64,7 +73,7 @@ ReadBooster has listings in the Chrome Web Store and Firefox Add-ons. Store vers
 1. Run `npm ci` and `npm run build:chrome`.
 2. Open `chrome://extensions` and enable Developer mode.
 3. Choose Load unpacked and select `dist-chrome/`.
-4. Reload the supported AI platform tab after loading or rebuilding the extension.
+4. Reload the supported source page after loading or rebuilding the extension.
 
 ### Temporary Firefox testing
 
@@ -103,9 +112,9 @@ Build outputs are isolated:
 
 - `dist-chrome/` — unpacked Chrome extension
 - `dist-firefox/` — unpacked Firefox extension
-- `release/readbooster-chrome-0.7.4.zip` — complete Chrome upload archive
-- `release/readbooster-firefox-0.7.4.zip` — unsigned Firefox submission archive
-- `release/readbooster-source-0.7.4.zip` — reviewer source and build inputs
+- `release/readbooster-chrome-0.7.5.zip` — complete Chrome upload archive
+- `release/readbooster-firefox-0.7.5.zip` — unsigned Firefox submission archive
+- `release/readbooster-source-0.7.5.zip` — reviewer source and build inputs
 
 See `docs/release-builds.md` for the reproducible release workflow.
 
@@ -113,15 +122,15 @@ See `docs/release-builds.md` for the reproducible release workflow.
 
 The source flow is:
 
-    platform registry
+    supported-source registry
           ↓
-    platform adapter
+    source adapter
           ↓
-    normalized, sanitized conversation model
+    normalized, sanitized document model
           ↓
     shared Reader
 
-Provider selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, code, tables, document blocks, Stickers, highlights, reading settings, copying, and Print Studio. Print Studio creates a separate print representation from the normalized document; it does not edit provider or Reader state. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
+Source selectors and DOM assumptions stay in `src/content/adapters/`. Shared rendering owns Document and Focus modes, outlines, Guided Reading, code, tables, document blocks, Stickers, highlights, reading settings, copying, and Print Studio. Print Studio creates a separate print representation from the normalized document; it does not edit source or Reader state. See `docs/adding-a-platform.md` for the adapter contract and test checklist.
 
 ## Feedback and contributions
 
@@ -134,13 +143,13 @@ You do not need to understand the whole project before getting involved. A small
 - [Read the contribution guide](CONTRIBUTING.md)
 - [Learn how platform adapters work](docs/adding-a-platform.md)
 
-Bug reports should include the browser and version, affected AI platform, ReadBooster version, reproduction steps, expected behavior, actual behavior, and relevant console errors. Remove private conversation content, account information, tokens, and other sensitive material from screenshots and fixtures.
+Bug reports should include the browser and version, affected source, ReadBooster version, reproduction steps, expected behavior, actual behavior, and relevant console errors. Remove private conversation or discussion content, account information, tokens, and other sensitive material from screenshots and fixtures.
 
 Do not report security vulnerabilities through a public issue. Follow the private reporting instructions in [SECURITY.md](SECURITY.md).
 
 Before starting a larger feature or platform adapter, open an issue so we can compare ideas and avoid duplicated work. Contributions are reviewed carefully because browser extensions operate on potentially sensitive conversation content. The detailed testing, privacy, and adapter requirements remain in `CONTRIBUTING.md`.
 
-The goal is not to support the largest number of AI platforms or add features for their own sake. ReadBooster should make real conversations easier to read, navigate, annotate, and reuse.
+The goal is not to support the largest number of sites or add features for their own sake. ReadBooster should make long, structured conversations and discussions easier to read, navigate, annotate, and reuse.
 
 ## AviCloud project notes
 
@@ -158,6 +167,6 @@ Third-party licences remain separate in `THIRD_PARTY_NOTICES.md`. Created and ma
 
 ## Release status and limitations
 
-Version 0.7.4 is marked Unreleased in `CHANGELOG.md`. Guided Reading block discovery, preference persistence, navigation, focus-zone behavior, theme styling, and Print Studio isolation have automated coverage, but the complete authenticated Chrome and Firefox provider matrix remains a separate release acceptance step. Highlighting is intentionally limited to a single semantic text block at a time; code, mathematics, generated charts, and other complex interactive content are excluded when reliable restoration would be unsafe.
+Version 0.7.5 is marked Unreleased in `CHANGELOG.md`. Repository and organisation Discussion route gating, semantic extraction, source ordering, duplicate prevention, scope-isolated identity, and shared Reader compatibility have automated coverage, including the reported `/orgs/community/discussions/203678` route. Live extension testing in authenticated Chrome and Firefox remains a separate release acceptance step. ReadBooster includes only discussion content currently rendered on the page; it does not expand or retrieve hidden comments.
 
-ReadBooster does not support Perplexity, DeepSeek, or Claude private APIs. It does not provide accounts, analytics, cloud synchronization, remote processing, or automated store publishing.
+ReadBooster does not support GitHub Issues, pull requests, generic GitHub pages, Perplexity, DeepSeek, or private platform APIs. It does not provide accounts, analytics, cloud synchronization, remote processing, or automated store publishing.

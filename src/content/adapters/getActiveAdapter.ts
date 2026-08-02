@@ -3,6 +3,7 @@ import { ClaudeAdapter } from "./ClaudeAdapter";
 import type { ConversationAdapter } from "./ConversationAdapter";
 import { GeminiAdapter } from "./GeminiAdapter";
 import { MistralAdapter } from "./MistralAdapter";
+import { GitHubDiscussionsAdapter } from "./GitHubDiscussionsAdapter";
 import { supportedPlatformForHostname } from "../../shared/platforms";
 
 export function getActiveAdapter(
@@ -19,6 +20,8 @@ export function getActiveAdapter(
       return new MistralAdapter(doc, platform.hostname);
     case "claude":
       return new ClaudeAdapter(doc, platform.hostname);
+    case "github-discussion":
+      return new GitHubDiscussionsAdapter(doc, platform.hostname);
     default:
       return null;
   }

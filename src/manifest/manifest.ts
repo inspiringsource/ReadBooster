@@ -17,7 +17,8 @@ export const ACTION_ICONS = {
 };
 
 export const SUPPORTED_HOST_MATCHES = [...SUPPORTED_PLATFORM_HOST_MATCHES];
-export const MANIFEST_DESCRIPTION = "Turn AI conversations into readable, navigable documents.";
+export const MANIFEST_DESCRIPTION =
+  "Turn AI conversations and GitHub Discussions into readable, navigable documents.";
 export const HOMEPAGE_URL = "https://inspiringsource.github.io/ReadBooster/";
 export const FIREFOX_EXTENSION_ID = "contact@avicloud.ch";
 export const FIREFOX_MINIMUM_VERSION = "142.0";

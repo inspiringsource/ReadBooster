@@ -46,6 +46,9 @@ describe("Chrome Web Store release documentation", () => {
     expect(submission).toContain("https://gemini.google.com/*");
     expect(submission).toContain("https://chat.mistral.ai/*");
     expect(submission).toContain("https://claude.ai/*");
+    expect(submission).toContain("https://github.com/*");
+    expect(submission).toContain("Runtime activation is restricted");
+    expect(combined).toContain("GitHub GraphQL");
     expect(submission).toContain("No, ReadBooster does not use remote executable code.");
     expect(combined).toContain("section-title");
     expect(combined).toContain("Sticker");

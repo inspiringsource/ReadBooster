@@ -65,7 +65,7 @@ describe("reader header refinement", () => {
     const shadow = shadowRoot();
     const primary = shadow.querySelector(".rb-toolbar-primary")!;
 
-    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.7.4");
+    expect(shadow.querySelector(".rb-version-label")?.textContent).toBe("Beta · v0.7.5");
     expect(primary.contains(button(shadow, "Document"))).toBe(true);
     expect(primary.contains(button(shadow, "Focus"))).toBe(true);
     expect(primary.contains(button(shadow, "Hide outline"))).toBe(true);
@@ -206,16 +206,16 @@ describe("reader header refinement", () => {
     expect(writeText).toHaveBeenCalledOnce();
     expect(print).toHaveBeenCalledOnce();
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Version 0.7.4 Beta",
+      "Version 0.7.5 Beta",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
       "ReadBooster processes content locally in your browser.",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "ReadBooster currently supports ChatGPT, Google Gemini, Mistral, and Claude.",
+      "ReadBooster supports ChatGPT, Google Gemini, Mistral, Claude, and experimental GitHub Discussions reading.",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).toContain(
-      "Gemini, Mistral, and Claude live full-checklist verification remain pending.",
+      "Live verification status is documented separately.",
     );
     expect(shadow.querySelector("#rb-about-readbooster")?.textContent).not.toContain(
       "Claude support is planned",

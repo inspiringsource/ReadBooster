@@ -128,6 +128,7 @@ export function requestOptimizeButtonLayout(doc: Document): void {
 export function injectOptimizeButton(
   doc: Document,
   onOptimize: () => Promise<OptimizeResult>,
+  options: { getAnchor?: () => HTMLElement | null } = {},
 ): () => void {
   if (doc.getElementById(CONTROL_HOST_ID)) {
     requestOptimizeButtonLayout(doc);
@@ -181,12 +182,16 @@ export function injectOptimizeButton(
   const view = doc.defaultView;
   let mode: OptimizeControlMode = "full";
   let observedComposer: HTMLElement | null = null;
+  let observedAnchor: HTMLElement | null = null;
   let animationFrame: number | null = null;
   let timeoutId: number | null = null;
   let fullButtonWidth: number | null = null;
   let disposed = false;
 
-  const updateHostStyle = (property: "bottom" | "right" | "top", value: string): void => {
+  const updateHostStyle = (
+    property: "bottom" | "right" | "top" | "position",
+    value: string,
+  ): void => {
     if (host.style[property] !== value) {
       host.style[property] = value;
     }
@@ -199,7 +204,13 @@ export function injectOptimizeButton(
       return;
     }
 
-    const composer = findComposerBoundary(doc);
+    const anchor = options.getAnchor?.() ?? null;
+    if (anchor !== observedAnchor) {
+      if (observedAnchor) resizeObserver?.unobserve(observedAnchor);
+      observedAnchor = anchor;
+      if (observedAnchor) resizeObserver?.observe(observedAnchor);
+    }
+    const composer = anchor ? null : findComposerBoundary(doc);
     if (composer !== observedComposer) {
       if (observedComposer) {
         resizeObserver?.unobserve(observedComposer);
@@ -212,13 +223,13 @@ export function injectOptimizeButton(
 
     const viewportWidth = view.innerWidth || doc.documentElement.clientWidth;
     const viewportHeight = view.innerHeight || doc.documentElement.clientHeight;
+    const anchorRect = readLayoutRect(anchor);
     const composerRect = readLayoutRect(composer);
     fullButtonWidth ??= Math.max(CONTROL_FULL_WIDTH_FALLBACK, readLayoutRect(sizer)?.width ?? 0);
-    const nextMode = resolveOptimizeControlMode(
-      availableSideSpace(viewportWidth, composerRect),
-      fullButtonWidth,
-      mode,
-    );
+    const availableWidth = anchorRect
+      ? Math.max(0, Math.min(anchorRect.width, viewportWidth - CONTROL_EDGE_MARGIN * 2))
+      : availableSideSpace(viewportWidth, composerRect);
+    const nextMode = resolveOptimizeControlMode(availableWidth, fullButtonWidth, mode);
     if (nextMode !== mode) {
       mode = nextMode;
       host.setAttribute("data-rb-control-mode", mode);
@@ -226,6 +237,22 @@ export function injectOptimizeButton(
 
     const controlWidth = mode === "compact" ? CONTROL_COMPACT_SIZE : fullButtonWidth;
     const controlHeight = CONTROL_COMPACT_SIZE;
+    if (anchorRect) {
+      const left = Math.min(
+        Math.max(CONTROL_EDGE_MARGIN, anchorRect.right - controlWidth),
+        viewportWidth - controlWidth - CONTROL_EDGE_MARGIN,
+      );
+      updateHostStyle("position", "absolute");
+      updateHostStyle(
+        "right",
+        `${Math.max(CONTROL_EDGE_MARGIN, viewportWidth - left - controlWidth)}px`,
+      );
+      updateHostStyle("top", `${Math.max(0, view.scrollY + anchorRect.bottom + 8)}px`);
+      updateHostStyle("bottom", "auto");
+      host.setAttribute("data-rb-control-placement", "anchor");
+      return;
+    }
+    updateHostStyle("position", "fixed");
     const position = positionOptimizeControl({
       viewportWidth,
       viewportHeight,

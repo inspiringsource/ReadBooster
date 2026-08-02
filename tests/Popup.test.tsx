@@ -33,14 +33,14 @@ describe("Popup", () => {
     expect(screen.getByText("ReadBooster")).toBeTruthy();
     expect(screen.getByText("ReadBooster processes content locally in your browser.")).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
-        .disabled,
+      (screen.getByRole("button", { name: "Optimize Reading" }) as HTMLButtonElement).disabled,
     ).toBe(true);
   });
 
   it.each([
     ["Claude subdomain", "https://chat.claude.ai/chat/1"],
     ["Mistral", "https://mistral.ai/"],
+    ["GitHub Issue", "https://github.com/example/reader/issues/42"],
   ])("treats %s as unsupported without messaging a content script", async (_name, url) => {
     const sendMessage = installChromeMock(url, () => null);
 
@@ -49,8 +49,7 @@ describe("Popup", () => {
     expect(await screen.findByText("This page is not supported.")).toBeTruthy();
     expect(sendMessage).not.toHaveBeenCalled();
     expect(
-      (screen.getByRole("button", { name: "Optimize latest response" }) as HTMLButtonElement)
-        .disabled,
+      (screen.getByRole("button", { name: "Optimize Reading" }) as HTMLButtonElement).disabled,
     ).toBe(true);
   });
 
@@ -68,9 +67,9 @@ describe("Popup", () => {
 
     render(<Popup />);
 
-    expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
+    expect(await screen.findByText("Readable content is ready to optimize.")).toBeTruthy();
     const optimize = screen.getByRole("button", {
-      name: "Optimize latest response",
+      name: "Optimize Reading",
     }) as HTMLButtonElement;
     expect(optimize.disabled).toBe(false);
     fireEvent.click(optimize);
@@ -92,9 +91,9 @@ describe("Popup", () => {
 
     render(<Popup />);
 
-    expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
+    expect(await screen.findByText("Readable content is ready to optimize.")).toBeTruthy();
     const optimize = screen.getByRole("button", {
-      name: "Optimize latest response",
+      name: "Optimize Reading",
     }) as HTMLButtonElement;
     expect(optimize.disabled).toBe(false);
     fireEvent.click(optimize);
@@ -116,8 +115,29 @@ describe("Popup", () => {
 
     render(<Popup />);
 
-    expect(await screen.findByText("A response is ready to optimize.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Optimize latest response" }));
+    expect(await screen.findByText("Readable content is ready to optimize.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Optimize Reading" }));
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(sendMessage).toHaveBeenLastCalledWith(7, { type: "READBOOSTER_OPTIMIZE_LATEST" });
+  });
+
+  it.each([
+    "https://github.com/example/reader/discussions/42",
+    "https://github.com/orgs/community/discussions/203678",
+  ])("enables the shared action on an individual GitHub Discussion at %s", async (url) => {
+    const sendMessage = installChromeMock(url, () => ({
+      ok: true,
+      supported: true,
+      source: "github-discussion",
+      implemented: true,
+      manuallyVerified: false,
+      canExtractResponses: true,
+      responseAvailable: true,
+    }));
+    const close = vi.spyOn(window, "close").mockImplementation(() => undefined);
+    render(<Popup />);
+    expect(await screen.findByText("Readable content is ready to optimize.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Optimize Reading" }));
     await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
     expect(sendMessage).toHaveBeenLastCalledWith(7, { type: "READBOOSTER_OPTIMIZE_LATEST" });
   });
@@ -148,7 +168,7 @@ describe("Popup", () => {
 
     render(<Popup />);
     const button = (await screen.findByRole("button", {
-      name: "Optimize latest response",
+      name: "Optimize Reading",
     })) as HTMLButtonElement;
     await vi.waitFor(() => expect(button.disabled).toBe(false));
 
@@ -159,6 +179,6 @@ describe("Popup", () => {
     expect(sendMessage).toHaveBeenCalledTimes(2); // one status request and one optimize request
 
     finishOptimization({ ok: false, supported: true, reason: "no-response" });
-    expect(await screen.findByText("No assistant response was found on this page.")).toBeTruthy();
+    expect(await screen.findByText("No readable content was found on this page.")).toBeTruthy();
   });
 });

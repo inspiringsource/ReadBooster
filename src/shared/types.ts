@@ -1,4 +1,5 @@
-export type ExtractedResponseSource = "chatgpt" | "claude" | "gemini" | "mistral";
+export type ExtractedResponseSource =
+  "chatgpt" | "claude" | "gemini" | "mistral" | "github-discussion";
 
 export interface ExtractedResponse {
   id: string;
@@ -26,6 +27,14 @@ export interface DocumentContentBlock {
   readonly html: string;
   readonly text: string;
   readonly provenance: SourceProvenance;
+  readonly sectionTitle?: string;
+}
+
+export interface ConversationSourceContext {
+  readonly label: string;
+  readonly details: readonly string[];
+  readonly actionLabel: string;
+  readonly notice?: string;
 }
 
 export interface ConversationTurn {
@@ -42,6 +51,7 @@ export interface ConversationDocument {
   readonly sourceUrl: string;
   readonly extractedAt: string;
   readonly turns: readonly ConversationTurn[];
+  readonly sourceContext?: ConversationSourceContext;
 }
 
 export type ConversationScanTerminationReason =

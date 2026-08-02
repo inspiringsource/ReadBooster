@@ -10,18 +10,19 @@ No incorporated-company status, legal address, or data-protection officer is ass
 
 ## 1. Product and scope
 
-ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of AI conversations by rendering them locally as structured reading documents. Version 0.7.4 supports:
+ReadBooster is a browser extension for Chrome and Firefox that improves the readability, navigation, and organization of supported conversations and structured discussions by rendering them locally as reading documents. Version 0.7.5 supports:
 
 - ChatGPT at `https://chatgpt.com/*`;
 - Google Gemini at `https://gemini.google.com/*`;
 - Mistral at `https://chat.mistral.ai/*`.
 - Claude at `https://claude.ai/*`.
+- individual repository Discussions at `https://github.com/<owner>/<repository>/discussions/<number>` and organisation Discussions at `https://github.com/orgs/<organization>/discussions/<number>` through the manifest origin `https://github.com/*`.
 
-ReadBooster does not request access to unrelated Mistral marketing, documentation, account, or API pages or to Claude subdomains. Claude was tested successfully in a real authenticated conversation after the latest fix; the normal browser-specific release regression remains separate from this privacy description.
+Runtime routing fails closed on GitHub: ReadBooster does not activate on Issues, pull requests, repositories, settings, search, profiles, or discussion lists. It does not request access to unrelated Mistral marketing, documentation, account, or API pages or to Claude subdomains. GitHub Discussions support is experimental and still requires live browser acceptance.
 
 ## 2. Website and conversation content
 
-When a user activates ReadBooster on a supported website, the extension reads the currently available conversation content from that page and processes it locally in the browser to provide Document and Focus reading modes, Guided Reading presentation, navigation, outlines, tables, code controls, Copy, Print, and related reader features.
+When a user activates ReadBooster on a supported website, the extension reads currently available supported content from that page and processes it locally in the browser to provide Document and Focus reading modes, Guided Reading presentation, navigation, outlines, tables, code controls, Copy, Print, and related reader features. On GitHub, it reads only content already rendered on the current individual Discussion page and does not automatically load hidden comments or replies.
 
 Conversation content can include prompts, AI responses, headings, links, citations, tables, code, and response images. ReadBooster does not upload complete prompt or response bodies to a ReadBooster server and does not persist complete conversations. ReadBooster has no backend.
 
@@ -50,7 +51,7 @@ ReadBooster has:
 - no sale of personal data;
 - no ReadBooster backend.
 
-ReadBooster does not use OpenAI, Gemini, Anthropic, or Mistral APIs, private AI-platform endpoints, or network interception. It does not execute code contained in AI responses and does not load remote executable extension code.
+ReadBooster does not use OpenAI, Gemini, Anthropic, Mistral, GitHub REST, or GitHub GraphQL APIs, private platform endpoints, authentication tokens, or network interception. It does not execute code contained in source content and does not load remote executable extension code.
 
 ## 5. Optional feedback through Tally
 
@@ -76,7 +77,8 @@ Uninstalling the extension removes the installed extension. The browser controls
 ReadBooster minimizes access and data handling by:
 
 - requesting only the `storage` extension permission;
-- limiting host access to ChatGPT, Google Gemini, the Mistral chat application, and Claude;
+- limiting host access to ChatGPT, Google Gemini, the Mistral chat application, Claude, and the `github.com` origin required by browser match patterns;
+- using strict runtime routing so GitHub processing activates only on individual repository or organisation Discussion URLs;
 - processing conversation content locally;
 - using a conservative HTML sanitizer before rendering extracted content;
 - stripping host controls, scripts, event handlers, and unsafe markup;

@@ -241,6 +241,36 @@ describe("injectOptimizeButton", () => {
     cleanup();
   });
 
+  it("can share the responsive control while anchoring a structured source near its title", async () => {
+    FakeResizeObserver.instances = [];
+    document.body.innerHTML = "<header data-discussion-anchor><h1>Discussion</h1></header>";
+    const anchor = document.querySelector<HTMLElement>("[data-discussion-anchor]")!;
+    vi.stubGlobal("innerWidth", 1000);
+    vi.stubGlobal("innerHeight", 800);
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      if (this === anchor) {
+        return domRect({ top: 100, right: 900, bottom: 160, left: 100, width: 800, height: 60 });
+      }
+      if (this.classList.contains("rb-control-sizer")) {
+        return domRect({ top: 0, right: 164, bottom: 44, left: 0, width: 164, height: 44 });
+      }
+      return domRect({ top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 });
+    });
+    const cleanup = injectOptimizeButton(document, async () => ({ ok: true }), {
+      getAnchor: () => anchor,
+    });
+    const host = document.getElementById(CONTROL_HOST_ID)!;
+    await vi.waitFor(() => expect(host.dataset.rbControlPlacement).toBe("anchor"));
+    expect(host.style.position).toBe("absolute");
+    expect(host.style.top).toBe("168px");
+    expect(host.dataset.rbControlMode).toBe("full");
+    expect(host.shadowRoot?.querySelectorAll("button")).toHaveLength(1);
+    cleanup();
+  });
+
   it("keeps the cached full width stable when compact presentation changes visible width", async () => {
     FakeResizeObserver.instances = [];
     const geometry = installMeasuredComposer({

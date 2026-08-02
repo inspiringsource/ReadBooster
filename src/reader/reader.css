@@ -1100,6 +1100,51 @@
   display: none;
 }
 
+.rb-source-context {
+  align-items: center;
+  background: var(--rb-surface);
+  border-bottom: 1px solid var(--rb-border);
+  color: var(--rb-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font:
+    600 13px/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  gap: 8px 18px;
+  justify-content: space-between;
+  padding: 10px clamp(16px, 4vw, 40px);
+}
+
+.rb-source-context div {
+  display: grid;
+  gap: 1px;
+}
+.rb-source-context strong {
+  color: var(--rb-text);
+}
+.rb-source-context a {
+  color: var(--rb-accent);
+}
+.rb-source-context p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+[data-readbooster-source-meta] {
+  color: var(--rb-muted);
+  font:
+    600 0.76em/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  margin: 0 0 0.8rem;
+}
+
+[data-readbooster-source-meta] + [data-readbooster-source-meta] {
+  color: var(--rb-accent);
+  margin-top: -0.45rem;
+}
+
 .rb-content {
   background: var(--rb-surface);
   border: 1px solid var(--rb-border);

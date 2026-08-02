@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <body>
+    <!--
+      Synthetic, sanitized organisation-discussion fixture. It mirrors the public GitHub
+      discussion hierarchy and stable semantic/class fallbacks without retaining user content.
+    -->
+    <main>
+      <div id="discussion_bucket" data-discussion-number="203678">
+        <header class="gh-header" data-testid="organization-discussion-header">
+          <h1 class="gh-header-title">
+            Organisation discussions should be readable <span>#203678</span>
+          </h1>
+          <a href="/orgs/community/discussions/categories/discussions">Discussions</a>
+          <span aria-label="Answered">Answered</span>
+        </header>
+
+        <div class="js-discussion-comment" data-discussion-post>
+          <a data-hovercard-type="user" href="/starter">starter</a>
+          <relative-time datetime="2026-07-20T08:00:00Z">Jul 20</relative-time>
+          <div class="comment-body markdown-body js-comment-body">
+            <h2>Organisation opening post</h2>
+            <p>The visible discussion body is extracted locally.</p>
+            <ul>
+              <li>Preserve semantic lists.</li>
+              <li><a href="https://example.com/reference">Preserve links.</a></li>
+            </ul>
+            <blockquote><p>Keep quoted context.</p></blockquote>
+            <pre><code class="language-js">const scope = "organization";</code></pre>
+            <table>
+              <thead>
+                <tr>
+                  <th>Scope</th>
+                  <th>Identity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Organisation</td>
+                  <td>Isolated</td>
+                </tr>
+              </tbody>
+            </table>
+            <img src="https://github.com/example/diagram.png" alt="Synthetic diagram" />
+          </div>
+          <button aria-label="Add reaction">React</button>
+        </div>
+
+        <div
+          id="discussioncomment-9001"
+          class="js-comment-container js-discussion-comment timeline-comment"
+          data-comment-id="9001"
+        >
+          <a data-hovercard-type="user" href="/participant">participant</a>
+          <relative-time datetime="2026-07-21T09:15:00Z">Jul 21</relative-time>
+          <span title="edited">edited</span>
+          <a href="https://github.com/orgs/community/discussions/203678#discussioncomment-9001"
+            >Permalink</a
+          >
+          <div class="comment-body markdown-body js-comment-body">
+            <p>An organisation-level comment remains in source order.</p>
+          </div>
+
+          <div class="js-discussion-replies">
+            <div
+              id="discussioncomment-9002"
+              class="js-comment-container js-discussion-comment timeline-comment"
+              data-comment-id="9002"
+              data-reply-to-author="participant"
+            >
+              <a data-hovercard-type="user" href="/helper">helper</a>
+              <relative-time datetime="2026-07-21T10:00:00Z">Jul 21</relative-time>
+              <a href="https://github.com/orgs/community/discussions/203678#discussioncomment-9002"
+                >Permalink</a
+              >
+              <div class="comment-body markdown-body js-comment-body">
+                <p>A nested reply follows its parent.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="discussioncomment-9003"
+          class="js-comment-container js-discussion-comment timeline-comment"
+          data-comment-id="9003"
+          data-accepted-answer="true"
+        >
+          <a data-hovercard-type="user" href="/answerer">answerer</a>
+          <relative-time datetime="2026-07-22T12:00:00Z">Jul 22</relative-time>
+          <a href="https://github.com/orgs/community/discussions/203678#discussioncomment-9003"
+            >Permalink</a
+          >
+          <div class="comment-body markdown-body js-comment-body">
+            <p>The accepted answer remains chronological.</p>
+          </div>
+        </div>
+
+        <aside>
+          <div class="markdown-body">
+            <p>Sidebar content must not become a discussion entry.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>

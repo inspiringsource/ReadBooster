@@ -5,18 +5,18 @@ This document contains reusable draft text for a future ReadBooster Chrome Web S
 ## Release details
 
 - Extension: ReadBooster
-- Submission candidate: 0.7.4 (unreleased candidate)
+- Submission candidate: 0.7.5 (unreleased candidate)
 - Manifest: Version 3
-- Currently supported websites: ChatGPT, Google Gemini, Mistral, and Claude
+- Currently supported sources: ChatGPT, Google Gemini, Mistral, Claude, and experimental GitHub Discussions
 - Requested Chrome permission: `storage`
-- Requested host access: `https://chatgpt.com/*`, `https://gemini.google.com/*`, `https://chat.mistral.ai/*`, and `https://claude.ai/*`
+- Requested host access: `https://chatgpt.com/*`, `https://gemini.google.com/*`, `https://chat.mistral.ai/*`, `https://claude.ai/*`, and `https://github.com/*`
 - Public homepage: <https://inspiringsource.github.io/ReadBooster/>
 
 Claude uses a semantic adapter introduced in 0.7.0 with sanitized fixture coverage. A real authenticated Claude conversation was tested successfully after the latest fix. Browser-specific release regression remains required; this document does not claim a complete Chrome and Firefox acceptance matrix.
 
 ## Single-purpose statement
 
-> ReadBooster improves the readability, navigation, and organization of AI conversations on supported websites by rendering them locally as structured reading documents.
+> ReadBooster improves the readability, navigation, and organization of supported AI conversations and individual GitHub Discussions by rendering them locally as structured reading documents.
 
 ## Permission justifications
 
@@ -40,7 +40,11 @@ Claude uses a semantic adapter introduced in 0.7.0 with sanitized fixture covera
 
 > Access to https://claude.ai/* is required to detect and locally extract a Claude conversation selected by the user, inject the Optimize Reading control when usable assistant content exists, and render the conversation in ReadBooster's reader interface. Conversation content is not sent to ReadBooster servers.
 
-No broad `mistral.ai`, Claude subdomain, `<all_urls>`, `activeTab`, `tabs`, `scripting`, `webRequest`, or other permission is requested.
+### GitHub host access
+
+> Access to https://github.com/* is required by browser-extension match patterns so ReadBooster can detect individual GitHub Discussions, add the Optimize Reading control, and locally transform discussion content already visible on the page. Runtime activation is restricted to `/<owner>/<repository>/discussions/<number>` and `/orgs/<organization>/discussions/<number>`. ReadBooster does not activate on Issues, pull requests, repository or organisation pages, settings, profiles, search, or discussion listings; it does not use GitHub APIs, request authentication tokens, or transmit discussion content to ReadBooster servers.
+
+No broad `mistral.ai`, Claude subdomain, `api.github.com`, `<all_urls>`, `activeTab`, `tabs`, `scripting`, `webRequest`, or other permission is requested.
 
 ## Remote-code declaration
 
@@ -66,7 +70,7 @@ ReadBooster does not collect or use:
 - browsing history;
 - user-activity analytics.
 
-ReadBooster has no account system, analytics, advertising, payment system, or backend. It does not use OpenAI, Gemini, Claude, or Mistral APIs or private AI-platform endpoints. It does not execute code contained in AI responses.
+ReadBooster has no account system, analytics, advertising, payment system, or backend. It does not use OpenAI, Gemini, Claude, Mistral, GitHub REST, or GitHub GraphQL APIs or private platform endpoints. It does not execute code contained in source content.
 
 Reader preferences, user-created custom section titles, Sticker notes, and text highlights are stored locally in Chrome. Titles, Stickers, and highlights use minimal stable local association keys where the supported platform exposes suitable identifiers. A highlight stores its selected text, style, bounded prefix/suffix context, and offsets; complete prompts, responses, tables, charts, code, signed image URLs, and other conversation bodies are not written to storage.
 
@@ -80,16 +84,16 @@ ReadBooster does not claim to use a Google API. Gemini content is read from the 
 
 ## Reviewer test instructions
 
-> ReadBooster works on ChatGPT, Google Gemini, Mistral, and Claude. Claude has been tested successfully in a real authenticated conversation; the store candidate still requires the normal browser-specific reviewer-flow regression.
+> ReadBooster works on ChatGPT, Google Gemini, Mistral, Claude, and individual GitHub Discussions. GitHub Discussions support is experimental in 0.7.5 and still requires live browser regression.
 >
 > No ReadBooster account or credentials are required. Reviewers may use their own test account for the supported third-party platform.
 >
 > 1. Install ReadBooster.
-> 2. Open https://chatgpt.com/, https://gemini.google.com/, a Mistral conversation at `https://chat.mistral.ai/work/{conversation-id}`, or a Claude conversation at `https://claude.ai/chat/{conversation-id}`.
+> 2. Open a supported AI conversation or a public individual GitHub Discussion at `https://github.com/<owner>/<repository>/discussions/<number>` or `https://github.com/orgs/<organization>/discussions/<number>`.
 > 3. Sign in using a reviewer-controlled account if required.
 > 4. Open or create a conversation containing at least one AI response.
 > 5. Refresh the page once after installing the extension.
-> 6. Click the ReadBooster “Optimize Reading” control, or open the extension popup and select “Optimize latest response.”
+> 6. Click the ReadBooster “Optimize Reading” control on the page or in the popup.
 > 7. Confirm the conversation opens in Continuous Document Mode.
 > 8. Test Document and Focus modes, outline navigation, reading settings, Copy, Print, tables, code blocks, custom section titles, local section Stickers, and text highlights.
 > 9. The optional Feedback action opens a Tally form only after explicit activation. No conversation content is attached automatically.
@@ -106,13 +110,14 @@ This is a recommendation for the future dashboard configuration only. Publicatio
 
 ## Website handoff checklist
 
-The website is maintained separately and is not changed by the 0.7.4 extension task. A later website update should:
+The website is maintained separately and is not changed by the 0.7.5 extension task. A later website update should:
 
-- show current extension version 0.7.4 only when that release is ready;
+- show current extension version 0.7.5 only when that release is ready;
 - show ChatGPT support;
 - show Google Gemini support;
 - show Mistral support;
 - show Claude as supported, reflecting the successful authenticated conversation test;
+- describe GitHub Discussions as experimental without implying general GitHub support;
 - explain local conversation processing and local preference/custom-title/Sticker/highlight storage;
 - disclose the optional user-initiated external Tally feedback form;
 - publish a reviewed privacy-policy page;

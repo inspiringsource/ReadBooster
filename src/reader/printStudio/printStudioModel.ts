@@ -34,6 +34,8 @@ export interface PrintStudioSection {
 export interface PrintStudioDocument {
   readonly title: string;
   readonly source: ConversationDocument["source"];
+  readonly sourceUrl: string;
+  readonly sourceContext?: ConversationDocument["sourceContext"];
   readonly sections: readonly PrintStudioSection[];
 }
 
@@ -99,6 +101,8 @@ export function createPrintStudioDocument(
   return {
     title,
     source: conversation.source,
+    sourceUrl: conversation.sourceUrl,
+    sourceContext: conversation.sourceContext,
     sections: sections.map((section) => ({
       id: section.id,
       originalIndex: section.index,

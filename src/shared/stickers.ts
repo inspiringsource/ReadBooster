@@ -1,3 +1,4 @@
+import { parseGitHubDiscussionUrl } from "./githubDiscussions";
 import type { ConversationDocument, DocumentContentBlock } from "./types";
 
 export const STICKER_STORAGE_KEY = "stickers:v1";
@@ -79,6 +80,8 @@ function conversationIdFromSourceUrl(conversation: ConversationDocument): string
       match = url.pathname.match(/^\/(?:chat|work)\/([^/?#]+)/);
     } else if (conversation.source === "claude" && url.hostname === "claude.ai") {
       match = url.pathname.match(/^\/chat\/([^/?#]+)/);
+    } else if (conversation.source === "github-discussion" && url.hostname === "github.com") {
+      return parseGitHubDiscussionUrl(url)?.conversationId ?? null;
     }
     const routeId = match?.[1] ? decodeURIComponent(match[1]).trim() : "";
     return validKey(routeId) && !/^(?:new|login|signup)$/i.test(routeId) ? routeId : null;

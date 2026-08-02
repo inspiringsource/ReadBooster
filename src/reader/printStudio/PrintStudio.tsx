@@ -30,6 +30,7 @@ const SOURCE_LABELS: Record<PrintStudioDocument["source"], string> = {
   claude: "Claude",
   gemini: "Gemini",
   mistral: "Mistral",
+  "github-discussion": "GitHub Discussions",
 };
 
 function toggleValue(values: readonly string[], value: string, enabled: boolean): string[] {
@@ -405,6 +406,11 @@ export function PrintStudio({
                   {SOURCE_LABELS[document.source]} · {visibleSections.length} of{" "}
                   {document.sections.length} sections
                 </p>
+                {document.sourceContext ? (
+                  <p>
+                    {document.sourceContext.details.join(" · ")} · {document.sourceUrl}
+                  </p>
+                ) : null}
               </header>
               {visibleSections.length === 0 ? (
                 <p className="rb-print-empty">Select at least one section to preview it.</p>

@@ -25,6 +25,7 @@ const EXCLUDED_SELECTOR = [
   ".rb-block-toolbar",
   ".rb-table-toolbar",
   ".rb-document-block__header",
+  "[data-readbooster-source-meta]",
 ].join(", ");
 
 export interface HighlightSelectionDraft extends HighlightAnchor {

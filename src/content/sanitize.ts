@@ -1,6 +1,9 @@
 import DOMPurify from "dompurify";
 
-import { READBOOSTER_CONTENT_BLOCK_ATTRIBUTE } from "../shared/contentKinds";
+import {
+  READBOOSTER_CONTENT_BLOCK_ATTRIBUTE,
+  READBOOSTER_SOURCE_METADATA_ATTRIBUTE,
+} from "../shared/contentKinds";
 import { serializeSemanticText } from "../shared/semanticText";
 
 export { serializeSemanticText } from "../shared/semanticText";
@@ -218,6 +221,7 @@ function validateSanitizedImages(root: ParentNode): void {
 
 export interface SanitizeResponseOptions {
   preserveInternalContentKinds?: boolean;
+  preserveSourceMetadata?: boolean;
 }
 
 export function sanitizeResponseHtml(
@@ -232,9 +236,11 @@ export function sanitizeResponseHtml(
 
   const sanitized = DOMPurify.sanitize(sourceClone.innerHTML, {
     ALLOWED_TAGS,
-    ALLOWED_ATTR: options.preserveInternalContentKinds
-      ? [...ALLOWED_ATTR, READBOOSTER_CONTENT_BLOCK_ATTRIBUTE]
-      : ALLOWED_ATTR,
+    ALLOWED_ATTR: [
+      ...ALLOWED_ATTR,
+      ...(options.preserveInternalContentKinds ? [READBOOSTER_CONTENT_BLOCK_ATTRIBUTE] : []),
+      ...(options.preserveSourceMetadata ? [READBOOSTER_SOURCE_METADATA_ATTRIBUTE] : []),
+    ],
     ALLOW_ARIA_ATTR: false,
     ALLOW_DATA_ATTR: false,
     FORBID_TAGS: ["style", "script", "iframe", "object", "embed", "form"],

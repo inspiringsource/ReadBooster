@@ -4,7 +4,7 @@ import { sectionTitleOverrideIdentity } from "../shared/sectionTitleOverrides";
 import { buildOutline, flattenOutline, type OutlineItem } from "./outline";
 
 export type ReaderMode = "document" | "focus";
-export type SectionTitleSource = "heading" | "prompt" | "fallback";
+export type SectionTitleSource = "source" | "heading" | "prompt" | "fallback";
 
 export interface ConversationSection {
   id: string;
@@ -65,10 +65,15 @@ export function normalizeSectionTitle(value: string): string {
 }
 
 function sectionTitle(
+  sourceTitle: string | undefined,
   responseOutline: readonly OutlineItem[],
   prompt: DocumentContentBlock | null,
   sectionIndex: number,
 ): { title: string; titleSource: SectionTitleSource } {
+  const normalizedSourceTitle = conciseTitle(normalizeSectionTitle(sourceTitle ?? ""));
+  if (normalizedSourceTitle) {
+    return { title: normalizedSourceTitle, titleSource: "source" };
+  }
   const firstHeading = flattenOutline(responseOutline)[0];
   const headingTitle = conciseTitle(normalizeSectionTitle(firstHeading?.text ?? ""));
   if (headingTitle) {
@@ -96,7 +101,12 @@ export function deriveConversationSections(
 
     const index = sections.length;
     const outline = buildOutline([turn.response]);
-    const { title, titleSource } = sectionTitle(outline, turn.prompt, index);
+    const { title, titleSource } = sectionTitle(
+      turn.response.sectionTitle,
+      outline,
+      turn.prompt,
+      index,
+    );
     sections.push({
       id: `rb-section-${safeIdPart(turn.response.id)}`,
       turnId: turn.id,

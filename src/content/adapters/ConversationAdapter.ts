@@ -13,6 +13,8 @@ export interface ConversationAdapter {
   readonly capabilities: AdapterCapabilities;
   isSupportedPage(): boolean;
   shouldInjectControl?(): boolean;
+  getPageIdentity?(): string | null;
+  getOptimizeControlAnchor?(): HTMLElement | null;
   getConversationDocument(): ConversationDocument | null;
   scanConversationDocument?(options?: ConversationScanOptions): Promise<ConversationScanResult>;
   hasLatestAssistantResponse(): boolean;
